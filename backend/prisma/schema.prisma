@@ -1,0 +1,296 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+// ENUMS
+
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum PaperStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum Grade {
+  O
+  A_PLUS
+  A
+  B_PLUS
+  B
+  C
+  F
+}
+
+// USER MODELS
+
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role
+  dob       DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teacher   Teacher?
+  student   Student?
+}
+
+model Teacher {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  education         String
+  experienceYears   Int      // renamed for clarity
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User             @relation(fields: [userId], references: [id])
+  questionPapers    QuestionPaper[]
+  students          TeacherStudent[]
+  examResults       ExamResult[]
+}
+
+model Student {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  uniqueId  String   @unique
+  contact   String
+  classId   String
+  streamId  String   //direct stream reference
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user            User             @relation(fields: [userId], references: [id])
+  class           Class            @relation(fields: [classId], references: [id])
+  stream          Stream           @relation(fields: [streamId], references: [id])
+  teachers        TeacherStudent[]
+  examResults     ExamResult[]
+  semesterResults SemesterResult[]
+}
+
+// MANY TO MANY RELATION
+
+
+model TeacherStudent {
+  id         String   @id @default(uuid())
+  teacherId  String
+  studentId  String
+  assignedAt DateTime @default(now())
+
+  teacher Teacher @relation(fields: [teacherId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@unique([teacherId, studentId])
+}
+
+// CLASS MODEL
+
+
+model Class {
+  id           String   @id @default(uuid())
+  name         String
+  academicYear String   //to allow same class name across years
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  students Student[]
+
+  @@unique([name, academicYear]) 
+}
+
+// ACADEMIC STRUCTURE
+
+
+model Stream {
+  id   String @id @default(uuid())
+  name String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subjects Subject[]
+  students Student[]  //back-relation
+}
+
+model Subject {
+  id       String @id @default(uuid())
+  name     String
+  streamId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stream         Stream          @relation(fields: [streamId], references: [id])
+  chapters       Chapter[]
+  questionPapers QuestionPaper[]
+
+  @@unique([name, streamId])
+}
+
+model Chapter {
+  id        String @id @default(uuid())
+  name      String
+  subjectId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subject   Subject    @relation(fields: [subjectId], references: [id])
+  questions Question[]
+
+  @@unique([name, subjectId])
+}
+
+// QUESTION MODELS
+
+
+model Question {
+  id           String     @id @default(uuid())
+  questionText String
+  marks        Int
+  difficulty   Difficulty
+  chapterId    String
+  options      Json?      //for MCQ choices
+  answerKey    String?    //correct answer or explanation
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chapter        Chapter                @relation(fields: [chapterId], references: [id])
+  questionPapers QuestionPaperQuestion[]
+}
+
+model QuestionPaper {
+  id           String      @id @default(uuid())
+  title        String
+  totalMarks   Int
+  durationMins Int         
+  instructions String?
+  difficulty   Difficulty
+  status       PaperStatus @default(DRAFT)
+  teacherId    String
+  subjectId    String
+  templateId   String?
+  isDeleted    Boolean     @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teacher     Teacher                @relation(fields: [teacherId], references: [id])
+  subject     Subject                @relation(fields: [subjectId], references: [id])
+  template    Template?              @relation(fields: [templateId], references: [id])
+  questions   QuestionPaperQuestion[]
+  examResults ExamResult[]
+
+  @@index([teacherId])
+  @@index([subjectId])
+  @@index([status])
+}
+
+// MANY TO MANY QUESTION RELATION
+
+
+model QuestionPaperQuestion {
+  id              String @id @default(uuid())
+  questionPaperId String
+  questionId      String
+
+  createdAt DateTime @default(now())
+
+  questionPaper QuestionPaper @relation(fields: [questionPaperId], references: [id])
+  question      Question      @relation(fields: [questionId], references: [id])
+
+  @@unique([questionPaperId, questionId])
+}
+
+// EXAM RESULT MODEL
+
+
+model ExamResult {
+  id              String   @id @default(uuid())
+  teacherId       String
+  studentId       String
+  questionPaperId String
+  obtainedMarks   Float
+  examDate        DateTime //when the exam was held
+  examType        String
+  semester        Int
+  academicYear    String
+  isPassed        Boolean  @default(true)
+  remarks         String?
+
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teacher       Teacher       @relation(fields: [teacherId], references: [id])
+  student       Student       @relation(fields: [studentId], references: [id])
+  questionPaper QuestionPaper @relation(fields: [questionPaperId], references: [id])
+
+  @@unique([studentId, questionPaperId])
+  @@index([studentId])
+  @@index([questionPaperId])
+  @@index([semester])
+  @@index([academicYear])
+}
+
+// SEMESTER RESULT MODEL
+
+
+model SemesterResult {
+  id            String @id @default(uuid())
+  studentId     String
+  semester      Int
+  academicYear  String
+  sgpa          Float
+  cgpa          Float
+  totalCredits  Float
+  earnedCredits Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, semester, academicYear])
+  @@index([studentId])
+}
+
+// TEMPLATE MODEL
+
+
+model Template {
+  id      String @id @default(uuid())
+  name    String @unique
+  pattern Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  questionPapers QuestionPaper[]
+}
+

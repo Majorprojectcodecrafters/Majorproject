@@ -1,0 +1,15 @@
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import apiClient from '../lib/api';
+import { TableSkeleton } from '../components/Skeleton';
+
+export default function StudentMaterialsPage() {
+  const [typeFilter, setTypeFilter] = useState('all');
+  const { data: materials = [], isLoading, error } = useQuery({ queryKey: ['studentStudyMaterials'], queryFn: async () => (await apiClient.get('/student/documents')).data.data || [] });
+  const displayed = materials.filter((material) => typeFilter === 'all' || material.type === typeFilter);
+  const openMaterial = async (material) => {
+    const response = await apiClient.get('/student/documents/download', { params: { type: material.type === 'pyq' ? 'pyq' : 'textbooks', grade: material.grade, subject: material.subject === 'General' ? 'general' : material.subject, fileName: material.fileName }, responseType: 'blob' });
+    const url = URL.createObjectURL(response.data); window.open(url, '_blank', 'noopener,noreferrer'); setTimeout(() => URL.revokeObjectURL(url), 60000);
+  };
+  return <div className="container mx-auto px-4 py-8"><div className="mb-8"><h1 className="text-3xl font-bold text-gray-900">Study Materials</h1><p className="mt-2 text-gray-600">Textbooks and previous-year question papers uploaded by your administrator.</p></div><div className="card"><div className="mb-6 flex flex-wrap gap-3">{[['all', 'All materials'], ['textbook', 'Textbooks'], ['pyq', 'Previous Year Papers']].map(([value, label]) => <button key={value} onClick={() => setTypeFilter(value)} className={typeFilter === value ? 'btn-primary' : 'rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50'}>{label}</button>)}</div>{isLoading && <TableSkeleton rows={4} columns={4} />}{error && <p className="rounded bg-red-50 p-4 text-red-700">Unable to load study materials.</p>}{!isLoading && !error && displayed.length === 0 && <p className="text-gray-600">No study materials are available for your class and subjects yet.</p>}{!isLoading && !error && displayed.length > 0 && <div className="overflow-x-auto"><table className="w-full"><thead className="border-b border-gray-200 bg-gray-50"><tr><th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Document</th><th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Type</th><th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Subject</th><th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Action</th></tr></thead><tbody className="divide-y divide-gray-200">{displayed.map((material) => <tr key={`${material.type}-${material.fileName}`}><td className="px-4 py-3 text-sm text-gray-900">{material.name}</td><td className="px-4 py-3 text-sm text-gray-600">{material.type === 'pyq' ? 'Previous Year Paper' : 'Textbook'}</td><td className="px-4 py-3 text-sm text-gray-600">{material.subject}</td><td className="px-4 py-3"><button onClick={() => openMaterial(material)} className="text-sm font-medium text-blue-600 hover:text-blue-900">Open / Download</button></td></tr>)}</tbody></table></div>}</div></div>;
+}

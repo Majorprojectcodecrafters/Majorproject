@@ -1,0 +1,102 @@
+QPGEN FRONTEND - COMPLETE FILE STRUCTURE
+=========================================
+
+frontend/                                    # Root folder
+│
+├── package.json                            # Dependencies & scripts
+├── vite.config.js                          # Vite configuration with API proxy
+├── tailwind.config.js                      # Tailwind CSS config
+├── postcss.config.js                       # PostCSS with Tailwind
+├── index.html                              # HTML entry point
+│
+├── .env.example                            # Environment template
+├── .gitignore                              # Git ignore rules
+│
+├── README.md                               # Quick project overview
+├── SETUP_GUIDE.md                          # COMPLETE setup & run guide
+├── setup.sh                                # Setup script (Mac/Linux)
+├── setup.bat                               # Setup script (Windows)
+│
+└── src/                                    # React source code
+    │
+    ├── main.jsx                            # React entry point
+    ├── App.jsx                             # Main app component + routing
+    ├── index.css                           # Tailwind + custom styles
+    │
+    ├── contexts/
+    │   └── AuthContext.jsx                 # JWT auth state (login/logout/register)
+    │
+    ├── components/
+    │   ├── Navbar.jsx                      # Top navigation bar
+    │   └── ProtectedRoute.jsx              # Role-based route guard
+    │
+    ├── lib/
+    │   ├── api.js                          # Axios client with JWT interceptor
+    │   └── schemas.js                      # Zod validation schemas
+    │
+    └── pages/
+        ├── LoginPage.jsx                   # ✓ JWT login form
+        ├── TeacherDashboard.jsx            # ✓ List generated papers
+        ├── QPGeneratorPage.jsx             # ✓ Form to generate papers (RAG)
+        ├── PaperViewerPage.jsx             # ✓ View + download papers
+        ├── AdminDashboardPage.jsx          # ✓ Admin statistics
+        ├── AdminKnowledgeBasePage.jsx      # ✓ Upload PDFs to KB
+        └── UnauthorizedPage.jsx            # ✓ 403 error page
+
+═════════════════════════════════════════════════════════════════════
+
+TOTAL FILES CREATED: 27
+
+Core Files:
+  - 4 config files (package.json, vite, tailwind, postcss)
+  - 1 HTML entry (index.html)
+  - 3 React files (main.jsx, App.jsx, index.css)
+  - 2 contexts (AuthContext.jsx)
+  - 2 components (Navbar.jsx, ProtectedRoute.jsx)
+  - 2 lib files (api.js, schemas.js)
+  - 7 page components (LoginPage, Dashboard, Generator, Viewer, Admin×2, 404)
+  - 4 documentation files (README, SETUP_GUIDE, setup scripts)
+  - 1 env template
+
+═════════════════════════════════════════════════════════════════════
+
+KEY FEATURES IMPLEMENTED:
+
+✅ Authentication
+   - JWT login/logout
+   - localStorage persistence
+   - Auto-redirect on token expiration
+   - Demo credentials (teacher, admin)
+
+✅ Teacher Features
+   - Dashboard: List generated papers
+   - Generator: Form to create new papers via RAG
+   - Viewer: Display questions, download PDF (student & answer key versions)
+   - Status tracking: DRAFT vs PUBLISHED
+
+✅ Admin Features
+   - Dashboard: Statistics (users, subjects, papers, results)
+   - Knowledge Base: Upload PDFs (textbooks, past papers, marking schemes)
+   - Document management: Track chunks per subject/grade
+
+✅ Role-Based Access
+   - /dashboard → TEACHER only
+   - /generator → TEACHER only
+   - /paper/:id → TEACHER, ADMIN, STUDENT
+   - /admin/* → ADMIN only
+   - Unauthorized → 403 page
+
+✅ API Integration
+   - Axios client with automatic JWT attachment
+   - React Query for caching & mutations
+   - Zod schemas matching backend validation
+   - Error handling with auto-logout
+
+✅ UI/UX
+   - Tailwind CSS (clean, functional design)
+   - Loading spinners & error messages
+   - Responsive layout
+   - Badge components (status indicators)
+   - Form validation with error display
+
+═════════════════════════════════════════════════════════════════════

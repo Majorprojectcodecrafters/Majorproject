@@ -1,0 +1,62 @@
+node_modules/
+.venv/
+.chroma-venv/
+.env
+.env.local
+.env.*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.env.txt
+
+# Logs
+logs/
+*.log
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+
+# OS
+.DS_Store
+Thumbs.db
+.vscode-test/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+
+# Docker
+docker-compose.override.yml
+
+# Database
+*.sqlite
+*.sqlite3
+chroma_db/
+
+# Temporary files
+tmp/
+temp/
+dist/
+build/
+
+# PDFs (usually large)
+pdfs/**/*.pdf
+
+# Environment specific
+.env.*.local
+.env.production.local
+.env.development.local
+.env.test.local
+
+# Prisma
+prisma/migrations/**/*
+!prisma/migrations/*/
+!prisma/migrations/migration_lock.toml

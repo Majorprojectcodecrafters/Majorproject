@@ -1,0 +1,177 @@
+═════════════════════════════════════════════════════════════════════════════════
+   QPGEN FRONTEND - QUICK START (5 MINUTES)
+═════════════════════════════════════════════════════════════════════════════════
+
+📍 FRONTEND LOCATION:
+   c:\Users\Anuja Ankush Sable\Downloads\backend\frontend
+
+═════════════════════════════════════════════════════════════════════════════════
+
+🚀 STEP 1: INSTALL DEPENDENCIES (30 seconds)
+
+   cd c:\Users\Anuja Ankush Sable\Downloads\backend\frontend
+   npm install
+
+   ✓ Installs: React, Vite, Tailwind, React Query, Zod, React Router, Axios
+
+═════════════════════════════════════════════════════════════════════════════════
+
+🔌 STEP 2: ENSURE BACKEND IS RUNNING
+
+   # Open a NEW terminal and run:
+   cd c:\Users\Anuja Ankush Sable\Downloads\backend\backend
+   npm run dev
+
+   ✓ Backend should start on http://localhost:5000
+   ✓ Check: http://localhost:5000/health → HTTP 200 OK
+
+═════════════════════════════════════════════════════════════════════════════════
+
+🎨 STEP 3: START FRONTEND (in the frontend terminal)
+
+   npm run dev
+
+   ✓ Frontend starts on http://localhost:5173
+   ✓ You'll see: "Local: http://localhost:5173/"
+
+═════════════════════════════════════════════════════════════════════════════════
+
+🔐 STEP 4: LOGIN
+
+   Open http://localhost:5173 in your browser
+
+   Demo Credentials:
+
+   🧑‍🏫 TEACHER:
+      Email: teacher@school.com
+      Password: teacher123
+      
+   👨‍💼 ADMIN:
+      Email: admin@school.com
+      Password: admin123
+
+═════════════════════════════════════════════════════════════════════════════════
+
+✅ WHAT YOU GET:
+
+   Teacher Dashboard (http://localhost:5173/dashboard)
+   └─ List of generated question papers
+      └─ Click a paper to view/download
+      └─ "Generate New Paper" button
+
+   QP Generator (http://localhost:5173/generator)
+   └─ Form to create new paper
+      ├─ Select subject & chapters
+      ├─ Set difficulty, marks, duration, question counts
+      └─ Auto-generates via RAG in 10-30 seconds
+
+   Paper Viewer (http://localhost:5173/paper/:id)
+   └─ Full paper with all questions
+      ├─ Organized by MCQ / Short Answer / Long Answer sections
+      ├─ Shows answers (if viewing as teacher)
+      ├─ "Download" buttons for PDF export
+      └─ "Show Sources" toggle for RAG retrieval info
+
+   Admin Dashboard (http://localhost:5173/admin/dashboard)
+   └─ Statistics: users, subjects, papers, results
+
+   Admin Knowledge Base (http://localhost:5173/admin/knowledge-base)
+   └─ Upload PDFs to populate the knowledge base
+      ├─ Select type (Textbook, Past Paper, Marking Scheme)
+      ├─ Select subject & grade
+      └─ Auto-indexed into ChromaDB for RAG retrieval
+
+═════════════════════════════════════════════════════════════════════════════════
+
+🎯 NEXT STEPS (After First Login):
+
+   1. Teacher Flow:
+      - Go to /dashboard → see empty list initially
+      - Click "Generate New Paper" → /generator
+      - Select Physics, choose chapters, click "Generate"
+      - Wait 10-30 seconds for RAG to generate questions
+      - Review the generated paper
+      - Click "Save Paper" to store in DB
+      - Paper now appears in dashboard
+
+   2. Admin Flow:
+      - Go to /admin/dashboard → see stats
+      - Go to /admin/knowledge-base → upload PDFs
+      - Papers must have content in KB for generation to work well
+
+═════════════════════════════════════════════════════════════════════════════════
+
+📋 FILE STRUCTURE:
+
+   frontend/
+   ├── src/
+   │   ├── pages/            ← 7 page components
+   │   ├── components/       ← Navbar, ProtectedRoute
+   │   ├── contexts/         ← AuthContext (JWT auth)
+   │   ├── lib/              ← api.js (Axios), schemas.js (Zod)
+   │   ├── App.jsx           ← Main app + routing
+   │   ├── main.jsx          ← React entry
+   │   └── index.css         ← Tailwind styles
+   ├── package.json
+   ├── vite.config.js        ← Vite + API proxy
+   ├── tailwind.config.js
+   ├── index.html
+   ├── README.md
+   ├── SETUP_GUIDE.md        ← Full documentation
+   └── FILE_STRUCTURE.txt
+
+═════════════════════════════════════════════════════════════════════════════════
+
+⚡ TECH STACK:
+
+   Frontend: React 18 + Vite (5x faster than Create React App)
+   Styling: Tailwind CSS (utility-first)
+   Data: React Query (TanStack Query) for server state
+   Forms: React Hook Form + Zod for validation
+   Routing: React Router v6
+   HTTP: Axios with JWT auto-attach
+
+═════════════════════════════════════════════════════════════════════════════════
+
+🔗 IMPORTANT URLs:
+
+   Frontend:     http://localhost:5173
+   Backend API:  http://localhost:5000/api
+   API Docs:     http://localhost:5000/api-docs (Swagger)
+   Health Check: http://localhost:5000/health
+
+═════════════════════════════════════════════════════════════════════════════════
+
+❓ TROUBLESHOOTING:
+
+   Port 5173 in use?
+   → npm run dev -- --port 5174
+
+   Backend not connecting?
+   → Check .env: VITE_API_BASE_URL=http://localhost:5000/api
+   → Check backend is running: curl http://localhost:5000/health
+
+   Login fails?
+   → Check backend logs in backend folder
+   → Try a different browser / incognito window
+
+   QP generation takes too long?
+   → This is normal! RAG calls Groq API (10-30 seconds)
+   → Don't close the page during generation
+
+═════════════════════════════════════════════════════════════════════════════════
+
+📚 DOCUMENTATION:
+
+   README.md       - Quick overview
+   SETUP_GUIDE.md  - Complete guide (50+ pages)
+   FILE_STRUCTURE.txt - File organization
+
+═════════════════════════════════════════════════════════════════════════════════
+
+✅ FRONTEND IS COMPLETE AND READY TO RUN!
+
+   Questions? Check SETUP_GUIDE.md for detailed API contracts, troubleshooting,
+   and deployment instructions.
+
+═════════════════════════════════════════════════════════════════════════════════

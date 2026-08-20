@@ -1,0 +1,13 @@
+node_modules
+npm-debug.log
+.env
+.env.example
+.git
+.gitignore
+.vscode
+coverage
+logs
+.chroma-venv
+chroma_db
+pdfs
+assets

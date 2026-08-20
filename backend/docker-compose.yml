@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: school-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-school_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: school-chroma
+    ports:
+      - "8000:8000"
+    environment:
+      CHROMA_AUTH_API_IMPL: "basic_auth"
+    volumes:
+      - chroma_data:/chroma/chroma_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  backend:
+    build: .
+    container_name: school-backend
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 5000
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-school_db}
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      SCHOOL_NAME: ${SCHOOL_NAME:-School Name}
+      SCHOOL_ADDRESS: ${SCHOOL_ADDRESS:-School Address}
+      SCHOOL_PHONE: ${SCHOOL_PHONE:-000-000-0000}
+      SCHOOL_EMAIL: ${SCHOOL_EMAIL:-school@example.com}
+      SCHOOL_WEBSITE: ${SCHOOL_WEBSITE:-https://example.com}
+      CHROMA_HOST: chroma
+      CHROMA_PORT: 8000
+      CHROMA_SSL: "false"
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      chroma:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./logs:/app/logs
+    command: sh -c "npx prisma migrate deploy && npm start"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+  chroma_data:
+
+networks:
+  default:
+    name: school-network
