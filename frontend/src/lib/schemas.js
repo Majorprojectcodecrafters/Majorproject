@@ -18,6 +18,7 @@ export const registerSchema = z.object({
 
 // Question Paper Generation schema
 export const generateQPSchema = z.object({
+  title: z.string().optional(),
   subjectId: z.string().min(1, 'Subject is required'),
   chapterIds: z.array(z.string()).min(1, 'At least one chapter is required'),
   difficulty: z.enum(['EASY', 'MEDIUM', 'HARD']).default('MEDIUM'),

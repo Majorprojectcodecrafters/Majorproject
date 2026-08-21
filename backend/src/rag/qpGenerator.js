@@ -139,7 +139,7 @@ Generate a question paper in the following JSON format ONLY, no extra text:
     console.log('🤖 Generating questions with Groq...');
     const groq = getGroqClient();
     const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
       max_tokens: 4000
@@ -147,15 +147,30 @@ Generate a question paper in the following JSON format ONLY, no extra text:
 
     const responseText = completion.choices[0].message.content;
 
-    // 5. Parse JSON response
-    const cleanJson = responseText.replace(/```json|```/g, '').trim();
-    const generated = JSON.parse(cleanJson);
+    // 5. Parse JSON response safely
+    let generated;
+    try {
+      const cleanJson = responseText.replace(/```json|```/g, '').trim();
+      generated = JSON.parse(cleanJson);
+    } catch (e) {
+      const firstOpen = responseText.indexOf('{');
+      const lastClose = responseText.lastIndexOf('}');
+      if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
+        generated = JSON.parse(responseText.substring(firstOpen, lastClose + 1));
+      } else {
+        throw new Error('Failed to parse structured JSON from AI model response');
+      }
+    }
 
-    // 6. Structure final output
+    // 6. Structure final output safely
+    const mcqs = Array.isArray(generated.mcq) ? generated.mcq : [];
+    const shortAns = Array.isArray(generated.shortAnswer) ? generated.shortAnswer : [];
+    const longAns = Array.isArray(generated.longAnswer) ? generated.longAnswer : [];
+
     const allQuestions = [
-      ...generated.mcq.map(q => ({ ...q, type: 'MCQ', chapterId: chapterIds[0] })),
-      ...generated.shortAnswer.map(q => ({ ...q, type: 'SHORT', chapterId: chapterIds[0] })),
-      ...generated.longAnswer.map(q => ({ ...q, type: 'LONG', chapterId: chapterIds[0] }))
+      ...mcqs.map(q => ({ ...q, type: 'MCQ', chapterId: chapterIds[0] })),
+      ...shortAns.map(q => ({ ...q, type: 'SHORT', chapterId: chapterIds[0] })),
+      ...longAns.map(q => ({ ...q, type: 'LONG', chapterId: chapterIds[0] }))
     ];
 
     return {

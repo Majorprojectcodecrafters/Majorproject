@@ -37,6 +37,7 @@ Thumbs.db
 docker-compose.override.yml
 
 # Database
+*.db
 *.sqlite
 *.sqlite3
 chroma_db/

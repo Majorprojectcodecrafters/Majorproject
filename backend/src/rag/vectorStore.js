@@ -14,7 +14,8 @@ async function getCollection() {
   if (!collection) {
     collection = await client.getOrCreateCollection({
       name: COLLECTION_NAME,
-      metadata: { description: 'Syllabus textbooks and PYQ knowledge base' }
+      metadata: { description: 'Syllabus textbooks and PYQ knowledge base' },
+      embeddingFunction: null
     });
   }
   return collection;

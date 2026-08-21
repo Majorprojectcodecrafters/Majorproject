@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { generateQPSchema, saveQPSchema } from '../lib/schemas';
@@ -9,6 +9,7 @@ import { useToast } from '../contexts/ToastContext';
 
 export default function QPGeneratorPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { showToast } = useToast();
   const [step, setStep] = useState(1); // Step 1: Form, Step 2: Review, Step 3: Generated
   const [generatedData, setGeneratedData] = useState(null);
@@ -67,6 +68,9 @@ export default function QPGeneratorPage() {
       const response = await apiClient.post('/rag/save', data);
       return response.data.data;
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['questionPapers'] });
+    },
   });
 
   const onGenerate = async (data) => {
@@ -100,8 +104,11 @@ export default function QPGeneratorPage() {
   const onSave = async () => {
     if (!generatedData) return;
 
+    const userTitle = watch('title')?.trim();
+    const defaultTitle = `${generatedData.subject} - ${new Date().toLocaleDateString()}`;
+
     const saveData = {
-      title: `${generatedData.subject} - ${new Date().toLocaleDateString()}`,
+      title: userTitle || defaultTitle,
       subjectId: watch('subjectId'),
       totalMarks: watch('totalMarks'),
       durationMins: watch('durationMins'),
@@ -134,6 +141,18 @@ export default function QPGeneratorPage() {
       {step === 1 && (
         <div className="max-w-2xl">
           <form onSubmit={handleSubmit(onGenerate)} className="card space-y-6">
+            {/* Question Paper Title */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Question Paper Title</label>
+              <input
+                type="text"
+                placeholder="e.g. Physics Mid-Term Examination 2026 / Unit Test 1"
+                {...register('title')}
+                className="input-field mt-1 w-full"
+              />
+              <p className="mt-1 text-xs text-gray-500">Optional. Leave blank to auto-generate from subject & date.</p>
+            </div>
+
             {/* Subject */}
             <div>
               <label className="block text-sm font-medium text-gray-700">Subject *</label>
@@ -353,7 +372,11 @@ export default function QPGeneratorPage() {
               </div>
             </div>
 
-            <div className="mb-6 grid grid-cols-3 gap-4 rounded-lg bg-gray-50 p-4">
+            <div className="mb-6 grid grid-cols-4 gap-4 rounded-lg bg-gray-50 p-4">
+              <div>
+                <p className="text-sm text-gray-600">Paper Title</p>
+                <p className="font-semibold text-gray-900">{watch('title')?.trim() || `${generatedData.subject} - ${new Date().toLocaleDateString()}`}</p>
+              </div>
               <div>
                 <p className="text-sm text-gray-600">Subject</p>
                 <p className="font-semibold text-gray-900">{generatedData.subject}</p>

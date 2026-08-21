@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -9,6 +9,7 @@ import { Skeleton } from '../components/Skeleton';
 export default function PaperViewerPage() {
   const { paperId } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const { showToast } = useToast();
   const [showSources, setShowSources] = useState(false);
@@ -71,7 +72,12 @@ export default function PaperViewerPage() {
       const response = await apiClient.patch(`/question-papers/${paperId}/publish`);
       return response.data.data;
     },
-    onSuccess: () => showToast('Question paper published successfully'),
+    onSuccess: () => {
+      showToast('Question paper published successfully');
+      queryClient.invalidateQueries({ queryKey: ['paper', paperId] });
+      queryClient.invalidateQueries({ queryKey: ['questionPapers'] });
+      queryClient.invalidateQueries({ queryKey: ['studentPublishedQPs'] });
+    },
     onError: (error) => showToast(`Publish failed: ${error.response?.data?.message || error.message}`, 'error'),
   });
 

@@ -8,5 +8,5 @@ if (-not (Test-Path $python)) {
 }
 
 & $python -m pip install --upgrade pip
-& $python -m pip install -r (Join-Path $projectRoot 'requirements-chroma.txt')
+& $python -m pip install -r (Join-Path $projectRoot 'requirements.txt')
 Write-Host 'ChromaDB setup completed. Start it with: npm.cmd run chroma'

@@ -87,7 +87,7 @@ export default function AdminKnowledgeBasePage() {
     }
 
     const data = new FormData();
-    data.append('document', file);
+    data.append('pdf', file);
     data.append('type', formData.type);
     data.append('subjectId', formData.subjectId);
     data.append('subjectName', subjects.find((subject) => subject.id === formData.subjectId)?.name || 'general');
