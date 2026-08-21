@@ -34,12 +34,14 @@ const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 } // 50MB
 });
 
-// Admin routes
-router.post('/ingest',                    protect, authorize('ADMIN'), upload.single('pdf'), ragController.ingestPDF);
-router.get('/stats',                      protect, authorize('ADMIN'), ragController.getStats);
-router.delete('/pdf/:fileName',           protect, authorize('ADMIN'), ragController.deletePDF);
-router.delete('/grade/:grade',            protect, authorize('ADMIN'), ragController.deleteByGrade);
-router.delete('/subject/:subjectId',      protect, authorize('ADMIN'), ragController.deleteBySubject);
+// Knowledge Source Management (Admin & Teacher)
+router.post('/ingest',                    protect, authorize('ADMIN', 'TEACHER'), upload.single('pdf'), ragController.ingestPDF);
+router.get('/sources',                    protect, authorize('ADMIN', 'TEACHER'), ragController.getKnowledgeSources);
+router.get('/stats',                      protect, authorize('ADMIN', 'TEACHER'), ragController.getStats);
+router.delete('/source/:id',              protect, authorize('ADMIN', 'TEACHER'), ragController.deleteKnowledgeSource);
+router.delete('/pdf/:fileName',           protect, authorize('ADMIN', 'TEACHER'), ragController.deletePDF);
+router.delete('/grade/:grade',            protect, authorize('ADMIN', 'TEACHER'), ragController.deleteByGrade);
+router.delete('/subject/:subjectId',      protect, authorize('ADMIN', 'TEACHER'), ragController.deleteBySubject);
 
 // Teacher routes
 router.post('/generate', protect, authorize('TEACHER'), ragController.generateQP);

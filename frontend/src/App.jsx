@@ -119,7 +119,7 @@ function AppRoutes() {
       <Route
         path="/admin/knowledge-base"
         element={
-          <ProtectedRoute allowedRoles={['ADMIN']}>
+          <ProtectedRoute allowedRoles={['ADMIN', 'TEACHER']}>
             <AdminKnowledgeBasePage />
           </ProtectedRoute>
         }

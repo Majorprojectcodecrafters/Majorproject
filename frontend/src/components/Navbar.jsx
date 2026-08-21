@@ -33,6 +33,9 @@ export default function Navbar() {
                   <Link to="/generator" className="text-gray-600 hover:text-gray-900">
                     Generate
                   </Link>
+                  <Link to="/admin/knowledge-base" className="text-gray-600 hover:text-gray-900">
+                    Knowledge Base
+                  </Link>
                 </>
               )}
 

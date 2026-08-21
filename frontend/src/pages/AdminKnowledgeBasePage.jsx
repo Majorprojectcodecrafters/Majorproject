@@ -1,230 +1,335 @@
-import { useEffect, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
 import { Skeleton } from '../components/Skeleton';
 
 export default function AdminKnowledgeBasePage() {
-  const [uploading, setUploading] = useState(false);
-  const [jobId, setJobId] = useState(null);
-  const [file, setFile] = useState(null);
-  const [formData, setFormData] = useState({
-    type: 'textbook',
-    subjectId: '',
-    grade: '11th',
-  });
+  const queryClient = useQueryClient();
   const { showToast } = useToast();
 
-  // Fetch RAG stats
-  const { data: stats, isLoading, refetch } = useQuery({
+  const [uploading, setUploading] = useState(false);
+  const [file, setFile] = useState(null);
+  const [formData, setFormData] = useState({
+    title: '',
+    sourceType: 'TEXTBOOK',
+    classId: '',
+    subjectId: '',
+    chapterId: '',
+    topicId: '',
+    description: ''
+  });
+
+  // 1. Fetch Classes
+  const { data: classes = [] } = useQuery({
+    queryKey: ['curriculum-classes'],
+    queryFn: async () => {
+      const res = await apiClient.get('/curriculum/classes');
+      return res.data.data || [];
+    }
+  });
+
+  // 2. Fetch Subjects for Selected Class
+  const { data: subjects = [] } = useQuery({
+    queryKey: ['curriculum-subjects', formData.classId],
+    queryFn: async () => {
+      if (!formData.classId) return [];
+      const res = await apiClient.get(`/curriculum/subjects?classId=${formData.classId}`);
+      return res.data.data || [];
+    },
+    enabled: !!formData.classId
+  });
+
+  // 3. Fetch Chapters for Selected Subject
+  const { data: chapters = [] } = useQuery({
+    queryKey: ['curriculum-chapters', formData.subjectId],
+    queryFn: async () => {
+      if (!formData.subjectId) return [];
+      const res = await apiClient.get(`/curriculum/chapters?subjectId=${formData.subjectId}`);
+      return res.data.data || [];
+    },
+    enabled: !!formData.subjectId
+  });
+
+  // 4. Fetch RAG stats & Knowledge Sources List
+  const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['ragStats'],
     queryFn: async () => {
-      const response = await apiClient.get('/rag/stats');
-      return response.data.data;
-    },
-  });
-
-  // Fetch subjects for dropdown
-  const { data: subjects = [] } = useQuery({
-    queryKey: ['subjects'],
-    queryFn: async () => {
-      const response = await apiClient.get('/admin/subjects');
-      return response.data.data || [];
-    },
-  });
-
-  const { data: ingestionStatus } = useQuery({
-    queryKey: ['ingestionStatus', jobId],
-    queryFn: async () => {
-      const response = await apiClient.get(`/rag/ingest/${jobId}`);
-      return response.data.data;
-    },
-    enabled: Boolean(jobId),
-    refetchInterval: jobId ? 1500 : false,
-  });
-
-  useEffect(() => {
-    if (!ingestionStatus || !['done', 'failed'].includes(ingestionStatus.status)) return;
-
-    setUploading(false);
-    setJobId(null);
-    if (ingestionStatus.status === 'done') {
-      showToast('Document uploaded and indexed successfully');
-      setFile(null);
-      setFormData({ type: 'textbook', subjectId: '', grade: '11th' });
-      refetch();
-    } else {
-      showToast(ingestionStatus.message || 'Document ingestion failed', 'error');
+      const res = await apiClient.get('/rag/stats');
+      return res.data.data;
     }
-  }, [ingestionStatus, refetch, showToast]);
+  });
+
+  const { data: sources = [], refetch: refetchSources } = useQuery({
+    queryKey: ['knowledgeSources', formData.classId, formData.subjectId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (formData.classId) params.append('classId', formData.classId);
+      if (formData.subjectId) params.append('subjectId', formData.subjectId);
+      const res = await apiClient.get(`/rag/sources?${params.toString()}`);
+      return res.data.data || [];
+    }
+  });
 
   // Upload mutation
   const uploadMutation = useMutation({
-    mutationFn: async (formDataToSend) => {
-      const response = await apiClient.post('/rag/ingest', formDataToSend, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+    mutationFn: async (fdToSend) => {
+      const res = await apiClient.post('/rag/ingest', fdToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      return response.data.data;
+      return res.data.data;
     },
-    onSuccess: (job) => {
-      setJobId(job.jobId);
+    onSuccess: () => {
+      showToast('Knowledge source uploaded and indexed cleanly!', 'success');
+      setFile(null);
+      setFormData({
+        title: '',
+        sourceType: 'TEXTBOOK',
+        classId: formData.classId,
+        subjectId: formData.subjectId,
+        chapterId: '',
+        topicId: '',
+        description: ''
+      });
+      refetchSources();
+      queryClient.invalidateQueries({ queryKey: ['ragStats'] });
     },
+    onError: (err) => {
+      showToast(`Upload failed: ${err.response?.data?.message || err.message}`, 'error');
+    }
+  });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (sourceId) => {
+      const res = await apiClient.delete(`/rag/source/${sourceId}`);
+      return res.data;
+    },
+    onSuccess: () => {
+      showToast('Knowledge source deleted successfully', 'success');
+      refetchSources();
+      queryClient.invalidateQueries({ queryKey: ['ragStats'] });
+    }
   });
 
   const handleUpload = async (e) => {
     e.preventDefault();
-    
-    if (!formData.subjectId) {
-      showToast('Please select a subject', 'error');
+
+    if (!formData.classId || !formData.subjectId) {
+      showToast('Please select Class and Subject', 'error');
       return;
     }
 
     if (!file) {
-      showToast('Please select a document file', 'error');
+      showToast('Please select a PDF document file', 'error');
       return;
     }
 
     const data = new FormData();
     data.append('pdf', file);
-    data.append('type', formData.type);
+    data.append('title', formData.title || file.name);
+    data.append('sourceType', formData.sourceType);
+    data.append('classId', formData.classId);
     data.append('subjectId', formData.subjectId);
-    data.append('subjectName', subjects.find((subject) => subject.id === formData.subjectId)?.name || 'general');
-    data.append('grade', formData.grade);
+    if (formData.chapterId) data.append('chapterId', formData.chapterId);
+    if (formData.topicId) data.append('topicId', formData.topicId);
+    if (formData.description) data.append('description', formData.description);
 
     setUploading(true);
     try {
       await uploadMutation.mutateAsync(data);
-    } catch (error) {
-      showToast(`Upload failed: ${error.response?.data?.message || error.message}`, 'error');
+    } finally {
+      setUploading(false);
     }
-    if (!jobId) setUploading(false);
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="mb-8 text-3xl font-bold text-gray-900">Student Study Material Upload</h1>
+    <div className="container max-w-6xl mx-auto px-4 py-8">
+      <div className="mb-8 border-b pb-4">
+        <h1 className="text-2xl font-bold text-gray-900">Curriculum-Mapped Knowledge Source Management</h1>
+        <p className="text-sm text-gray-600">
+          Upload textbooks, notes, question glossaries, and PYQs mapped strictly to Curriculum Hierarchy.
+        </p>
+      </div>
 
-      <div className="grid grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Upload Form */}
-        <div className="col-span-2">
-          <div className="card">
-            <h2 className="mb-6 text-lg font-semibold text-gray-900">Upload for Students</h2>
+        <div className="md:col-span-2">
+          <div className="card space-y-4">
+            <h2 className="text-lg font-bold text-gray-900 border-b pb-2">+ Add Educational Resource</h2>
 
-            <form onSubmit={handleUpload} className="space-y-4">`r`n              <p className="rounded bg-blue-50 p-3 text-sm text-blue-900">Select <strong>Textbook</strong> or <strong>Past Question Paper</strong>, then choose its grade and subject. Students in that class and subject can access it immediately after upload.</p>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Document Type *</label>
-                <select
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  className="input-field mt-1 w-full"
-                >
-                  <option value="textbook">Textbook</option>
-                  <option value="pyq">Past Question Paper</option>
-                </select>
+            <form onSubmit={handleUpload} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Source Type */}
+                <div>
+                  <label className="label">Resource Type *</label>
+                  <select
+                    value={formData.sourceType}
+                    onChange={(e) => setFormData({ ...formData, sourceType: e.target.value })}
+                    className="input-field"
+                  >
+                    <option value="TEXTBOOK">Textbook (Official)</option>
+                    <option value="CHAPTER_NOTES">Chapter Notes</option>
+                    <option value="TEACHER_NOTES">Teacher Notes</option>
+                    <option value="QUESTION_GLOSSARY">Question Glossary</option>
+                    <option value="QUESTION_BANK">Question Bank</option>
+                    <option value="PREVIOUS_BOARD_PAPER">Previous Board Paper</option>
+                    <option value="SAMPLE_PAPER">Sample / Model Paper</option>
+                    <option value="REFERENCE_MATERIAL">Reference Material</option>
+                    <option value="STUDY_MATERIAL">Study Material</option>
+                    <option value="OTHER">Other Resource</option>
+                  </select>
+                </div>
+
+                {/* Document Title */}
+                <div>
+                  <label className="label">Resource Title</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. HSC 12th Physics Textbook 2026 Edition"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Subject *</label>
-                <select
-                  value={formData.subjectId}
-                  onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
-                  className="input-field mt-1 w-full"
-                >
-                  <option value="">Select a subject</option>
-                  {subjects.map((subject) => (
-                    <option key={subject.id} value={subject.id}>
-                      {subject.name}
-                    </option>
-                  ))}
-                </select>
+              {/* Class & Subject Cascading Selection */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Class / Standard *</label>
+                  <select
+                    value={formData.classId}
+                    onChange={(e) => setFormData({ ...formData, classId: e.target.value, subjectId: '', chapterId: '' })}
+                    className="input-field"
+                  >
+                    <option value="">-- Select Class --</option>
+                    {classes.map((cls) => (
+                      <option key={cls.id} value={cls.id}>
+                        {cls.name} ({cls.stream?.name || 'Science'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">Subject *</label>
+                  <select
+                    value={formData.subjectId}
+                    onChange={(e) => setFormData({ ...formData, subjectId: e.target.value, chapterId: '' })}
+                    className="input-field"
+                    disabled={!formData.classId}
+                  >
+                    <option value="">-- Select Subject --</option>
+                    {subjects.map((sub) => (
+                      <option key={sub.id} value={sub.id}>
+                        {sub.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Grade *</label>
-                <select
-                  value={formData.grade}
-                  onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
-                  className="input-field mt-1 w-full"
-                >
-                  <option value="11th">11th</option>
-                  <option value="12th">12th</option>
-                </select>
-              </div>
+              {/* Chapter & Topic Mapping (Optional for full subject resources) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Chapter Mapping (Optional)</label>
+                  <select
+                    value={formData.chapterId}
+                    onChange={(e) => setFormData({ ...formData, chapterId: e.target.value })}
+                    className="input-field"
+                    disabled={!formData.subjectId}
+                  >
+                    <option value="">-- Entire Subject --</option>
+                    {chapters.map((ch) => (
+                      <option key={ch.id} value={ch.id}>
+                        {ch.chapterNo ? `Ch ${ch.chapterNo}: ` : ''}{ch.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Document File *</label>
-                <input
-                  type="file"
-                  accept=".pdf,.docx,.pptx,.xlsx,.xls,.odt,.odp,.ods,.rtf,.csv,.txt,.md,.html,.htm,.epub,.png,.jpg,.jpeg,.webp,.bmp,.tif,.tiff"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  className="input-field mt-1 w-full"
-                />
-                {file && <p className="mt-1 text-sm text-gray-600">Selected: {file.name}</p>}
+                <div>
+                  <label className="label">Document File (PDF) *</label>
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    className="input-field"
+                  />
+                  {file && <p className="mt-1 text-xs text-gray-600 font-medium">Selected: {file.name}</p>}
+                </div>
               </div>
 
               <button
                 type="submit"
-                disabled={uploading || !file || !formData.subjectId}
+                disabled={uploading || !file || !formData.classId || !formData.subjectId}
                 className="btn-primary w-full"
               >
-                {uploading ? 'Processing...' : 'Upload Document'}
+                {uploading ? '🤖 Processing & Indexing into ChromaDB...' : '📤 Upload & Index Knowledge Source'}
               </button>
-              {uploading && ingestionStatus && (
-                <div className="rounded bg-blue-50 p-3" aria-live="polite">
-                  <div className="mb-1 flex justify-between text-sm text-blue-900">
-                    <span>{ingestionStatus.message}</span>
-                    <span>{ingestionStatus.progress}%</span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded bg-blue-100">
-                    <div
-                      className="h-full bg-blue-600 transition-all"
-                      style={{ width: `${ingestionStatus.progress}%` }}
-                    />
-                  </div>
-                </div>
-              )}
             </form>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="col-span-1">
+        {/* Stats Column */}
+        <div className="md:col-span-1 space-y-4">
           <div className="card">
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">Knowledge Base Stats</h2>
-
-            {isLoading ? (
-              <div className="space-y-3">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-8 w-32" />
-                <Skeleton className="h-16 w-full" />
-              </div>
+            <h2 className="text-base font-bold text-gray-900 mb-3 border-b pb-2">Vector DB Stats</h2>
+            {statsLoading ? (
+              <Skeleton className="h-16 w-full" />
             ) : stats ? (
-              <div className="space-y-4">
-                <div className="rounded bg-blue-50 p-3">
-                  <p className="text-sm text-gray-600">Total Chunks</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.totalChunks || 0}</p>
+              <div className="space-y-3 text-xs">
+                <div className="bg-blue-50 p-3 rounded border border-blue-100">
+                  <span className="text-blue-700 block">Total Vectors & Chunks</span>
+                  <span className="text-2xl font-bold text-blue-900">{stats.totalChunks || 0}</span>
                 </div>
-                <div className="rounded bg-green-50 p-3">
-                  <p className="text-sm text-gray-600">Collection</p>
-                  <p className="text-sm font-medium text-gray-900">{stats.collection}</p>
+                <div className="bg-green-50 p-3 rounded border border-green-100">
+                  <span className="text-green-700 block">Indexed Sources</span>
+                  <span className="text-xl font-bold text-green-900">{stats.totalSources || 0}</span>
                 </div>
               </div>
             ) : (
-              <p className="text-gray-600">No data</p>
+              <p className="text-xs text-gray-500">No stats available</p>
             )}
           </div>
         </div>
       </div>
 
-      {/* Documents Table */}
-      <div className="card mt-8">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Uploaded Documents</h2>
-        <p className="text-gray-600">
-          Note: Document management features can be expanded to show ingestion status,
-          delete/deprecate options, and per-document chunk counts.
-        </p>
+      {/* Indexed Knowledge Sources List */}
+      <div className="card mt-8 space-y-4">
+        <h2 className="text-lg font-bold text-gray-900 border-b pb-2">Indexed Curriculum Knowledge Sources</h2>
+
+        {sources.length === 0 ? (
+          <p className="text-xs text-gray-500 italic py-4">No curriculum knowledge sources uploaded yet.</p>
+        ) : (
+          <div className="divide-y max-h-96 overflow-y-auto">
+            {sources.map((src) => (
+              <div key={src.id} className="py-3 flex flex-wrap items-center justify-between gap-4 text-xs">
+                <div className="space-y-1 max-w-lg">
+                  <div className="font-bold text-gray-900 text-sm">{src.title}</div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-semibold">{src.sourceType}</span>
+                    <span className="text-gray-600">{src.class?.name || 'Class'} • {src.subject?.name || 'Subject'}</span>
+                    {src.chapter && <span className="text-gray-500">• {src.chapter.name}</span>}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className={`px-2 py-1 rounded text-xs font-semibold ${src.status === 'PROCESSED' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
+                    {src.status}
+                  </span>
+                  <button
+                    onClick={() => deleteMutation.mutate(src.id)}
+                    className="text-red-600 hover:text-red-800 font-semibold"
+                  >
+                    Delete 🗑️
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

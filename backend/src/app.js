@@ -67,12 +67,17 @@ app.use((req, res, next) => {
   next();
 });
 
+const patternRoutes = require('./routes/pattern.routes');
+const curriculumRoutes = require('./routes/curriculum.routes');
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/student', studentRoutes);
 app.use('/api/rag', ragRoutes);
+app.use('/api/patterns', patternRoutes);
+app.use('/api/curriculum', curriculumRoutes);
 app.use('/api/question-papers', qpRoutes);
 
 app.get('/', (req, res) => {

@@ -39,6 +39,39 @@ enum Grade {
   F
 }
 
+enum PatternMode {
+  BOARD
+  CUSTOM
+}
+
+enum QuestionType {
+  MCQ
+  VERY_SHORT
+  SHORT
+  LONG
+}
+
+enum SourceType {
+  TEXTBOOK
+  CHAPTER_NOTES
+  TEACHER_NOTES
+  QUESTION_GLOSSARY
+  QUESTION_BANK
+  PREVIOUS_BOARD_PAPER
+  SAMPLE_PAPER
+  REFERENCE_MATERIAL
+  STUDY_MATERIAL
+  OTHER
+}
+
+enum SourceStatus {
+  UPLOADED
+  PROCESSING
+  PROCESSED
+  FAILED
+  DISABLED
+}
+
 // USER MODELS
 
 
@@ -70,6 +103,7 @@ model Teacher {
   questionPapers    QuestionPaper[]
   students          TeacherStudent[]
   examResults       ExamResult[]
+  customPatterns    CustomPattern[]
 }
 
 model Student {
@@ -109,93 +143,238 @@ model TeacherStudent {
 // CLASS MODEL
 
 
-model Class {
-  id           String   @id @default(uuid())
-  name         String
-  academicYear String   //to allow same class name across years
+// ACADEMIC HIERARCHY & CURRICULUM
+
+model Board {
+  id        String   @id @default(uuid())
+  name      String   @unique // e.g. "Maharashtra State Board"
+  code      String   @unique // e.g. "MSBSHSE"
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  students Student[]
-
-  @@unique([name, academicYear]) 
+  streams           Stream[]
+  classes           Class[]
+  knowledgeSources  KnowledgeSource[]
+  chapterWeightages ChapterWeightage[]
 }
 
-// ACADEMIC STRUCTURE
-
-
-model Stream {
-  id   String @id @default(uuid())
-  name String @unique
+model Class {
+  id           String   @id @default(uuid())
+  name         String   // "11th Standard", "12th Standard"
+  academicYear String   @default("2026-2027")
+  streamId     String?
+  boardId      String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  subjects Subject[]
-  students Student[]  //back-relation
+  stream            Stream?            @relation(fields: [streamId], references: [id])
+  board             Board?             @relation(fields: [boardId], references: [id])
+  classSubjects     ClassSubject[]
+  students          Student[]
+  knowledgeSources  KnowledgeSource[]
+  chapterWeightages ChapterWeightage[]
+
+  @@unique([name, academicYear, streamId]) 
+}
+
+model Stream {
+  id      String  @id @default(uuid())
+  name    String  // "Science", "Commerce", "Arts"
+  boardId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  board             Board?             @relation(fields: [boardId], references: [id])
+  classes           Class[]
+  subjects          Subject[]
+  students          Student[]
+  knowledgeSources  KnowledgeSource[]
+  chapterWeightages ChapterWeightage[]
+
+  @@unique([name, boardId])
 }
 
 model Subject {
-  id       String @id @default(uuid())
+  id       String  @id @default(uuid())
   name     String
+  code     String?
   streamId String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  stream         Stream          @relation(fields: [streamId], references: [id])
-  chapters       Chapter[]
-  questionPapers QuestionPaper[]
+  stream            Stream             @relation(fields: [streamId], references: [id])
+  classSubjects     ClassSubject[]
+  units             Unit[]
+  chapters          Chapter[]
+  questionPapers    QuestionPaper[]
+  knowledgeSources  KnowledgeSource[]
+  chapterWeightages ChapterWeightage[]
 
   @@unique([name, streamId])
 }
 
-model Chapter {
+model ClassSubject {
+  id        String @id @default(uuid())
+  classId   String
+  subjectId String
+
+  class   Class   @relation(fields: [classId], references: [id])
+  subject Subject @relation(fields: [subjectId], references: [id])
+
+  @@unique([classId, subjectId])
+}
+
+model Unit {
   id        String @id @default(uuid())
   name      String
+  order     Int    @default(1)
   subjectId String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  subject   Subject    @relation(fields: [subjectId], references: [id])
-  questions Question[]
+  subject           Subject            @relation(fields: [subjectId], references: [id])
+  chapters          Chapter[]
+  knowledgeSources  KnowledgeSource[]
+  chapterWeightages ChapterWeightage[]
 
   @@unique([name, subjectId])
+}
+
+model Chapter {
+  id        String  @id @default(uuid())
+  chapterNo Int?
+  name      String
+  subjectId String
+  unitId    String?
+  pageStart Int?
+  pageEnd   Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subject           Subject            @relation(fields: [subjectId], references: [id])
+  unit              Unit?              @relation(fields: [unitId], references: [id])
+  topics            Topic[]
+  questions         Question[]
+  knowledgeSources  KnowledgeSource[]
+  chapterWeightages ChapterWeightage[]
+
+  @@unique([name, subjectId])
+}
+
+model Topic {
+  id        String  @id @default(uuid())
+  topicNo   String?
+  name      String
+  chapterId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chapter          Chapter           @relation(fields: [chapterId], references: [id])
+  questions        Question[]
+  knowledgeSources KnowledgeSource[]
+
+  @@unique([name, chapterId])
+}
+
+model ChapterWeightage {
+  id              String  @id @default(uuid())
+  boardId         String?
+  streamId        String?
+  classId         String?
+  subjectId       String
+  unitId          String?
+  chapterId       String?
+  marks           Int     // Prescribed marks without option
+  marksWithOption Int     // Prescribed marks with option
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  board   Board?   @relation(fields: [boardId], references: [id])
+  stream  Stream?  @relation(fields: [streamId], references: [id])
+  class   Class?   @relation(fields: [classId], references: [id])
+  subject Subject  @relation(fields: [subjectId], references: [id])
+  unit    Unit?    @relation(fields: [unitId], references: [id])
+  chapter Chapter? @relation(fields: [chapterId], references: [id])
+}
+
+model KnowledgeSource {
+  id          String       @id @default(uuid())
+  title       String
+  sourceType  SourceType   @default(TEXTBOOK)
+  fileName    String
+  filePath    String
+  fileSize    Int?
+  status      SourceStatus @default(PROCESSED)
+  uploadedBy  String       // User ID
+  description String?
+  boardId     String?
+  streamId    String?
+  classId     String?
+  subjectId   String?
+  unitId      String?
+  chapterId   String?
+  topicId     String?
+  pageStart   Int?
+  pageEnd     Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  board   Board?   @relation(fields: [boardId], references: [id])
+  stream  Stream?  @relation(fields: [streamId], references: [id])
+  class   Class?   @relation(fields: [classId], references: [id])
+  subject Subject? @relation(fields: [subjectId], references: [id])
+  unit    Unit?    @relation(fields: [unitId], references: [id])
+  chapter Chapter? @relation(fields: [chapterId], references: [id])
+  topic   Topic?   @relation(fields: [topicId], references: [id])
 }
 
 // QUESTION MODELS
 
 
 model Question {
-  id           String     @id @default(uuid())
+  id           String       @id @default(uuid())
   questionText String
   marks        Int
   difficulty   Difficulty
+  questionType QuestionType @default(SHORT)
   chapterId    String
-  options      Json?      //for MCQ choices
-  answerKey    String?    //correct answer or explanation
+  topicId      String?
+  options      Json?        //for MCQ choices
+  answerKey    String?      //correct answer or explanation
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   chapter        Chapter                @relation(fields: [chapterId], references: [id])
+  topic          Topic?                 @relation(fields: [topicId], references: [id])
   questionPapers QuestionPaperQuestion[]
 }
 
 model QuestionPaper {
-  id           String      @id @default(uuid())
-  title        String
-  totalMarks   Int
-  durationMins Int         
-  instructions String?
-  difficulty   Difficulty
-  status       PaperStatus @default(DRAFT)
-  teacherId    String
-  subjectId    String
-  templateId   String?
-  isDeleted    Boolean     @default(false)
+  id             String      @id @default(uuid())
+  title          String
+  totalMarks     Int
+  durationMins   Int         
+  instructions   String?
+  difficulty     Difficulty
+  status         PaperStatus @default(DRAFT)
+  patternMode    PatternMode @default(CUSTOM)
+  board          String?     // e.g. "Maharashtra State Board"
+  patternVersion String?     // e.g. "2024 Reference Pattern"
+  patternData    Json?       // Full pattern snapshot at generation time
+  teacherId      String
+  subjectId      String
+  templateId     String?
+  isDeleted      Boolean     @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -209,6 +388,24 @@ model QuestionPaper {
   @@index([teacherId])
   @@index([subjectId])
   @@index([status])
+}
+
+// CUSTOM PATTERN MODEL
+
+model CustomPattern {
+  id           String      @id @default(uuid())
+  name         String
+  teacherId    String
+  totalMarks   Int
+  durationMins Int
+  patternData  Json        // Stores custom section configurations
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teacher Teacher @relation(fields: [teacherId], references: [id])
+
+  @@index([teacherId])
 }
 
 // MANY TO MANY QUESTION RELATION

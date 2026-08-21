@@ -14,28 +14,36 @@ async function getCollection() {
   if (!collection) {
     collection = await client.getOrCreateCollection({
       name: COLLECTION_NAME,
-      metadata: { description: 'Syllabus textbooks and PYQ knowledge base' },
+      metadata: { description: 'Syllabus textbooks, notes, and question knowledge base' },
       embeddingFunction: null
     });
   }
   return collection;
 }
 
-// Store chunks with embeddings and metadata
+// Store chunks with complete curriculum & source metadata
 async function storeChunks(chunks, embeddings, metadata) {
   const col = await getCollection();
 
-  const ids = chunks.map((_, i) => `${metadata.fileName}_${metadata.type}_chunk_${Date.now()}_${i}`);
+  const ids = chunks.map((_, i) => `${metadata.fileName}_${metadata.sourceType || 'TEXTBOOK'}_chunk_${Date.now()}_${i}`);
   const documents = chunks.map(c => c.text);
-  const metadatas = chunks.map(c => ({
+  const metadatas = chunks.map((c, i) => ({
     source: metadata.fileName,
-    type: metadata.type,
+    sourceType: metadata.sourceType || metadata.type || 'TEXTBOOK',
+    boardId: metadata.boardId || '',
+    streamId: metadata.streamId || '',
+    classId: metadata.classId || '',
+    className: metadata.className || '',
     subjectId: metadata.subjectId || '',
     subjectName: metadata.subjectName || '',
+    unitId: metadata.unitId || '',
     chapterId: metadata.chapterId || '',
     chapterName: metadata.chapterName || '',
+    topicId: metadata.topicId || '',
+    knowledgeSourceId: metadata.knowledgeSourceId || '',
     grade: metadata.grade || '',
-    chunkId: c.metadata.chunkId
+    pageNumber: String(c.metadata?.pageNumber || c.metadata?.page || ''),
+    chunkId: String(c.metadata?.chunkId || i)
   }));
 
   await col.add({
@@ -45,10 +53,27 @@ async function storeChunks(chunks, embeddings, metadata) {
     metadatas
   });
 
-  console.log(`✅ Stored ${chunks.length} chunks in ChromaDB`);
+  console.log(`✅ Stored ${chunks.length} chunks in ChromaDB with complete curriculum metadata`);
 }
 
-// Query relevant chunks — accepts pre-built filters directly
+// Build strict curriculum-isolated ChromaDB query filter
+function buildCurriculumFilter({ boardId, streamId, classId, subjectId, chapterId, topicId, sourceType }) {
+  const conditions = [];
+
+  if (classId)     conditions.push({ classId: { $eq: classId } });
+  if (subjectId)   conditions.push({ subjectId: { $eq: subjectId } });
+  if (chapterId)   conditions.push({ chapterId: { $eq: chapterId } });
+  if (topicId)     conditions.push({ topicId: { $eq: topicId } });
+  if (sourceType)  conditions.push({ sourceType: { $eq: sourceType } });
+  if (boardId)     conditions.push({ boardId: { $eq: boardId } });
+  if (streamId)    conditions.push({ streamId: { $eq: streamId } });
+
+  if (conditions.length === 0) return {};
+  if (conditions.length === 1) return conditions[0];
+  return { $and: conditions };
+}
+
+// Query relevant chunks with curriculum metadata filtering
 async function queryChunks(queryEmbedding, filters = {}, topK = 10) {
   const col = await getCollection();
 
@@ -58,12 +83,15 @@ async function queryChunks(queryEmbedding, filters = {}, topK = 10) {
     include: ['documents', 'metadatas', 'distances']
   };
 
-  // Pass filters directly — supports $and, $or, $eq etc.
   if (Object.keys(filters).length > 0) {
     queryParams.where = filters;
   }
 
   const results = await col.query(queryParams);
+
+  if (!results || !results.documents || !results.documents[0]) {
+    return [];
+  }
 
   return results.documents[0].map((doc, i) => ({
     text: doc,
@@ -86,11 +114,11 @@ async function deleteBySource(fileName) {
   console.log(`🗑️ Deleted chunks for: ${fileName}`);
 }
 
-// Delete chunks by grade
-async function deleteByGrade(grade) {
+// Delete chunks by knowledge source ID
+async function deleteBySourceId(knowledgeSourceId) {
   const col = await getCollection();
-  await col.delete({ where: { grade: { $eq: grade } } });
-  console.log(`🗑️ Deleted chunks for grade: ${grade}`);
+  await col.delete({ where: { knowledgeSourceId: { $eq: knowledgeSourceId } } });
+  console.log(`🗑️ Deleted chunks for knowledgeSourceId: ${knowledgeSourceId}`);
 }
 
 // Delete chunks by subject
@@ -100,4 +128,20 @@ async function deleteBySubject(subjectId) {
   console.log(`🗑️ Deleted chunks for subjectId: ${subjectId}`);
 }
 
-module.exports = { storeChunks, queryChunks, getStats, deleteBySource, deleteByGrade, deleteBySubject };
+// Delete chunks by grade
+async function deleteByGrade(grade) {
+  const col = await getCollection();
+  await col.delete({ where: { grade: { $eq: grade } } });
+  console.log(`🗑️ Deleted chunks for grade: ${grade}`);
+}
+
+module.exports = {
+  storeChunks,
+  queryChunks,
+  buildCurriculumFilter,
+  getStats,
+  deleteBySource,
+  deleteBySourceId,
+  deleteBySubject,
+  deleteByGrade
+};

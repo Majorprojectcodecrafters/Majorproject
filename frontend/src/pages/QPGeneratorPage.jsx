@@ -1,17 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { generateQPSchema, saveQPSchema } from '../lib/schemas';
+import { generateQPSchema } from '../lib/schemas';
 import apiClient from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
+import CustomPatternBuilder from '../components/CustomPatternBuilder';
+import CustomTopicWeightage from '../components/CustomTopicWeightage';
 
 export default function QPGeneratorPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
-  const [step, setStep] = useState(1); // Step 1: Form, Step 2: Review, Step 3: Generated
+
+  const [step, setStep] = useState(1); // 1: Class & Subject, 2: Pattern & Scope, 3: Weightage, 4: Preview/Generate, 5: Review
+  const [selectedClassId, setSelectedClassId] = useState('');
+  const [patternMode, setPatternMode] = useState('BOARD'); // 'BOARD' | 'CUSTOM'
+  const [selectedBoardPattern, setSelectedBoardPattern] = useState(null);
+  const [boardPatternLoading, setBoardPatternLoading] = useState(false);
+  const [boardPatternError, setBoardPatternError] = useState(null);
+
+  const [customPatternData, setCustomPatternData] = useState(null);
+  const [customTopicWeightages, setCustomTopicWeightages] = useState({});
+  const [targetTotalMarks, setTargetTotalMarks] = useState(70);
+  const [durationMins, setDurationMins] = useState(180);
+
   const [generatedData, setGeneratedData] = useState(null);
   const [generating, setGenerating] = useState(false);
 
@@ -19,47 +33,102 @@ export default function QPGeneratorPage() {
     register,
     handleSubmit,
     watch,
-    formState: { errors },
-    reset,
+    setValue,
+    formState: { errors }
   } = useForm({
     resolver: zodResolver(generateQPSchema),
     defaultValues: {
       difficulty: 'MEDIUM',
-      totalMarks: 50,
-      durationMins: 60,
-      mcqCount: 5,
-      shortCount: 3,
-      longCount: 2,
-    },
+      totalMarks: 70,
+      durationMins: 180,
+      patternMode: 'BOARD',
+      chapterIds: []
+    }
   });
 
-  // Fetch subjects
+  // 1. Fetch Classes (Class-First Cascading)
+  const { data: classes = [] } = useQuery({
+    queryKey: ['curriculum-classes'],
+    queryFn: async () => {
+      const res = await apiClient.get('/curriculum/classes');
+      return res.data.data || [];
+    }
+  });
+
+  // Default to 12th Standard if available
+  useEffect(() => {
+    if (classes.length > 0 && !selectedClassId) {
+      const cls12 = classes.find(c => c.name.includes('12th'));
+      if (cls12) setSelectedClassId(cls12.id);
+      else setSelectedClassId(classes[0].id);
+    }
+  }, [classes, selectedClassId]);
+
+  // 2. Fetch Subjects for Selected Class
   const { data: subjects = [] } = useQuery({
-    queryKey: ['subjects'],
+    queryKey: ['curriculum-subjects', selectedClassId],
     queryFn: async () => {
-      const response = await apiClient.get('/teacher/subjects');
-      return response.data.data || [];
+      if (!selectedClassId) return [];
+      const res = await apiClient.get(`/curriculum/subjects?classId=${selectedClassId}`);
+      return res.data.data || [];
     },
+    enabled: !!selectedClassId
   });
 
-  // Fetch chapters for selected subject
-  const selectedSubject = watch('subjectId');
+  const selectedSubjectId = watch('subjectId');
+  const selectedSubjectObj = subjects.find(s => s.id === selectedSubjectId);
+
+  // 3. Fetch Chapters & Weightages for Selected Subject
   const { data: chapters = [] } = useQuery({
-    queryKey: ['chapters', selectedSubject],
+    queryKey: ['curriculum-chapters', selectedSubjectId],
     queryFn: async () => {
-      if (!selectedSubject) return [];
-      const response = await apiClient.get(`/teacher/subjects/${selectedSubject}/chapters`);
-      return response.data.data || [];
+      if (!selectedSubjectId) return [];
+      const res = await apiClient.get(`/curriculum/chapters?subjectId=${selectedSubjectId}`);
+      return res.data.data || [];
     },
-    enabled: !!selectedSubject,
+    enabled: !!selectedSubjectId
   });
+
+  const { data: dbWeightages = [] } = useQuery({
+    queryKey: ['curriculum-weightage', selectedClassId, selectedSubjectId],
+    queryFn: async () => {
+      if (!selectedSubjectId) return [];
+      const res = await apiClient.get(`/curriculum/weightage?classId=${selectedClassId}&subjectId=${selectedSubjectId}`);
+      return res.data.data || [];
+    },
+    enabled: !!selectedSubjectId
+  });
+
+  // Auto-load Board Pattern when subject is selected & mode is BOARD
+  useEffect(() => {
+    if (selectedSubjectObj && patternMode === 'BOARD') {
+      setBoardPatternLoading(true);
+      setBoardPatternError(null);
+
+      apiClient.get(`/patterns/board/${encodeURIComponent(selectedSubjectObj.name)}`)
+        .then(res => {
+          setSelectedBoardPattern(res.data.data);
+          setTargetTotalMarks(res.data.data.totalMarks);
+          setDurationMins(res.data.data.durationMins);
+          setValue('totalMarks', res.data.data.totalMarks);
+          setValue('durationMins', res.data.data.durationMins);
+        })
+        .catch(err => {
+          setSelectedBoardPattern(null);
+          setBoardPatternError(err.response?.data?.message || 'Board pattern unavailable for this subject');
+        })
+        .finally(() => {
+          setBoardPatternLoading(false);
+        });
+    }
+  }, [selectedSubjectObj, patternMode, setValue]);
 
   // Generate QP mutation
   const generateMutation = useMutation({
     mutationFn: async (data) => {
       const response = await apiClient.post('/rag/generate', data);
       return response.data.data;
-    },
+    }
   });
 
   // Save QP mutation
@@ -67,403 +136,471 @@ export default function QPGeneratorPage() {
     mutationFn: async (data) => {
       const response = await apiClient.post('/rag/save', data);
       return response.data.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['questionPapers'] });
-    },
+    }
   });
 
-  const onGenerate = async (data) => {
-    setGenerating(true);
-    try {
-      const result = await generateMutation.mutateAsync(data);
-      setGeneratedData(result);
-      setStep(2);
-    } catch (error) {
-      showToast(`Generation failed: ${error.response?.data?.message || error.message}`, 'error');
+  const onSubmitForm = async (formData) => {
+    if (!selectedClassId) {
+      showToast('Please select a class first', 'error');
+      return;
     }
-    setGenerating(false);
+
+    if (patternMode === 'CUSTOM' && !customPatternData) {
+      showToast('Please build and save your custom pattern structure', 'error');
+      return;
+    }
+
+    try {
+      setGenerating(true);
+
+      const payload = {
+        classId: selectedClassId,
+        subjectId: formData.subjectId,
+        chapterIds: formData.chapterIds && formData.chapterIds.length ? formData.chapterIds : chapters.map(c => c.id),
+        difficulty: formData.difficulty,
+        totalMarks: targetTotalMarks,
+        durationMins,
+        instructions: formData.instructions,
+        patternMode,
+        patternData: patternMode === 'BOARD' ? selectedBoardPattern : customPatternData,
+        customTopicWeightages: patternMode === 'CUSTOM' ? customTopicWeightages : null
+      };
+
+      const result = await generateMutation.mutateAsync(payload);
+      setGeneratedData(result);
+      setStep(5); // Move to review step
+      showToast('Question paper generated successfully!', 'success');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to generate question paper', 'error');
+    } finally {
+      setGenerating(false);
+    }
   };
 
-  const updateQuestion = (questionIndex, updates) => {
-    setGeneratedData((current) => ({
-      ...current,
-      questions: current.questions.map((question, index) =>
-        index === questionIndex ? { ...question, ...updates } : question
-      )
-    }));
-  };
-
-  const removeQuestion = (questionIndex) => {
-    setGeneratedData((current) => ({
-      ...current,
-      questions: current.questions.filter((_, index) => index !== questionIndex)
-    }));
-  };
-
-  const onSave = async () => {
+  const handleSavePaper = async () => {
     if (!generatedData) return;
 
-    const userTitle = watch('title')?.trim();
-    const defaultTitle = `${generatedData.subject} - ${new Date().toLocaleDateString()}`;
-
-    const saveData = {
-      title: userTitle || defaultTitle,
-      subjectId: watch('subjectId'),
-      totalMarks: watch('totalMarks'),
-      durationMins: watch('durationMins'),
-      instructions: watch('instructions'),
-      difficulty: watch('difficulty'),
-      questions: generatedData.questions.map((q) => ({
-        questionText: q.questionText,
-        marks: q.marks,
-        difficulty: q.difficulty,
-        options: q.options,
-        answerKey: q.answerKey,
-        chapterId: q.chapterId,
-      })),
-    };
-
     try {
-      await saveMutation.mutateAsync(saveData);
-      showToast('Question paper saved successfully');
-      navigate('/dashboard');
-    } catch (error) {
-      showToast(`Save failed: ${error.response?.data?.message || error.message}`, 'error');
+      const titleInput = watch('title');
+      const payload = {
+        title: titleInput || `${generatedData.subject} ${generatedData.patternMode === 'BOARD' ? 'Board' : 'Custom'} Exam Paper`,
+        subjectId: generatedData.subjectId,
+        totalMarks: generatedData.totalMarks,
+        durationMins: generatedData.durationMins,
+        instructions: watch('instructions'),
+        difficulty: generatedData.difficulty,
+        patternMode: generatedData.patternMode,
+        board: generatedData.board,
+        patternVersion: generatedData.patternVersion,
+        patternData: generatedData.patternData,
+        questions: generatedData.questions
+      };
+
+      const savedQP = await saveMutation.mutateAsync(payload);
+      showToast('Question paper saved cleanly!', 'success');
+
+      // Invalidate queries so dashboard reloads with new paper
+      queryClient.invalidateQueries({ queryKey: ['teacher-question-papers'] });
+      queryClient.invalidateQueries({ queryKey: ['question-papers'] });
+
+      navigate(`/papers/${savedQP.id}`);
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to save question paper', 'error');
     }
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="mb-8 text-3xl font-bold text-gray-900">Generate Question Paper</h1>
+    <div className="container max-w-6xl mx-auto py-8 px-4">
+      {/* Header */}
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b pb-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Question Paper Generator</h1>
+          <p className="text-sm text-gray-600">Curriculum-Aware RAG Engine for Board & Custom Paper Patterns</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-gray-500">Step {step} of 5</span>
+        </div>
+      </div>
 
-      {/* Step 1: Form */}
-      {step === 1 && (
-        <div className="max-w-2xl">
-          <form onSubmit={handleSubmit(onGenerate)} className="card space-y-6">
-            {/* Question Paper Title */}
+      {/* Workflow Progress Steps */}
+      <div className="mb-8 grid grid-cols-5 gap-2">
+        <div className={`p-2 rounded text-center text-xs font-semibold ${step === 1 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
+          1. Class & Subject
+        </div>
+        <div className={`p-2 rounded text-center text-xs font-semibold ${step === 2 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
+          2. Paper Pattern
+        </div>
+        <div className={`p-2 rounded text-center text-xs font-semibold ${step === 3 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
+          3. Syllabus & Weightage
+        </div>
+        <div className={`p-2 rounded text-center text-xs font-semibold ${step === 4 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
+          4. Preview Config
+        </div>
+        <div className={`p-2 rounded text-center text-xs font-semibold ${step === 5 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
+          5. Review Questions
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-6">
+        {/* ================= STEP 1: CLASS & SUBJECT SELECTION ================= */}
+        {step === 1 && (
+          <div className="card space-y-6">
+            <h2 className="text-lg font-bold text-gray-900 border-b pb-2">Step 1: Select Academic Scope</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Class Dropdown */}
+              <div>
+                <label className="label">Academic Class / Standard *</label>
+                <select
+                  value={selectedClassId}
+                  onChange={(e) => {
+                    setSelectedClassId(e.target.value);
+                    setValue('subjectId', '');
+                  }}
+                  className="input-field"
+                >
+                  <option value="">-- Select Class --</option>
+                  {classes.map((cls) => (
+                    <option key={cls.id} value={cls.id}>
+                      {cls.name} ({cls.stream?.name || 'Science'})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Selecting class scopes all subjects, chapters, topics, and textbooks.</p>
+              </div>
+
+              {/* Subject Dropdown */}
+              <div>
+                <label className="label">Subject *</label>
+                <select
+                  {...register('subjectId')}
+                  className="input-field"
+                  disabled={!selectedClassId}
+                >
+                  <option value="">-- Select Subject --</option>
+                  {subjects.map((sub) => (
+                    <option key={sub.id} value={sub.id}>
+                      {sub.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.subjectId && <p className="text-xs text-red-500 mt-1">{errors.subjectId.message}</p>}
+              </div>
+            </div>
+
+            {/* Paper Title */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">Question Paper Title</label>
+              <label className="label">Question Paper Title *</label>
               <input
                 type="text"
-                placeholder="e.g. Physics Mid-Term Examination 2026 / Unit Test 1"
                 {...register('title')}
-                className="input-field mt-1 w-full"
+                placeholder="e.g. HSC 12th Physics Board Practice Examination 2026"
+                className="input-field"
               />
-              <p className="mt-1 text-xs text-gray-500">Optional. Leave blank to auto-generate from subject & date.</p>
             </div>
 
-            {/* Subject */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Subject *</label>
-              <select {...register('subjectId')} className="input-field mt-1 w-full">
-                <option value="">Select a subject</option>
-                {subjects.map((subject) => (
-                  <option key={subject.id} value={subject.id}>
-                    {subject.name}
-                  </option>
-                ))}
-              </select>
-              {errors.subjectId && <p className="form-error mt-1">{errors.subjectId.message}</p>}
+            <div className="flex justify-end pt-4">
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                disabled={!selectedClassId || !selectedSubjectId}
+                className="btn-primary"
+              >
+                Next: Select Paper Pattern →
+              </button>
             </div>
+          </div>
+        )}
 
-            {/* Chapters */}
-            {chapters.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Chapters *</label>
-                <div className="mt-2 space-y-2">
-                  {chapters.map((chapter) => (
-                    <label key={chapter.id} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        value={chapter.id}
-                        {...register('chapterIds')}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">{chapter.name}</span>
-                    </label>
-                  ))}
+        {/* ================= STEP 2: PATTERN SELECTION ================= */}
+        {step === 2 && (
+          <div className="card space-y-6">
+            <h2 className="text-lg font-bold text-gray-900 border-b pb-2">Step 2: Paper Pattern Mode</h2>
+
+            {/* Pattern Mode Selector */}
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setPatternMode('BOARD');
+                  setValue('patternMode', 'BOARD');
+                }}
+                className={`p-4 rounded-lg border-2 text-left transition-all ${patternMode === 'BOARD' ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
+              >
+                <div className="font-bold text-gray-900">Official Board Pattern</div>
+                <div className="text-xs text-gray-600 mt-1">
+                  Automated Maharashtra State Board pattern (Sections A, B, C, D) with prescribed question types and total marks.
                 </div>
-                {errors.chapterIds && (
-                  <p className="form-error mt-1">{errors.chapterIds.message}</p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setPatternMode('CUSTOM');
+                  setValue('patternMode', 'CUSTOM');
+                }}
+                className={`p-4 rounded-lg border-2 text-left transition-all ${patternMode === 'CUSTOM' ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
+              >
+                <div className="font-bold text-gray-900">Customized Pattern Builder</div>
+                <div className="text-xs text-gray-600 mt-1">
+                  Build custom sections, custom total marks, custom question types, or MCQ-only examination papers.
+                </div>
+              </button>
+            </div>
+
+            {/* Board Pattern Display */}
+            {patternMode === 'BOARD' && (
+              <div className="space-y-4">
+                {boardPatternLoading && <p className="text-sm text-gray-500">Loading board pattern structure...</p>}
+                {boardPatternError && (
+                  <div className="rounded bg-red-50 border border-red-200 p-4 text-xs text-red-700">
+                    ⚠️ {boardPatternError}
+                  </div>
+                )}
+                {selectedBoardPattern && (
+                  <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 space-y-3">
+                    <div className="flex items-center justify-between border-b pb-2">
+                      <span className="font-bold text-blue-900">{selectedBoardPattern.board}</span>
+                      <span className="text-xs font-semibold text-blue-700">{selectedBoardPattern.totalMarks} Marks | {selectedBoardPattern.durationMins} Minutes</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                      {selectedBoardPattern.sections?.map((sec, idx) => (
+                        <div key={idx} className="bg-white p-3 rounded border border-gray-200 space-y-1">
+                          <div className="font-bold text-gray-900">{sec.sectionName} — {sec.totalSectionMarks}m</div>
+                          <div className="text-gray-600">{sec.instructions}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             )}
 
-            {/* Difficulty */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Difficulty</label>
-              <select {...register('difficulty')} className="input-field mt-1 w-full">
-                <option value="EASY">Easy</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HARD">Hard</option>
-              </select>
-            </div>
-
-            {/* Total Marks */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Total Marks</label>
-              <input
-                type="number"
-                min="10"
-                {...register('totalMarks', { valueAsNumber: true })}
-                className="input-field mt-1 w-full"
+            {/* Custom Pattern Builder */}
+            {patternMode === 'CUSTOM' && (
+              <CustomPatternBuilder
+                initialPattern={customPatternData}
+                onSavePattern={(pData) => {
+                  setCustomPatternData(pData);
+                  setTargetTotalMarks(pData.totalMarks);
+                  setDurationMins(pData.durationMins);
+                  setValue('totalMarks', pData.totalMarks);
+                  setValue('durationMins', pData.durationMins);
+                  showToast('Custom pattern saved cleanly!', 'success');
+                }}
               />
-            </div>
+            )}
 
-            {/* Duration */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Duration (minutes)</label>
-              <input
-                type="number"
-                min="30"
-                {...register('durationMins', { valueAsNumber: true })}
-                className="input-field mt-1 w-full"
-              />
-            </div>
-
-            {/* Question Counts */}
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">MCQ Count</label>
-                <input
-                  type="number"
-                  min="0"
-                  {...register('mcqCount', { valueAsNumber: true })}
-                  className="input-field mt-1 w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Short Answer Count</label>
-                <input
-                  type="number"
-                  min="0"
-                  {...register('shortCount', { valueAsNumber: true })}
-                  className="input-field mt-1 w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Long Answer Count</label>
-                <input
-                  type="number"
-                  min="0"
-                  {...register('longCount', { valueAsNumber: true })}
-                  className="input-field mt-1 w-full"
-                />
-              </div>
-            </div>
-
-            {/* Instructions */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Instructions (Optional)</label>
-              <textarea
-                {...register('instructions')}
-                className="input-field mt-1 w-full"
-                rows="3"
-                placeholder="e.g., Answer all questions..."
-              />
-            </div>
-
-            <button type="submit" disabled={generating} className="btn-primary w-full">
-              {generating ? (
-                <>
-                  <span className="spinner mr-2"></span>
-                  Generating (this may take 10-30 seconds)...
-                </>
-              ) : (
-                'Generate Question Paper'
-              )}
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* Step 2: Edit Generated */}
-      {step === 2 && generatedData && (
-        <div className="space-y-6">
-          <div className="card">
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">Review Questions</h2>
-                <p className="mt-1 text-sm text-gray-600">
-                  Edit wording and marks before opening the final preview.
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="btn-secondary"
-                >
-                  Regenerate all
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStep(3)}
-                  disabled={!generatedData.questions.length}
-                  className="btn-primary"
-                >
-                  Continue to preview
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {generatedData.questions.map((question, index) => (
-                <div key={`${question.type}-${index}`} className="rounded-lg border border-gray-200 p-4">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <span className="text-sm font-semibold text-gray-700">
-                      {question.type} question {index + 1}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => removeQuestion(index)}
-                      className="text-sm font-medium text-red-600 hover:text-red-800"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Question text
-                    <textarea
-                      value={question.questionText}
-                      onChange={(event) => updateQuestion(index, { questionText: event.target.value })}
-                      rows={3}
-                      className="input-field mt-1 w-full"
-                    />
-                  </label>
-                  <label className="mt-3 block max-w-xs text-sm font-medium text-gray-700">
-                    Marks
-                    <input
-                      type="number"
-                      min="1"
-                      value={question.marks}
-                      onChange={(event) => updateQuestion(index, { marks: Number(event.target.value) })}
-                      className="input-field mt-1 w-full"
-                    />
-                  </label>
-                </div>
-              ))}
+            <div className="flex justify-between pt-4 border-t">
+              <button type="button" onClick={() => setStep(1)} className="btn-secondary">
+                ← Back to Scope
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep(3)}
+                disabled={patternMode === 'BOARD' && !selectedBoardPattern}
+                className="btn-primary"
+              >
+                Next: Syllabus & Weightage →
+              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Step 3: Final Preview */}
-      {step === 3 && generatedData && (
-        <div className="space-y-6">
-          <div className="card">
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900">Generated Question Paper</h2>
-              <div className="space-x-3">
-                <button
-                  onClick={() => setStep(1)}
-                  className="btn-secondary"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={onSave}
-                  disabled={saveMutation.isPending}
-                  className="btn-primary"
-                >
-                  {saveMutation.isPending ? 'Saving...' : 'Save Paper'}
-                </button>
+        {/* ================= STEP 3: SYLLABUS & WEIGHTAGE ================= */}
+        {step === 3 && (
+          <div className="card space-y-6">
+            <h2 className="text-lg font-bold text-gray-900 border-b pb-2">Step 3: Syllabus Coverage & Weightage</h2>
+
+            {/* Chapter Checkboxes */}
+            <div className="space-y-3">
+              <label className="label">Select Syllabus Chapters</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto border rounded-md p-3">
+                {chapters.map((ch) => (
+                  <label key={ch.id} className="flex items-center gap-2 text-xs text-gray-800 hover:bg-gray-50 p-1 rounded cursor-pointer">
+                    <input
+                      type="checkbox"
+                      value={ch.id}
+                      {...register('chapterIds')}
+                      defaultChecked
+                      className="rounded text-blue-600"
+                    />
+                    <span>{ch.chapterNo ? `Ch ${ch.chapterNo}: ` : ''}{ch.name}</span>
+                  </label>
+                ))}
               </div>
             </div>
 
-            <div className="mb-6 grid grid-cols-4 gap-4 rounded-lg bg-gray-50 p-4">
-              <div>
-                <p className="text-sm text-gray-600">Paper Title</p>
-                <p className="font-semibold text-gray-900">{watch('title')?.trim() || `${generatedData.subject} - ${new Date().toLocaleDateString()}`}</p>
+            {/* Board Weightage vs Custom Topic Weightage Display */}
+            {patternMode === 'BOARD' ? (
+              <div className="space-y-3 border-t pt-4">
+                <h3 className="font-bold text-sm text-gray-900">Authoritative Board Chapter Weightages</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left border">
+                    <thead className="bg-gray-100 font-bold border-b">
+                      <tr>
+                        <th className="p-2">Chapter / Unit</th>
+                        <th className="p-2 text-center">Marks (Without Option)</th>
+                        <th className="p-2 text-center">Marks (With Option)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {dbWeightages.map((w, idx) => (
+                        <tr key={idx}>
+                          <td className="p-2 font-medium">{w.chapter?.name || w.unit?.name || 'General'}</td>
+                          <td className="p-2 text-center font-bold text-blue-700">{w.marks}m</td>
+                          <td className="p-2 text-center text-gray-600">{w.marksWithOption}m</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Subject</p>
-                <p className="font-semibold text-gray-900">{generatedData.subject}</p>
+            ) : (
+              <CustomTopicWeightage
+                chapters={chapters}
+                targetTotalMarks={targetTotalMarks}
+                onChange={(tMarks) => setCustomTopicWeightages(tMarks)}
+              />
+            )}
+
+            <div className="flex justify-between pt-4 border-t">
+              <button type="button" onClick={() => setStep(2)} className="btn-secondary">
+                ← Back to Pattern
+              </button>
+              <button type="button" onClick={() => setStep(4)} className="btn-primary">
+                Next: Preview Config →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ================= STEP 4: PREVIEW CONFIG & GENERATE ================= */}
+        {step === 4 && (
+          <div className="card space-y-6">
+            <h2 className="text-lg font-bold text-gray-900 border-b pb-2">Step 4: Preview Configuration & Generate</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div className="bg-gray-50 p-3 rounded border">
+                <span className="text-gray-500 block">Class & Subject</span>
+                <span className="font-bold text-gray-900">{selectedSubjectObj?.name}</span>
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Total Marks</p>
-                <p className="font-semibold text-gray-900">{generatedData.totalMarks}</p>
+              <div className="bg-gray-50 p-3 rounded border">
+                <span className="text-gray-500 block">Pattern Mode</span>
+                <span className="font-bold text-blue-700">{patternMode === 'BOARD' ? 'Official Board Pattern' : 'Custom Pattern'}</span>
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Duration</p>
-                <p className="font-semibold text-gray-900">{generatedData.durationMins} mins</p>
+              <div className="bg-gray-50 p-3 rounded border">
+                <span className="text-gray-500 block">Marks & Duration</span>
+                <span className="font-bold text-gray-900">{targetTotalMarks} Marks / {durationMins} Mins</span>
               </div>
             </div>
 
-            {/* MCQ Section */}
-            {generatedData.questions.filter((q) => q.type === 'MCQ').length > 0 && (
-              <div className="mb-8">
-                <h3 className="mb-4 text-lg font-semibold text-gray-900">
-                  Multiple Choice Questions
-                </h3>
-                <div className="space-y-4">
-                  {generatedData.questions
-                    .filter((q) => q.type === 'MCQ')
-                    .map((q, idx) => (
-                      <div key={idx} className="rounded-lg border border-gray-200 p-4">
-                        <p className="mb-2 font-medium text-gray-900">
-                          {idx + 1}. {q.questionText}
-                        </p>
-                        <div className="ml-4 space-y-1">
-                          {q.options?.map((opt, i) => (
-                            <p
-                              key={i}
-                              className={`text-sm ${
-                                opt === q.answerKey ? 'font-semibold text-green-700' : 'text-gray-600'
-                              }`}
-                            >
-                              {opt}
-                            </p>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
-
-            {/* Short Answer Section */}
-            {generatedData.questions.filter((q) => q.type === 'SHORT').length > 0 && (
-              <div className="mb-8">
-                <h3 className="mb-4 text-lg font-semibold text-gray-900">
-                  Short Answer Questions
-                </h3>
-                <div className="space-y-4">
-                  {generatedData.questions
-                    .filter((q) => q.type === 'SHORT')
-                    .map((q, idx) => (
-                      <div key={idx} className="rounded-lg border border-gray-200 p-4">
-                        <p className="font-medium text-gray-900">
-                          {idx + 1}. {q.questionText}
-                        </p>
-                        <p className="mt-2 text-sm text-gray-600">[{q.marks} marks]</p>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
-
-            {/* Long Answer Section */}
-            {generatedData.questions.filter((q) => q.type === 'LONG').length > 0 && (
+            {/* Difficulty & Instructions */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <h3 className="mb-4 text-lg font-semibold text-gray-900">
-                  Long Answer Questions
-                </h3>
-                <div className="space-y-4">
-                  {generatedData.questions
-                    .filter((q) => q.type === 'LONG')
-                    .map((q, idx) => (
-                      <div key={idx} className="rounded-lg border border-gray-200 p-4">
-                        <p className="font-medium text-gray-900">
-                          {idx + 1}. {q.questionText}
-                        </p>
-                        <p className="mt-2 text-sm text-gray-600">[{q.marks} marks]</p>
-                      </div>
-                    ))}
-                </div>
+                <label className="label">Difficulty Level</label>
+                <select {...register('difficulty')} className="input-field">
+                  <option value="EASY">Easy</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="HARD">Hard</option>
+                </select>
               </div>
-            )}
+
+              <div>
+                <label className="label">Custom Exam Instructions (Optional)</label>
+                <input
+                  type="text"
+                  {...register('instructions')}
+                  placeholder="e.g. Use of log tables is allowed. Calculators not permitted."
+                  className="input-field"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-between pt-4 border-t">
+              <button type="button" onClick={() => setStep(3)} className="btn-secondary">
+                ← Back to Syllabus
+              </button>
+              <button
+                type="submit"
+                disabled={generating}
+                className="btn-primary bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-6 rounded-lg shadow"
+              >
+                {generating ? '🤖 Generating Question Paper...' : '🚀 Generate Question Paper'}
+              </button>
+            </div>
+          </div>
+        )}
+      </form>
+
+      {/* ================= STEP 5: REVIEW GENERATED QUESTIONS ================= */}
+      {step === 5 && generatedData && (
+        <div className="card space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">{generatedData.subject} Generated Examination Paper</h2>
+              <p className="text-xs text-gray-600">
+                Pattern: {generatedData.patternMode} | Total Marks: {generatedData.totalMarks} | Duration: {generatedData.durationMins} Mins
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`px-3 py-1 rounded text-xs font-semibold ${generatedData.textbookState === 'TEXTBOOK_AVAILABLE_AND_RETRIEVED' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
+                Grounding: {generatedData.textbookState}
+              </span>
+              <button onClick={handleSavePaper} className="btn-primary">
+                💾 Save Question Paper
+              </button>
+            </div>
+          </div>
+
+          {/* Validation Status Banner */}
+          {generatedData.validation && (
+            <div className={`p-4 rounded-lg text-xs ${generatedData.validation.valid ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+              <div className="font-bold mb-1">
+                {generatedData.validation.valid ? '✅ Structural Pattern Validation Passed' : '⚠️ Validation Warnings'}
+              </div>
+              {generatedData.validation.errors?.map((err, i) => (
+                <div key={i}>• {err}</div>
+              ))}
+            </div>
+          )}
+
+          {/* Generated Questions List */}
+          <div className="space-y-4">
+            {generatedData.questions?.map((q, idx) => (
+              <div key={idx} className="p-4 rounded-lg border border-gray-200 bg-white space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-gray-700">
+                  <span>{q.sectionName || `Question #${idx + 1}`} ({q.type})</span>
+                  <span className="text-blue-600">{q.marks} Mark{q.marks > 1 ? 's' : ''}</span>
+                </div>
+                <div className="text-sm font-medium text-gray-900">{q.questionText}</div>
+
+                {/* MCQ Options */}
+                {q.options?.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 pl-4 border-l-2 border-blue-300">
+                    {q.options.map((opt, oIdx) => (
+                      <div key={oIdx}>{opt}</div>
+                    ))}
+                  </div>
+                )}
+
+                {q.answerKey && (
+                  <div className="text-xs font-semibold text-green-700 mt-2 bg-green-50 p-2 rounded border border-green-100">
+                    Answer Key: {q.answerKey}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-between pt-4 border-t">
+            <button onClick={() => setStep(4)} className="btn-secondary">
+              ← Regenerate / Modify Config
+            </button>
+            <button onClick={handleSavePaper} className="btn-primary">
+              💾 Save & Go to Dashboard
+            </button>
           </div>
         </div>
       )}

@@ -12,6 +12,7 @@ function getLogoBase64() {
   return null;
 }
 
+// Institutional Letterhead — PRESERVED 100% UNCHANGED
 function buildLetterhead(examInfo) {
   const logoBase64 = getLogoBase64();
   const logoHtml = logoBase64
@@ -56,79 +57,139 @@ function buildLetterhead(examInfo) {
   `;
 }
 
-function buildMCQSection(questions, showAnswers) {
-  if (!questions.length) return '';
+/**
+ * Render a single question item cleanly
+ */
+function renderQuestionItem(q, numStr, showAnswers) {
+  const isMcq = (q.options && q.options.length > 0) || q.type === 'MCQ' || q.questionType === 'MCQ';
 
-  const items = questions.map((q, i) => `
+  return `
     <div class="question">
-      <p class="question-text"><strong>Q${i + 1}.</strong> ${q.questionText} <span class="marks">[${q.marks} mark]</span></p>
-      ${q.options?.length ? `
+      <p class="question-text">
+        <strong>${numStr}.</strong> ${q.questionText} 
+        <span class="marks">[${q.marks} ${q.marks === 1 ? 'mark' : 'marks'}]</span>
+      </p>
+      ${isMcq && q.options?.length ? `
         <div class="options">
           ${q.options.map(opt => `<p class="option">${opt}</p>`).join('')}
         </div>
       ` : ''}
-      ${showAnswers ? `<p class="answer"><strong>Answer:</strong> ${q.answerKey || 'N/A'}</p>` : ''}
-    </div>
-  `).join('');
-
-  return `
-    <div class="section">
-      <h3 class="section-title">Section A — Multiple Choice Questions</h3>
-      <p class="section-info">Each question carries 2 marks. Choose the correct option.</p>
-      ${items}
+      ${showAnswers
+        ? `<p class="answer"><strong>Answer Key:</strong> ${q.answerKey || 'N/A'}</p>`
+        : (!isMcq ? `<div class="${q.marks > 3 ? 'answer-space-long' : 'answer-space'}"></div>` : '')
+      }
     </div>
   `;
 }
 
-function buildShortAnswerSection(questions, showAnswers, startIndex) {
-  if (!questions.length) return '';
+/**
+ * Dynamic Section Body Renderer supporting Pattern Engine
+ */
+function buildPatternSections(qp, showAnswers) {
+  const patternData = qp.patternData;
+  const questionsList = (qp.questions || []).map(q => q.question || q);
 
-  const items = questions.map((q, i) => `
-    <div class="question">
-      <p class="question-text"><strong>Q${startIndex + i}.</strong> ${q.questionText} <span class="marks">[${q.marks} marks]</span></p>
-      ${showAnswers
-        ? `<p class="answer"><strong>Answer:</strong> ${q.answerKey || 'N/A'}</p>`
-        : `<div class="answer-space"></div>`
-      }
-    </div>
-  `).join('');
+  if (!patternData || !Array.isArray(patternData.sections) || !patternData.sections.length) {
+    // Fallback if no patternData snapshot is present
+    return buildFallbackSections(questionsList, showAnswers);
+  }
 
-  return `
-    <div class="section">
-      <h3 class="section-title">Section B — Short Answer Questions</h3>
-      <p class="section-info">Each question carries 5 marks. Answer in 3-5 sentences.</p>
-      ${items}
-    </div>
-  `;
+  let questionGlobalIndex = 0;
+
+  return patternData.sections.map(sec => {
+    let sectionContentHtml = '';
+
+    if (sec.subSections && Array.isArray(sec.subSections)) {
+      sectionContentHtml = sec.subSections.map(sub => {
+        const subQuestions = questionsList.slice(questionGlobalIndex, questionGlobalIndex + sub.totalQuestions);
+        questionGlobalIndex += sub.totalQuestions;
+
+        const itemsHtml = subQuestions.map((q, i) =>
+          renderQuestionItem(q, `${sub.questionNumber} (${i + 1})`, showAnswers)
+        ).join('');
+
+        return `
+          <div class="subsection">
+            <h4 class="subsection-title"><strong>${sub.questionNumber}. ${sub.title || ''}</strong> (${sub.totalMarks} Marks)</h4>
+            ${sub.note ? `<p class="subsection-note"><em>${sub.note}</em></p>` : ''}
+            ${itemsHtml}
+          </div>
+        `;
+      }).join('');
+    } else {
+      const secQuestions = questionsList.slice(questionGlobalIndex, questionGlobalIndex + sec.totalQuestions);
+      questionGlobalIndex += sec.totalQuestions;
+
+      const itemsHtml = secQuestions.map((q, i) => {
+        let label = `Q${questionGlobalIndex - sec.totalQuestions + i + 1}`;
+        if (sec.questionNumberRange) {
+          const startNum = parseInt(sec.questionNumberRange.replace(/\D/g, '')) || (questionGlobalIndex - sec.totalQuestions + 1);
+          label = `Q${startNum + i}`;
+        }
+        return renderQuestionItem(q, label, showAnswers);
+      }).join('');
+
+      sectionContentHtml = itemsHtml;
+    }
+
+    return `
+      <div class="section">
+        <h3 class="section-title">${sec.sectionName} ${sec.title ? `— ${sec.title}` : ''}</h3>
+        ${sec.instructions ? `<p class="section-info">${sec.instructions}</p>` : ''}
+        ${sectionContentHtml}
+      </div>
+    `;
+  }).join('');
 }
 
-function buildLongAnswerSection(questions, showAnswers, startIndex) {
-  if (!questions.length) return '';
+function buildFallbackSections(questions, showAnswers) {
+  const mcqs = questions.filter(q => q.options?.length > 0 || q.type === 'MCQ' || q.questionType === 'MCQ');
+  const nonMcqs = questions.filter(q => !mcqs.includes(q));
 
-  const items = questions.map((q, i) => `
-    <div class="question">
-      <p class="question-text"><strong>Q${startIndex + i}.</strong> ${q.questionText} <span class="marks">[${q.marks} marks]</span></p>
-      ${showAnswers
-        ? `<p class="answer"><strong>Answer:</strong> ${q.answerKey || 'N/A'}</p>`
-        : `<div class="answer-space-long"></div>`
-      }
-    </div>
-  `).join('');
+  const shortAns = nonMcqs.filter(q => q.marks <= 3 || q.type === 'SHORT' || q.type === 'VERY_SHORT');
+  const longAns = nonMcqs.filter(q => q.marks > 3 || q.type === 'LONG');
 
-  return `
-    <div class="section">
-      <h3 class="section-title">Section C — Long Answer Questions</h3>
-      <p class="section-info">Each question carries 10 marks. Answer in detail.</p>
-      ${items}
-    </div>
-  `;
+  let html = '';
+
+  if (mcqs.length) {
+    const items = mcqs.map((q, i) => renderQuestionItem(q, `Q${i + 1}`, showAnswers)).join('');
+    html += `
+      <div class="section">
+        <h3 class="section-title">Section A — Multiple Choice Questions</h3>
+        <p class="section-info">Choose the correct option for each question.</p>
+        ${items}
+      </div>
+    `;
+  }
+
+  if (shortAns.length) {
+    const startIndex = mcqs.length + 1;
+    const items = shortAns.map((q, i) => renderQuestionItem(q, `Q${startIndex + i}`, showAnswers)).join('');
+    html += `
+      <div class="section">
+        <h3 class="section-title">Section B — Short Answer Questions</h3>
+        <p class="section-info">Answer as required by question marks.</p>
+        ${items}
+      </div>
+    `;
+  }
+
+  if (longAns.length) {
+    const startIndex = mcqs.length + shortAns.length + 1;
+    const items = longAns.map((q, i) => renderQuestionItem(q, `Q${startIndex + i}`, showAnswers)).join('');
+    html += `
+      <div class="section">
+        <h3 class="section-title">Section C — Long Answer Questions</h3>
+        <p class="section-info">Answer in detail.</p>
+        ${items}
+      </div>
+    `;
+  }
+
+  return html;
 }
 
 function buildHTML(qp, showAnswers) {
-  const mcqs = qp.questions.filter(q => q.question.options?.length > 0);
-  const shortAnswers = qp.questions.filter(q => !q.question.options?.length && q.question.marks <= 5);
-  const longAnswers = qp.questions.filter(q => !q.question.options?.length && q.question.marks > 5);
-
   const examInfo = {
     subject: qp.subject?.name || 'N/A',
     grade: qp.grade || '',
@@ -139,9 +200,7 @@ function buildHTML(qp, showAnswers) {
     instructions: qp.instructions
   };
 
-  const mcqSection = buildMCQSection(mcqs.map(q => q.question), showAnswers);
-  const shortSection = buildShortAnswerSection(shortAnswers.map(q => q.question), showAnswers, mcqs.length + 1);
-  const longSection = buildLongAnswerSection(longAnswers.map(q => q.question), showAnswers, mcqs.length + shortAnswers.length + 1);
+  const bodySectionsHtml = buildPatternSections(qp, showAnswers);
 
   return `
     <!DOCTYPE html>
@@ -175,8 +234,13 @@ function buildHTML(qp, showAnswers) {
         .section-title { font-size: 14px; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 8px; }
         .section-info { font-size: 11px; color: #555; margin-bottom: 12px; font-style: italic; }
 
+        /* Subsections */
+        .subsection { margin: 12px 0; }
+        .subsection-title { font-size: 13px; font-weight: bold; margin-bottom: 6px; }
+        .subsection-note { font-size: 11px; color: #444; margin-bottom: 8px; font-style: italic; }
+
         /* Questions */
-        .question { margin-bottom: 16px; page-break-inside: avoid; }
+        .question { margin-bottom: 14px; page-break-inside: avoid; }
         .question-text { font-size: 13px; line-height: 1.5; }
         .marks { font-size: 11px; color: #333; font-style: italic; }
 
@@ -184,12 +248,12 @@ function buildHTML(qp, showAnswers) {
         .options { margin: 6px 0 6px 20px; }
         .option { font-size: 12px; margin: 3px 0; }
 
-        /* Answer */
+        /* Answer Key */
         .answer { margin-top: 6px; font-size: 12px; color: #1a1a8c; background: #f0f0ff; padding: 6px 10px; border-left: 3px solid #1a1a8c; border-radius: 2px; }
 
         /* Answer spaces for student copy */
-        .answer-space { border-bottom: 1px solid #aaa; margin: 6px 0; height: 60px; }
-        .answer-space-long { border-bottom: 1px solid #aaa; margin: 6px 0; height: 120px; }
+        .answer-space { border-bottom: 1px solid #aaa; margin: 6px 0; height: 50px; }
+        .answer-space-long { border-bottom: 1px solid #aaa; margin: 6px 0; height: 100px; }
 
         /* Footer */
         .footer { margin-top: 30px; text-align: center; font-size: 11px; color: #555; border-top: 1px solid #000; padding-top: 8px; }
@@ -204,11 +268,9 @@ function buildHTML(qp, showAnswers) {
         ${qp.title}
       </div>
       ${showAnswers ? `<div class="answer-key-badge">⚠️ ANSWER KEY — FOR TEACHER USE ONLY</div>` : ''}
-      ${mcqSection}
-      ${shortSection}
-      ${longSection}
+      ${bodySectionsHtml}
       <div class="footer">
-        ${process.env.SCHOOL_NAME} | ${process.env.SCHOOL_ADDRESS} | ${process.env.SCHOOL_WEBSITE}
+        ${process.env.SCHOOL_NAME || ''} | ${process.env.SCHOOL_ADDRESS || ''} | ${process.env.SCHOOL_WEBSITE || ''}
         <br/>*** End of Question Paper ***
       </div>
     </body>
@@ -220,12 +282,12 @@ async function exportQPToPDF(qp, showAnswers = false) {
   const html = buildHTML(qp, showAnswers);
 
   const browser = await puppeteer.launch({
-    headless: 'new',
+    headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
 
   const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: 'networkidle0' });
+  await page.setContent(html, { waitUntil: 'domcontentloaded' });
 
   const pdfBuffer = await page.pdf({
     format: 'A4',
