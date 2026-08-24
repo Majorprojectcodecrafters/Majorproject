@@ -213,6 +213,7 @@ model Subject {
   questionPapers    QuestionPaper[]
   knowledgeSources  KnowledgeSource[]
   chapterWeightages ChapterWeightage[]
+  diagrams          DiagramRegistry[]
 
   @@unique([name, streamId])
 }
@@ -263,6 +264,7 @@ model Chapter {
   questions         Question[]
   knowledgeSources  KnowledgeSource[]
   chapterWeightages ChapterWeightage[]
+  diagrams          DiagramRegistry[]
 
   @@unique([name, subjectId])
 }
@@ -279,6 +281,7 @@ model Topic {
   chapter          Chapter           @relation(fields: [chapterId], references: [id])
   questions        Question[]
   knowledgeSources KnowledgeSource[]
+  diagrams         DiagramRegistry[]
 
   @@unique([name, chapterId])
 }
@@ -348,6 +351,30 @@ model KnowledgeSource {
 // QUESTION MODELS
 
 
+model DiagramRegistry {
+  id               String   @id @default(uuid())
+  title            String
+  caption          String?
+  imageUrl         String   // Authoritative figure or diagram URL
+  subjectId        String
+  chapterId        String?
+  topicId          String?
+  tags             String[] // e.g. ["human_heart", "anatomy", "circuit_diagram"]
+  isActive         Boolean  @default(true)
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  subject          Subject  @relation(fields: [subjectId], references: [id])
+  chapter          Chapter? @relation(fields: [chapterId], references: [id])
+  topic            Topic?   @relation(fields: [topicId], references: [id])
+
+  questions        Question[]
+
+  @@index([subjectId])
+  @@index([chapterId])
+}
+
 model Question {
   id           String       @id @default(uuid())
   questionText String
@@ -356,14 +383,17 @@ model Question {
   questionType QuestionType @default(SHORT)
   chapterId    String
   topicId      String?
-  options      Json?        //for MCQ choices
-  answerKey    String?      //correct answer or explanation
+  options      Json?        // for MCQ choices
+  answerKey    String?      // correct answer or explanation
+  imageUrl     String?      // direct or override image URL
+  diagramId    String?      // linked authoritative diagram from DiagramRegistry
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   chapter        Chapter                @relation(fields: [chapterId], references: [id])
   topic          Topic?                 @relation(fields: [topicId], references: [id])
+  diagram        DiagramRegistry?       @relation(fields: [diagramId], references: [id])
   questionPapers QuestionPaperQuestion[]
 }
 

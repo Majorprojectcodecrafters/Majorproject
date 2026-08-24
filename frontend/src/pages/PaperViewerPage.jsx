@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { formatScientificText } from '../utils/formatScientific';
 import { Skeleton } from '../components/Skeleton';
 
 export default function PaperViewerPage() {
@@ -280,12 +281,25 @@ export default function PaperViewerPage() {
               <div key={q.id || idx} className="card relative border-l-4 border-blue-600">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-start gap-2">
                       <span className="font-bold text-gray-900">Q{idx + 1}.</span>
-                      <h3 className="font-semibold text-gray-900 text-base">
-                        {q.questionText}
-                      </h3>
+                      <h3
+                        className="font-semibold text-gray-900 text-base"
+                        dangerouslySetInnerHTML={{ __html: formatScientificText(q.questionText) }}
+                      />
                     </div>
+
+                    {/* Optional Figure / Diagram Image for Biology or Physics/Chemistry */}
+                    {(q.imageUrl || q.diagramUrl) && (
+                      <div className="mt-3 overflow-hidden rounded-lg border border-gray-200 bg-gray-50 p-3 text-center">
+                        <img
+                          src={q.imageUrl || q.diagramUrl}
+                          alt={`Diagram for Q${idx + 1}`}
+                          className="mx-auto max-h-64 object-contain rounded shadow-sm"
+                        />
+                        <p className="mt-1 text-xs text-gray-500 italic">Figure for Question {idx + 1}</p>
+                      </div>
+                    )}
 
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                       <span className="badge badge-info">{q.marks} Mark{q.marks > 1 ? 's' : ''}</span>
@@ -309,9 +323,11 @@ export default function PaperViewerPage() {
                 {isMcq && q.options && q.options.length > 0 && (
                   <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 rounded bg-gray-50 p-3 text-sm">
                     {q.options.map((opt, i) => (
-                      <div key={i} className="text-gray-700 font-medium">
-                        {opt}
-                      </div>
+                      <div
+                        key={i}
+                        className="text-gray-700 font-medium"
+                        dangerouslySetInnerHTML={{ __html: formatScientificText(opt) }}
+                      />
                     ))}
                   </div>
                 )}
@@ -320,7 +336,10 @@ export default function PaperViewerPage() {
                 {q.answerKey && (
                   <div className="mt-3 rounded bg-green-50 p-3 text-sm">
                     <p className="font-semibold text-green-900">Answer Key / Solution Guidance:</p>
-                    <p className="mt-1 text-green-800">{q.answerKey}</p>
+                    <p
+                      className="mt-1 text-green-800"
+                      dangerouslySetInnerHTML={{ __html: formatScientificText(q.answerKey) }}
+                    />
                   </div>
                 )}
 

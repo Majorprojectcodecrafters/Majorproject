@@ -31,6 +31,7 @@
     "helmet": "^7.0.0",
     "joi": "^17.10.0",
     "jsonwebtoken": "^9.0.3",
+    "katex": "^0.18.4",
     "multer": "^2.1.1",
     "pdf-parse": "^1.1.1",
     "prisma": "^5.22.0",

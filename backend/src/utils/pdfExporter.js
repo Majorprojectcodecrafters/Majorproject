@@ -1,6 +1,7 @@
 const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
+const katex = require('katex');
 
 const LOGO_PATH = path.join(process.cwd(), 'assets', 'logo.jpg');
 
@@ -58,65 +59,55 @@ function buildLetterhead(examInfo) {
 }
 
 /**
- * Format scientific symbols, Greek letters, and LaTeX math expressions for HTML rendering
+ * Format scientific symbols, TeX/LaTeX expressions, chemical compounds, and math using KaTeX
  */
 function formatScientificText(str) {
   if (!str || typeof str !== 'string') return str || '';
 
   let text = str;
 
-  // Map of common LaTeX Greek letters and scientific symbols to UTF-8 & HTML entities
-  const symbolMap = {
-    '\\\\theta': 'θ', '\\\\Theta': 'Θ',
-    '\\\\omega': 'ω', '\\\\Omega': 'Ω',
-    '\\\\alpha': 'α', '\\\\beta': 'β', '\\\\gamma': 'γ', '\\\\Gamma': 'Γ',
-    '\\\\delta': 'δ', '\\\\Delta': 'Δ',
-    '\\\\epsilon': 'ε', '\\\\varepsilon': 'ε',
-    '\\\\lambda': 'λ', '\\\\Lambda': 'Λ',
-    '\\\\mu': 'μ', '\\\\nu': 'ν',
-    '\\\\pi': 'π', '\\\\Pi': 'Π',
-    '\\\\rho': 'ρ', '\\\\sigma': 'σ', '\\\\Sigma': 'Σ',
-    '\\\\tau': 'τ', '\\\\phi': 'ϕ', '\\\\varphi': 'ϕ', '\\\\Phi': 'Φ',
-    '\\\\psi': 'ψ', '\\\\Psi': 'Ψ',
-    '\\\\degree': '°', '\\\\deg': '°',
-    '\\\\times': '×', '\\\\cdot': '·', '\\\\div': '÷',
-    '\\\\pm': '±', '\\\\mp': '∓',
-    '\\\\infty': '∞', '\\\\approx': '≈', '\\\\neq': '≠',
-    '\\\\leq': '≤', '\\\\geq': '≥', '\\\\in': '∈', '\\\\rightarrow': '→'
+  // Reaction arrows in Chemistry
+  text = text.replace(/<==>|<=>|\\rightleftharpoons/g, '\\rightleftharpoons ');
+  text = text.replace(/-->|->|\\rightarrow/g, '\\rightarrow ');
+
+  // Convert explicit inline math ($...$ or \(...\)) or display math ($$...$$ or \[...\])
+  const renderMathInText = (input) => {
+    return input.replace(/(\$\$[\s\S]+?\$\$|\$[^\$]+?\$|\\\(.+?\\\)|\\\[.+?\\\])/g, (match) => {
+      const isDisplay = match.startsWith('$$') || match.startsWith('\\[');
+      const cleanMath = match
+        .replace(/^\$\$|^\$|^\\\(|^\\\[/g, '')
+        .replace(/\$\$$|\$$|\\\)$|\\\]$/g, '')
+        .trim();
+
+      try {
+        return katex.renderToString(cleanMath, {
+          displayMode: isDisplay,
+          throwOnError: false
+        });
+      } catch (e) {
+        return match;
+      }
+    });
   };
 
-  // Replace LaTeX backslash symbols
-  for (const [latex, unicode] of Object.entries(symbolMap)) {
-    const escLatex = latex.replace(/\\/g, '\\\\');
-    const regex = new RegExp(`${escLatex}(?![a-zA-Z])`, 'g');
-    text = text.replace(regex, `<span class="math-symbol">${unicode}</span>`);
+  if (text.includes('$') || text.includes('\\(') || text.includes('\\[')) {
+    return renderMathInText(text);
   }
 
-  // Handle degree notations like ^\circ or ^{\circ}
-  text = text.replace(/\^\{\\circ\}|\^\\circ/g, '°');
-
-  // Handle square roots: \sqrt{...}
-  text = text.replace(/\\sqrt\{([^}]+)\}/g, '√($1)');
-
-  // Handle fractions: \frac{a}{b}
-  text = text.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '<span class="frac"><sup>$1</sup>&frasl;<sub>$2</sub></span>');
-
-  // Handle superscripts: ^{...} or ^...
-  text = text.replace(/\^\{([^}]+)\}/g, '<sup>$1</sup>');
-  text = text.replace(/\^([\d+\-a-zA-Z]+)/g, '<sup>$1</sup>');
-
-  // Handle subscripts: _{...} or _...
-  text = text.replace(/_\{([^}]+)\}/g, '<sub>$1</sub>');
-  text = text.replace(/_([\d+\-a-zA-Z]+)/g, '<sub>$1</sub>');
-
-  // Strip single inline math dollar signs ($ ... $)
-  text = text.replace(/\$([^$]+)\$/g, '$1');
+  // Auto-detect un-delimited TeX expressions (e.g. \frac{a}{b}, \sqrt{x}, \int_0^1, \theta, H_2SO_4)
+  if (/\\(frac|sqrt|int|sum|prod|alpha|beta|gamma|delta|theta|omega|pi|lambda|mu|sigma|rightarrow|rightleftharpoons)|[\^_]\{/i.test(text)) {
+    try {
+      return katex.renderToString(text, { displayMode: false, throwOnError: false });
+    } catch (e) {
+      return text;
+    }
+  }
 
   return text;
 }
 
 /**
- * Render a single question item cleanly in compact format without question-level marks
+ * Render a single question item cleanly in compact format with optional figure/diagram image
  */
 function renderQuestionItem(q, numStr, showAnswers) {
   const isMcq = (q.options && q.options.length > 0) || q.type === 'MCQ' || q.questionType === 'MCQ';
@@ -124,12 +115,19 @@ function renderQuestionItem(q, numStr, showAnswers) {
   const formattedText = formatScientificText(q.questionText);
   const formattedOptions = (q.options || []).map(opt => formatScientificText(opt));
   const formattedAnswer = formatScientificText(q.answerKey);
+  const imageUrl = q.imageUrl || q.diagramUrl;
 
   return `
     <div class="question" style="page-break-inside: avoid; break-inside: avoid;">
       <p class="question-text">
         <strong>${numStr}.</strong> ${formattedText}
       </p>
+      ${imageUrl ? `
+        <div class="diagram-container" style="text-align: center; margin: 8px 0;">
+          <img src="${imageUrl}" style="max-height: 180px; max-width: 90%; height: auto; border: 1px solid #ccc; padding: 4px; border-radius: 4px;" />
+          <div style="font-size: 8pt; font-style: italic; color: #555; margin-top: 2px;">Figure for ${numStr}</div>
+        </div>
+      ` : ''}
       ${isMcq && formattedOptions.length ? `
         <div class="options">
           ${formattedOptions.map(opt => `<div class="option">${opt}</div>`).join('')}
@@ -317,6 +315,7 @@ async function exportQPToPDF(qp, showAnswers = false) {
       <head>
         <meta charset="utf-8">
         <title>${qp.title}</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
         <style>
           @page {
             size: A4;
@@ -421,24 +420,6 @@ async function exportQPToPDF(qp, showAnswers = false) {
             padding: 4px 8px;
             border-left: 3px solid #4caf50;
             margin-top: 4px;
-          }
-          .math-symbol {
-            font-family: 'Cambria Math', 'Times New Roman', serif;
-          }
-          .frac {
-            display: inline-block;
-            vertical-align: middle;
-            text-align: center;
-            font-size: 90%;
-          }
-          .frac sup {
-            display: block;
-            border-bottom: 1px solid #000;
-            padding: 0 1px;
-          }
-          .frac sub {
-            display: block;
-            padding: 0 1px;
           }
         </style>
       </head>
