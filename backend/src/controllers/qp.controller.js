@@ -120,7 +120,10 @@ exports.getQPById = async (req, res) => {
       include: {
         subject: true,
         teacher: safeTeacherInclude,
-        questions: { include: { question: { include: { chapter: true } } } },
+        questions: {
+          include: { question: { include: { chapter: true } } },
+          orderBy: { createdAt: 'asc' }
+        },
         template: true,
         examResults: true
       }
@@ -238,9 +241,14 @@ exports.publishQP = async (req, res) => {
 };
 
 const { exportQPToPDF } = require('../utils/pdfExporter');
+const { uploadFileToDrive, ensureFolderStructure } = require('../services/drive.service');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
 
 // EXPORT QP — STUDENT VERSION
 exports.exportQPStudent = async (req, res) => {
+  let tempPdfPath = null;
   try {
     const { id } = req.params;
 
@@ -256,17 +264,50 @@ exports.exportQPStudent = async (req, res) => {
 
     const pdfBuffer = await exportQPToPDF(qp, false);
 
+    // Stream generated PDF to Google Drive asynchronously
+    tempPdfPath = path.join(os.tmpdir(), `QP_${qp.id}_student.pdf`);
+    fs.writeFileSync(tempPdfPath, pdfBuffer);
+
+    ensureFolderStructure({
+      board: qp.board || 'MSB',
+      stream: 'Science',
+      className: '12th',
+      subjectName: qp.subject?.name || 'Subject',
+      category: 'Generated Papers'
+    }).then(folderId => {
+      return uploadFileToDrive(tempPdfPath, `${qp.title}-Student.pdf`, 'application/pdf', folderId);
+    }).then(driveRes => {
+      if (driveRes?.driveFileId) {
+        prisma.questionPaper.update({
+          where: { id: qp.id },
+          data: { driveFileId: driveRes.driveFileId, pdfUrl: driveRes.webViewLink || null }
+        }).catch(err => console.warn('⚠️ Failed to update QP driveFileId:', err.message));
+      }
+      if (tempPdfPath && fs.existsSync(tempPdfPath)) {
+        try { fs.unlinkSync(tempPdfPath); } catch (e) {}
+      }
+    }).catch(err => {
+      console.warn('⚠️ Google Drive background PDF upload skipped/failed:', err.message);
+      if (tempPdfPath && fs.existsSync(tempPdfPath)) {
+        try { fs.unlinkSync(tempPdfPath); } catch (e) {}
+      }
+    });
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${qp.title}-student.pdf"`);
     res.send(pdfBuffer);
 
   } catch (error) {
+    if (tempPdfPath && fs.existsSync(tempPdfPath)) {
+      try { fs.unlinkSync(tempPdfPath); } catch (e) {}
+    }
     res.status(500).json({ success: false, error: error.message });
   }
 };
 
 // EXPORT QP — TEACHER VERSION (with answers)
 exports.exportQPTeacher = async (req, res) => {
+  let tempPdfPath = null;
   try {
     const { id } = req.params;
 
@@ -282,11 +323,43 @@ exports.exportQPTeacher = async (req, res) => {
 
     const pdfBuffer = await exportQPToPDF(qp, true);
 
+    // Stream generated PDF to Google Drive asynchronously
+    tempPdfPath = path.join(os.tmpdir(), `QP_${qp.id}_answerkey.pdf`);
+    fs.writeFileSync(tempPdfPath, pdfBuffer);
+
+    ensureFolderStructure({
+      board: qp.board || 'MSB',
+      stream: 'Science',
+      className: '12th',
+      subjectName: qp.subject?.name || 'Subject',
+      category: 'Generated Papers'
+    }).then(folderId => {
+      return uploadFileToDrive(tempPdfPath, `${qp.title}-AnswerKey.pdf`, 'application/pdf', folderId);
+    }).then(driveRes => {
+      if (driveRes?.driveFileId) {
+        prisma.questionPaper.update({
+          where: { id: qp.id },
+          data: { driveFileId: driveRes.driveFileId, pdfUrl: driveRes.webViewLink || null }
+        }).catch(err => console.warn('⚠️ Failed to update QP driveFileId:', err.message));
+      }
+      if (tempPdfPath && fs.existsSync(tempPdfPath)) {
+        try { fs.unlinkSync(tempPdfPath); } catch (e) {}
+      }
+    }).catch(err => {
+      console.warn('⚠️ Google Drive background PDF upload skipped/failed:', err.message);
+      if (tempPdfPath && fs.existsSync(tempPdfPath)) {
+        try { fs.unlinkSync(tempPdfPath); } catch (e) {}
+      }
+    });
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${qp.title}-answer-key.pdf"`);
     res.send(pdfBuffer);
 
   } catch (error) {
+    if (tempPdfPath && fs.existsSync(tempPdfPath)) {
+      try { fs.unlinkSync(tempPdfPath); } catch (e) {}
+    }
     res.status(500).json({ success: false, error: error.message });
   }
 };

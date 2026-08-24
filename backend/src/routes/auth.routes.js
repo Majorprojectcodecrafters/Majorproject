@@ -7,4 +7,8 @@ router.post('/register', authController.register);
 router.post('/login',    authController.login);
 router.get('/me',        protect, authController.getMe);
 
+// Google Drive OAuth 2.0 Flow Routes
+router.get('/google/url',      authController.getGoogleAuthUrl);
+router.get('/google/callback', authController.googleOAuthCallback);
+
 module.exports = router;

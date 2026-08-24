@@ -306,24 +306,32 @@ model ChapterWeightage {
 }
 
 model KnowledgeSource {
-  id          String       @id @default(uuid())
-  title       String
-  sourceType  SourceType   @default(TEXTBOOK)
-  fileName    String
-  filePath    String
-  fileSize    Int?
-  status      SourceStatus @default(PROCESSED)
-  uploadedBy  String       // User ID
-  description String?
-  boardId     String?
-  streamId    String?
-  classId     String?
-  subjectId   String?
-  unitId      String?
-  chapterId   String?
-  topicId     String?
-  pageStart   Int?
-  pageEnd     Int?
+  id             String       @id @default(uuid())
+  title          String
+  sourceType     SourceType   @default(TEXTBOOK)
+  fileName       String
+  filePath       String
+  fileSize       Int?
+  status         SourceStatus @default(PROCESSED)
+  uploadedBy     String       // User ID
+  description    String?
+  boardId        String?
+  streamId       String?
+  classId        String?
+  subjectId      String?
+  unitId         String?
+  chapterId      String?
+  topicId        String?
+  pageStart      Int?
+  pageEnd        Int?
+  driveFileId    String?      // Authoritative Google Drive reference
+  driveFolderId  String?
+  mimeType       String?
+  fileUrl        String?      // Optional convenience preview link
+  version        String       @default("1.0")
+  academicYear   String?
+  isActive       Boolean      @default(true)
+  sourcePriority Int          @default(10)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -375,6 +383,11 @@ model QuestionPaper {
   subjectId      String
   templateId     String?
   isDeleted      Boolean     @default(false)
+  driveFileId    String?     // Authoritative Google Drive PDF reference
+  pdfUrl         String?     // Optional convenience download link
+  llmProvider    String?     // Audit metadata (e.g. "gemini", "groq", "ollama")
+  llmModel       String?     // Audit metadata (e.g. "gemini-1.5-flash", "openai/gpt-oss-20b")
+  generatedAt    DateTime?   // Audit metadata
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

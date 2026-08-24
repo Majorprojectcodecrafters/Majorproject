@@ -12,12 +12,24 @@ export default function PaperViewerPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { showToast } = useToast();
+
   const [showSources, setShowSources] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
   const [previewing, setPreviewing] = useState(false);
-  // PDF export (/teacher/qp/:id/export/...) is restricted to the owning
-  // teacher on the backend, so only teachers get the download buttons here.
-  const canDownload = user?.role === 'TEACHER';
+
+  // Question editing state
+  const [editingQuestion, setEditingQuestion] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    questionText: '',
+    options: ['', '', '', ''],
+    answerKey: '',
+    marks: 1,
+    difficulty: 'MEDIUM'
+  });
+
+  const isTeacher = user?.role === 'TEACHER';
+  const isAdmin = user?.role === 'ADMIN';
+  const canEditOrManage = isTeacher || isAdmin;
 
   const { data: paper, isLoading, error } = useQuery({
     queryKey: ['paper', paperId],
@@ -34,7 +46,7 @@ export default function PaperViewerPage() {
         `/teacher/qp/${paperId}/export/${type === 'student' ? 'student' : 'teacher'}`,
         { responseType: 'blob' }
       );
-      
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -42,8 +54,8 @@ export default function PaperViewerPage() {
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
-    } catch (error) {
-      showToast(`Download failed: ${error.message}`, 'error');
+    } catch (err) {
+      showToast(`Download failed: ${err.message}`, 'error');
     }
   };
 
@@ -54,9 +66,10 @@ export default function PaperViewerPage() {
         `/teacher/qp/${paperId}/export/student`,
         { responseType: 'blob' }
       );
+      if (previewUrl) window.URL.revokeObjectURL(previewUrl);
       setPreviewUrl(window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' })));
-    } catch (error) {
-      showToast(`PDF preview failed: ${error.message}`, 'error');
+    } catch (err) {
+      showToast(`PDF preview failed: ${err.message}`, 'error');
     } finally {
       setPreviewing(false);
     }
@@ -73,16 +86,75 @@ export default function PaperViewerPage() {
       return response.data.data;
     },
     onSuccess: () => {
-      showToast('Question paper published successfully');
+      showToast('Question paper published successfully!', 'success');
       queryClient.invalidateQueries({ queryKey: ['paper', paperId] });
       queryClient.invalidateQueries({ queryKey: ['questionPapers'] });
-      queryClient.invalidateQueries({ queryKey: ['studentPublishedQPs'] });
     },
-    onError: (error) => showToast(`Publish failed: ${error.response?.data?.message || error.message}`, 'error'),
+    onError: (err) => showToast(`Publish failed: ${err.response?.data?.message || err.message}`, 'error'),
   });
 
+  // Question update mutation (updates ONLY the selected question record in DB)
+  const updateQuestionMutation = useMutation({
+    mutationFn: async ({ id, data }) => {
+      const response = await apiClient.put(`/teacher/questions/${id}`, data);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      showToast('Question updated successfully!', 'success');
+      setEditingQuestion(null);
+      // Invalidate queries so paper details update instantly without browser refresh
+      queryClient.invalidateQueries({ queryKey: ['paper', paperId] });
+      // Invalidate cached PDF preview so new PDF uses edited question
+      if (previewUrl) {
+        window.URL.revokeObjectURL(previewUrl);
+        setPreviewUrl('');
+      }
+    },
+    onError: (err) => {
+      showToast(`Unable to update question: ${err.response?.data?.message || err.message}`, 'error');
+    }
+  });
+
+  const openEditModal = (q) => {
+    setEditingQuestion(q);
+    const optionsArr = q.options && Array.isArray(q.options) && q.options.length === 4
+      ? [...q.options]
+      : ['', '', '', ''];
+
+    setEditFormData({
+      questionText: q.questionText || '',
+      options: optionsArr,
+      answerKey: q.answerKey || '',
+      marks: q.marks || 1,
+      difficulty: q.difficulty || 'MEDIUM'
+    });
+  };
+
+  const handleEditOptionChange = (index, value) => {
+    const newOpts = [...editFormData.options];
+    newOpts[index] = value;
+    setEditFormData(prev => ({ ...prev, options: newOpts }));
+  };
+
+  const handleSaveQuestionEdit = (e) => {
+    e.preventDefault();
+    if (!editingQuestion) return;
+
+    const isMcq = (editingQuestion.options && editingQuestion.options.length > 0) || editingQuestion.questionType === 'MCQ' || editingQuestion.type === 'MCQ';
+
+    const payload = {
+      questionText: editFormData.questionText,
+      marks: Number(editFormData.marks),
+      difficulty: editFormData.difficulty,
+      answerKey: editFormData.answerKey,
+      options: isMcq ? editFormData.options : null
+    };
+
+    updateQuestionMutation.mutate({ id: editingQuestion.id, data: payload });
+  };
+
   const backPath =
-    user?.role === 'ADMIN'
+    isAdmin
       ? '/admin/dashboard'
       : user?.role === 'STUDENT'
       ? '/student/papers'
@@ -90,7 +162,7 @@ export default function PaperViewerPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto space-y-6 px-4 py-8">
+      <div className="container mx-auto space-y-6 px-4 py-8 max-w-5xl">
         <Skeleton className="h-10 w-2/3" />
         <Skeleton className="h-28 w-full" />
         <Skeleton className="h-40 w-full" />
@@ -101,30 +173,33 @@ export default function PaperViewerPage() {
 
   if (error || !paper) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
         <div className="rounded-lg bg-red-50 p-4 text-red-700">
-          Failed to load question paper
+          Failed to load question paper.
         </div>
       </div>
     );
   }
 
+  const questionsList = (paper.questions || []).map(qpItem => qpItem.question || qpItem);
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
+      {/* Top Bar */}
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b pb-4">
         <div>
           <button
             onClick={() => navigate(backPath)}
-            className="mb-4 text-blue-600 hover:text-blue-900"
+            className="mb-2 text-sm font-semibold text-blue-600 hover:text-blue-900 flex items-center gap-1"
           >
             ← Back to Dashboard
           </button>
           <h1 className="text-3xl font-bold text-gray-900">{paper.title}</h1>
-          <p className="mt-2 text-gray-600">{paper.subject?.name}</p>
+          <p className="mt-1 text-gray-600">{paper.subject?.name} • {paper.grade || 'Class 12th'}</p>
         </div>
 
-        <div className="flex gap-2">
-          {canDownload && paper.status === 'DRAFT' && (
+        <div className="flex flex-wrap items-center gap-2">
+          {canEditOrManage && paper.status === 'DRAFT' && (
             <button
               onClick={() => publishMutation.mutate()}
               disabled={publishMutation.isPending}
@@ -133,16 +208,16 @@ export default function PaperViewerPage() {
               {publishMutation.isPending ? 'Publishing...' : 'Publish'}
             </button>
           )}
-          {canDownload && (
+          {canEditOrManage && (
             <>
               <button onClick={previewPDF} disabled={previewing} className="btn-secondary">
-                {previewing ? 'Preparing preview...' : 'Preview PDF'}
+                {previewing ? 'Preparing...' : '📄 Preview PDF'}
               </button>
               <button onClick={() => downloadPDF('student')} className="btn-secondary">
-                Download (Student)
+                ⬇️ Student PDF
               </button>
               <button onClick={() => downloadPDF('teacher')} className="btn-secondary">
-                Download (Answer Key)
+                🔑 Answer Key PDF
               </button>
             </>
           )}
@@ -151,22 +226,22 @@ export default function PaperViewerPage() {
 
       {/* Paper Metadata */}
       <div className="card mb-8">
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div>
-            <p className="text-sm text-gray-600">Total Marks</p>
-            <p className="font-semibold text-gray-900">{paper.totalMarks}</p>
+            <p className="text-xs uppercase tracking-wider font-semibold text-gray-500">Total Marks</p>
+            <p className="text-lg font-bold text-gray-900">{paper.totalMarks}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Duration</p>
-            <p className="font-semibold text-gray-900">{paper.durationMins} minutes</p>
+            <p className="text-xs uppercase tracking-wider font-semibold text-gray-500">Duration</p>
+            <p className="text-lg font-bold text-gray-900">{paper.durationMins} mins</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Difficulty</p>
-            <p className="font-semibold text-gray-900">{paper.difficulty}</p>
+            <p className="text-xs uppercase tracking-wider font-semibold text-gray-500">Difficulty</p>
+            <p className="text-lg font-bold text-gray-900">{paper.difficulty}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Status</p>
-            <span className={`badge ${
+            <p className="text-xs uppercase tracking-wider font-semibold text-gray-500">Status</p>
+            <span className={`badge mt-1 ${
               paper.status === 'PUBLISHED' ? 'badge-success' : 'badge-warning'
             }`}>
               {paper.status}
@@ -176,78 +251,219 @@ export default function PaperViewerPage() {
 
         {paper.instructions && (
           <div className="mt-4 border-t border-gray-200 pt-4">
-            <p className="text-sm font-medium text-gray-900">Instructions:</p>
-            <p className="mt-1 text-gray-600">{paper.instructions}</p>
+            <p className="text-xs uppercase tracking-wider font-semibold text-gray-500">Instructions:</p>
+            <p className="mt-1 text-sm text-gray-700">{paper.instructions}</p>
           </div>
         )}
       </div>
 
-      {/* Questions */}
-      <div className="space-y-6">
-        {paper.questions && paper.questions.length > 0 ? (
-          paper.questions.map((qp, idx) => {
-            const question = qp.question;
+      {/* Header & Question Count Audit */}
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-xl font-bold text-gray-900">
+          Generated Questions ({questionsList.length})
+        </h2>
+        <button
+          onClick={() => setShowSources(!showSources)}
+          className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+        >
+          {showSources ? 'Hide RAG Context' : 'Show RAG Context'}
+        </button>
+      </div>
+
+      {/* Questions List */}
+      <div className="space-y-4">
+        {questionsList.length > 0 ? (
+          questionsList.map((q, idx) => {
+            const isMcq = (q.options && q.options.length > 0) || q.questionType === 'MCQ' || q.type === 'MCQ';
+
             return (
-              <div key={question.id} className="card">
-                <div className="mb-4 flex items-start justify-between">
+              <div key={q.id || idx} className="card relative border-l-4 border-blue-600">
+                <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">
-                      Q{idx + 1}. {question.questionText}
-                    </h3>
-                    <div className="mt-2 flex gap-4">
-                      <span className="badge badge-info">{question.marks} marks</span>
-                      <span className="badge badge-warning">{question.difficulty}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-gray-900">Q{idx + 1}.</span>
+                      <h3 className="font-semibold text-gray-900 text-base">
+                        {q.questionText}
+                      </h3>
+                    </div>
+
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                      <span className="badge badge-info">{q.marks} Mark{q.marks > 1 ? 's' : ''}</span>
+                      <span className="badge badge-warning">{q.difficulty}</span>
+                      {q.questionType && <span className="badge bg-gray-100 text-gray-800">{q.questionType}</span>}
                     </div>
                   </div>
-                  <button
-                    onClick={() => setShowSources(!showSources)}
-                    className="text-sm text-blue-600 hover:text-blue-900"
-                  >
-                    {showSources ? 'Hide' : 'Show'} Sources
-                  </button>
+
+                  {canEditOrManage && (
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(q)}
+                      className="rounded bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition-colors"
+                    >
+                      ✏️ Edit Question
+                    </button>
+                  )}
                 </div>
 
-                {question.options && question.options.length > 0 && (
-                  <div className="mb-3 space-y-1 rounded bg-gray-50 p-3">
-                    {question.options.map((opt, i) => (
-                      <p key={i} className="text-sm text-gray-600">
+                {/* Options for MCQ */}
+                {isMcq && q.options && q.options.length > 0 && (
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 rounded bg-gray-50 p-3 text-sm">
+                    {q.options.map((opt, i) => (
+                      <div key={i} className="text-gray-700 font-medium">
                         {opt}
-                      </p>
+                      </div>
                     ))}
                   </div>
                 )}
 
-                {question.answerKey && (
-                  <div className="rounded bg-green-50 p-3">
-                    <p className="text-sm font-medium text-green-900">Answer Key:</p>
-                    <p className="mt-1 text-sm text-green-800">{question.answerKey}</p>
+                {/* Answer Key */}
+                {q.answerKey && (
+                  <div className="mt-3 rounded bg-green-50 p-3 text-sm">
+                    <p className="font-semibold text-green-900">Answer Key / Solution Guidance:</p>
+                    <p className="mt-1 text-green-800">{q.answerKey}</p>
                   </div>
                 )}
 
+                {/* RAG Context */}
                 {showSources && (
-                  <div className="mt-4 border-t border-gray-200 pt-4">
-                    <p className="mb-2 text-sm font-medium text-gray-900">
-                      ℹ️ RAG Sources (Retrieved Context)
+                  <div className="mt-3 border-t pt-3 text-xs text-gray-600">
+                    <p className="font-medium text-gray-900">ℹ️ RAG Curriculum Context Source:</p>
+                    <p className="mt-1 italic">
+                      Grounding: {q.chapter?.name || 'Curriculum Textbook & Knowledge Base'}
                     </p>
-                    <div className="rounded bg-blue-50 p-3 text-sm text-gray-700">
-                      <p>
-                        This question was generated using RAG (Retrieval-Augmented Generation)
-                        from your knowledge base. The system retrieved relevant chapters and
-                        past papers to create contextually appropriate questions.
-                      </p>
-                    </div>
                   </div>
                 )}
               </div>
             );
           })
         ) : (
-          <p className="text-gray-600">No questions in this paper.</p>
+          <div className="card text-center py-8 text-gray-600">
+            No questions found in this question paper.
+          </div>
         )}
       </div>
 
+      {/* Teacher Edit Question Modal */}
+      {editingQuestion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <div className="flex items-center justify-between border-b pb-3 mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Edit Question Details</h3>
+              <button
+                type="button"
+                onClick={() => setEditingQuestion(null)}
+                className="text-gray-400 hover:text-gray-600 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveQuestionEdit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase text-gray-700 mb-1">
+                  Question Text
+                </label>
+                <textarea
+                  rows={3}
+                  value={editFormData.questionText}
+                  onChange={(e) => setEditFormData({ ...editFormData, questionText: e.target.value })}
+                  required
+                  className="input-field w-full font-medium"
+                />
+              </div>
+
+              {/* Options for MCQ */}
+              {((editingQuestion.options && editingQuestion.options.length > 0) || editingQuestion.questionType === 'MCQ' || editingQuestion.type === 'MCQ') && (
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-700 mb-2">
+                    MCQ Choices (A, B, C, D)
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {['A', 'B', 'C', 'D'].map((prefix, idx) => (
+                      <div key={prefix} className="flex items-center gap-2">
+                        <span className="font-bold text-gray-700 w-6 text-sm">{prefix})</span>
+                        <input
+                          type="text"
+                          value={editFormData.options[idx] || ''}
+                          onChange={(e) => handleEditOptionChange(idx, e.target.value)}
+                          placeholder={`Option ${prefix}`}
+                          className="input-field flex-1"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-gray-700 mb-1">
+                  Answer Key / Expected Solution
+                </label>
+                <textarea
+                  rows={2}
+                  value={editFormData.answerKey}
+                  onChange={(e) => setEditFormData({ ...editFormData, answerKey: e.target.value })}
+                  className="input-field w-full"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-700 mb-1">
+                    Marks
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={editFormData.marks}
+                    onChange={(e) => setEditFormData({ ...editFormData, marks: e.target.value })}
+                    required
+                    className="input-field w-full"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-700 mb-1">
+                    Difficulty
+                  </label>
+                  <select
+                    value={editFormData.difficulty}
+                    onChange={(e) => setEditFormData({ ...editFormData, difficulty: e.target.value })}
+                    className="input-field w-full"
+                  >
+                    <option value="EASY">Easy</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HARD">Hard</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3 border-t pt-4">
+                <button
+                  type="button"
+                  onClick={() => setEditingQuestion(null)}
+                  disabled={updateQuestionMutation.isPending}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updateQuestionMutation.isPending}
+                  className="btn-primary"
+                >
+                  {updateQuestionMutation.isPending ? 'Saving Changes...' : 'Save Question'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* PDF Preview Modal */}
       {previewUrl && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="flex h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg bg-white shadow-xl">
             <div className="flex items-center justify-between border-b border-gray-200 p-4">
               <h2 className="text-lg font-semibold text-gray-900">Student PDF Preview</h2>

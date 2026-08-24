@@ -1,8 +1,25 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import apiClient from '../lib/api';
+import { useToast } from '../contexts/ToastContext';
 
-export default function CustomPatternBuilder({ pattern, onChange, targetTotalMarks, setTargetTotalMarks, durationMins, setDurationMins }) {
+export default function CustomPatternBuilder({
+  pattern,
+  initialPattern,
+  onChange,
+  onSavePattern,
+  targetTotalMarks = 70,
+  setTargetTotalMarks = () => {},
+  durationMins = 180,
+  setDurationMins = () => {}
+}) {
+  const { showToast } = useToast();
+  const effectivePattern = initialPattern || pattern;
+
+  const [patternName, setPatternName] = useState(effectivePattern?.name || 'Custom Pattern');
+  const [savingToLibrary, setSavingToLibrary] = useState(false);
+
   const [sections, setSections] = useState(
-    pattern?.sections || [
+    effectivePattern?.sections || [
       {
         sectionName: 'Section A',
         questionType: 'MCQ',
@@ -31,23 +48,29 @@ export default function CustomPatternBuilder({ pattern, onChange, targetTotalMar
   );
 
   // Update parent whenever sections change
-  const notifyParent = (newSections) => {
+  const notifyParent = (newSections, name = patternName) => {
     setSections(newSections);
-    if (onChange) {
-      onChange({
-        sections: newSections,
-        totalMarks: computedAttemptedMarks,
-        durationMins
-      });
-    }
+    const computedAttempted = newSections.reduce((acc, sec) => acc + (Number(sec.questionsToAttempt) || 0) * (Number(sec.marksPerQuestion) || 0), 0);
+
+    const payload = {
+      name: name || 'Custom Pattern',
+      sections: newSections,
+      totalMarks: computedAttempted,
+      durationMins
+    };
+    if (onSavePattern) onSavePattern(payload);
+    if (onChange) onChange(payload);
   };
+
+  // Sync with parent immediately on initial mount
+  useEffect(() => {
+    notifyParent(sections, patternName);
+  }, []);
 
   const handleSectionChange = (index, field, value) => {
     const updated = sections.map((sec, i) => {
       if (i !== index) return sec;
       const copy = { ...sec, [field]: value };
-
-      // Ensure questionsToAttempt doesn't exceed totalQuestions
       if (field === 'totalQuestions' && Number(value) < copy.questionsToAttempt) {
         copy.questionsToAttempt = Number(value);
       }
@@ -74,6 +97,38 @@ export default function CustomPatternBuilder({ pattern, onChange, targetTotalMar
     if (sections.length <= 1) return;
     const updated = sections.filter((_, i) => i !== index);
     notifyParent(updated);
+  };
+
+  const handleSaveToLibrary = async () => {
+    if (!patternName.trim()) {
+      showToast('Please enter a pattern title to save it', 'error');
+      return;
+    }
+
+    try {
+      setSavingToLibrary(true);
+      const computedAttempted = sections.reduce((acc, sec) => acc + (Number(sec.questionsToAttempt) || 0) * (Number(sec.marksPerQuestion) || 0), 0);
+
+      const payload = {
+        name: patternName.trim(),
+        totalMarks: computedAttempted,
+        durationMins,
+        patternData: {
+          name: patternName.trim(),
+          sections,
+          totalMarks: computedAttempted,
+          durationMins
+        }
+      };
+
+      await apiClient.post('/patterns/custom', payload);
+      notifyParent(sections, patternName.trim());
+      showToast(`Saved "${patternName}" to your custom patterns library!`, 'success');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to save pattern to library', 'error');
+    } finally {
+      setSavingToLibrary(false);
+    }
   };
 
   // Calculations
@@ -120,6 +175,31 @@ export default function CustomPatternBuilder({ pattern, onChange, targetTotalMar
             />
           </div>
         </div>
+      </div>
+
+      {/* Pattern Title & Save to Library Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+        <div className="flex items-center gap-2 flex-1 min-w-[240px]">
+          <label className="text-xs font-bold text-gray-700 whitespace-nowrap">Pattern Title:</label>
+          <input
+            type="text"
+            value={patternName}
+            onChange={(e) => {
+              setPatternName(e.target.value);
+              notifyParent(sections, e.target.value);
+            }}
+            placeholder="e.g. 50-Mark Physics Midterm Exam"
+            className="input-field text-xs py-1 font-semibold text-gray-800"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={handleSaveToLibrary}
+          disabled={savingToLibrary}
+          className="btn-secondary text-xs font-semibold py-1.5 px-3 flex items-center gap-1.5 text-blue-700 hover:bg-blue-50 border-blue-200"
+        >
+          {savingToLibrary ? 'Saving...' : '💾 Save Pattern to Library'}
+        </button>
       </div>
 
       {/* Sections Cards List */}

@@ -8,6 +8,7 @@ import apiClient from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
 import CustomPatternBuilder from '../components/CustomPatternBuilder';
 import CustomTopicWeightage from '../components/CustomTopicWeightage';
+import { formatScientificText } from '../utils/formatScientific';
 
 export default function QPGeneratorPage() {
   const navigate = useNavigate();
@@ -99,6 +100,23 @@ export default function QPGeneratorPage() {
     enabled: !!selectedSubjectId
   });
 
+  // 4. Fetch Saved Custom Patterns
+  const { data: savedCustomPatterns = [], refetch: refetchSavedPatterns } = useQuery({
+    queryKey: ['custom-patterns'],
+    queryFn: async () => {
+      const res = await apiClient.get('/patterns/custom');
+      return res.data.data || [];
+    }
+  });
+
+  // Auto-initialize chapterIds ONLY when subject changes
+  const currentChapterIds = watch('chapterIds');
+  useEffect(() => {
+    if (selectedSubjectId && chapters.length > 0) {
+      setValue('chapterIds', chapters.map(c => c.id));
+    }
+  }, [selectedSubjectId, chapters.length]);
+
   // Auto-load Board Pattern when subject is selected & mode is BOARD
   useEffect(() => {
     if (selectedSubjectObj && patternMode === 'BOARD') {
@@ -169,9 +187,13 @@ export default function QPGeneratorPage() {
       const result = await generateMutation.mutateAsync(payload);
       setGeneratedData(result);
       setStep(5); // Move to review step
-      showToast('Question paper generated successfully!', 'success');
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to generate question paper', 'error');
+      const errData = err.response?.data;
+      const mainMsg = errData?.message || errData?.error || 'Failed to generate question paper';
+      const reasonTag = errData?.reason ? `[${errData.reason}] ` : '';
+      const suggestion = errData?.actionableSuggestion ? ` — ${errData.actionableSuggestion}` : '';
+
+      showToast(`${reasonTag}${mainMsg}${suggestion}`, 'error');
     } finally {
       setGenerating(false);
     }
@@ -199,11 +221,12 @@ export default function QPGeneratorPage() {
       const savedQP = await saveMutation.mutateAsync(payload);
       showToast('Question paper saved cleanly!', 'success');
 
-      // Invalidate queries so dashboard reloads with new paper
+      // Invalidate queries so dashboard reloads with new paper immediately without manual refresh
+      queryClient.invalidateQueries({ queryKey: ['questionPapers'] });
       queryClient.invalidateQueries({ queryKey: ['teacher-question-papers'] });
-      queryClient.invalidateQueries({ queryKey: ['question-papers'] });
+      queryClient.invalidateQueries({ queryKey: ['paper', savedQP.id] });
 
-      navigate(`/papers/${savedQP.id}`);
+      navigate(`/paper/${savedQP.id}`);
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to save question paper', 'error');
     }
@@ -377,17 +400,55 @@ export default function QPGeneratorPage() {
               </div>
             )}
 
+            {/* Saved Custom Patterns Dropdown / Picker */}
+            {patternMode === 'CUSTOM' && savedCustomPatterns.length > 0 && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-blue-900">📚 Load from Saved Custom Patterns Library:</label>
+                  <span className="text-xs font-semibold text-blue-700">{savedCustomPatterns.length} Saved Pattern(s)</span>
+                </div>
+                <select
+                  onChange={(e) => {
+                    const selectedId = e.target.value;
+                    if (!selectedId) return;
+                    const selected = savedCustomPatterns.find(p => p.id === selectedId);
+                    if (selected) {
+                      const pData = selected.patternData || { name: selected.name, sections: [], totalMarks: selected.totalMarks, durationMins: selected.durationMins };
+                      setCustomPatternData(pData);
+                      setTargetTotalMarks(selected.totalMarks);
+                      setDurationMins(selected.durationMins);
+                      setValue('totalMarks', selected.totalMarks);
+                      setValue('durationMins', selected.durationMins);
+                      showToast(`Loaded pattern "${selected.name}"!`, 'success');
+                    }
+                  }}
+                  className="input-field text-xs bg-white font-medium text-gray-800"
+                >
+                  <option value="">-- Select Saved Custom Pattern --</option>
+                  {savedCustomPatterns.map((pat) => (
+                    <option key={pat.id} value={pat.id}>
+                      {pat.name} ({pat.totalMarks} Marks | {pat.durationMins} Mins)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Custom Pattern Builder */}
             {patternMode === 'CUSTOM' && (
               <CustomPatternBuilder
                 initialPattern={customPatternData}
+                targetTotalMarks={targetTotalMarks}
+                setTargetTotalMarks={setTargetTotalMarks}
+                durationMins={durationMins}
+                setDurationMins={setDurationMins}
                 onSavePattern={(pData) => {
                   setCustomPatternData(pData);
                   setTargetTotalMarks(pData.totalMarks);
                   setDurationMins(pData.durationMins);
                   setValue('totalMarks', pData.totalMarks);
                   setValue('durationMins', pData.durationMins);
-                  showToast('Custom pattern saved cleanly!', 'success');
+                  refetchSavedPatterns();
                 }}
               />
             )}
@@ -413,9 +474,28 @@ export default function QPGeneratorPage() {
           <div className="card space-y-6">
             <h2 className="text-lg font-bold text-gray-900 border-b pb-2">Step 3: Syllabus Coverage & Weightage</h2>
 
-            {/* Chapter Checkboxes */}
+            {/* Chapter Checkboxes with Persistent User Choice */}
             <div className="space-y-3">
-              <label className="label">Select Syllabus Chapters</label>
+              <div className="flex items-center justify-between">
+                <label className="label">Select Syllabus Chapters</label>
+                <div className="flex gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setValue('chapterIds', chapters.map(c => c.id))}
+                    className="text-blue-600 font-semibold hover:underline"
+                  >
+                    Select All
+                  </button>
+                  <span className="text-gray-300">|</span>
+                  <button
+                    type="button"
+                    onClick={() => setValue('chapterIds', [])}
+                    className="text-gray-500 hover:underline"
+                  >
+                    Deselect All
+                  </button>
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto border rounded-md p-3">
                 {chapters.map((ch) => (
                   <label key={ch.id} className="flex items-center gap-2 text-xs text-gray-800 hover:bg-gray-50 p-1 rounded cursor-pointer">
@@ -423,7 +503,6 @@ export default function QPGeneratorPage() {
                       type="checkbox"
                       value={ch.id}
                       {...register('chapterIds')}
-                      defaultChecked
                       className="rounded text-blue-600"
                     />
                     <span>{ch.chapterNo ? `Ch ${ch.chapterNo}: ` : ''}{ch.name}</span>
@@ -459,7 +538,7 @@ export default function QPGeneratorPage() {
               </div>
             ) : (
               <CustomTopicWeightage
-                chapters={chapters}
+                chapters={chapters.filter(c => (currentChapterIds && currentChapterIds.length > 0) ? currentChapterIds.includes(c.id) : true)}
                 targetTotalMarks={targetTotalMarks}
                 onChange={(tMarks) => setCustomTopicWeightages(tMarks)}
               />
@@ -574,20 +653,20 @@ export default function QPGeneratorPage() {
                   <span>{q.sectionName || `Question #${idx + 1}`} ({q.type})</span>
                   <span className="text-blue-600">{q.marks} Mark{q.marks > 1 ? 's' : ''}</span>
                 </div>
-                <div className="text-sm font-medium text-gray-900">{q.questionText}</div>
+                <div className="text-sm font-medium text-gray-900">{formatScientificText(q.questionText)}</div>
 
                 {/* MCQ Options */}
                 {q.options?.length > 0 && (
                   <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 pl-4 border-l-2 border-blue-300">
                     {q.options.map((opt, oIdx) => (
-                      <div key={oIdx}>{opt}</div>
+                      <div key={oIdx}>{formatScientificText(opt)}</div>
                     ))}
                   </div>
                 )}
 
                 {q.answerKey && (
                   <div className="text-xs font-semibold text-green-700 mt-2 bg-green-50 p-2 rounded border border-green-100">
-                    Answer Key: {q.answerKey}
+                    Answer Key: {formatScientificText(q.answerKey)}
                   </div>
                 )}
               </div>
