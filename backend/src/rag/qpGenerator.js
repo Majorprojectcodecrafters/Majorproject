@@ -147,6 +147,8 @@ function normalizeMcqOptions(rawOptions, rawChoices) {
   return formatted.length >= 4 ? formatted : null;
 }
 
+const { retrieveRelevantChunks } = require('./retrievalService');
+
 /**
  * Validate availability and retrieval quality of curriculum sources before generation
  */
@@ -174,13 +176,28 @@ async function validateSourceAvailabilityAndQuality({ classId, subjectId, chapte
     isActive: true
   });
 
-  let chunks = await queryChunks(queryEmbedding, filter, 25);
+  // Upgraded RAG Retrieval Pipeline: Dense (ChromaDB) + BM25 + RRF + Cross-Encoder Reranking
+  const retrievalResult = await retrieveRelevantChunks({
+    queryEmbedding,
+    semanticQuery: query,
+    keywordQuery: query,
+    filters: filter,
+    options: { outputTopK: 15 }
+  });
+
+  let chunks = retrievalResult.chunks;
 
   if (!chunks || chunks.length < 3) {
     const fallbackFilter = buildCurriculumFilter({ subjectId, isActive: true });
-    const fallbackChunks = await queryChunks(queryEmbedding, fallbackFilter, 25);
-    if (fallbackChunks && fallbackChunks.length >= 3) {
-      chunks = fallbackChunks;
+    const fallbackResult = await retrieveRelevantChunks({
+      queryEmbedding,
+      semanticQuery: query,
+      keywordQuery: query,
+      filters: fallbackFilter,
+      options: { outputTopK: 15 }
+    });
+    if (fallbackResult.chunks && fallbackResult.chunks.length >= 3) {
+      chunks = fallbackResult.chunks;
     }
   }
 

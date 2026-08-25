@@ -25,6 +25,8 @@ async function getCollection() {
   return collection;
 }
 
+const { bm25Store } = require('./bm25Store');
+
 // Store chunks with complete curriculum & source metadata
 async function storeChunks(chunks, embeddings, metadata) {
   const col = await getCollection();
@@ -61,7 +63,19 @@ async function storeChunks(chunks, embeddings, metadata) {
     metadatas
   });
 
-  console.log(`✅ Stored ${chunks.length} chunks in ChromaDB with complete curriculum metadata`);
+  // Synchronize BM25 Store with identical chunk IDs, documents, and metadatas
+  try {
+    const bm25Chunks = ids.map((id, i) => ({
+      id,
+      text: documents[i],
+      metadata: metadatas[i]
+    }));
+    bm25Store.addChunksBatch(bm25Chunks);
+  } catch (bm25Err) {
+    console.warn('⚠️ BM25 sync warning:', bm25Err.message);
+  }
+
+  console.log(`✅ Stored ${chunks.length} chunks in ChromaDB & BM25 index with complete curriculum metadata`);
 }
 
 // Build strict curriculum-isolated ChromaDB query filter
@@ -142,6 +156,7 @@ async function getStats() {
 async function deleteBySource(fileName) {
   const col = await getCollection();
   await col.delete({ where: { source: { $eq: fileName } } });
+  bm25Store.deleteBySource(fileName);
   console.log(`🗑️ Deleted chunks for: ${fileName}`);
 }
 
@@ -149,6 +164,7 @@ async function deleteBySource(fileName) {
 async function deleteBySourceId(knowledgeSourceId) {
   const col = await getCollection();
   await col.delete({ where: { knowledgeSourceId: { $eq: knowledgeSourceId } } });
+  bm25Store.deleteBySourceId(knowledgeSourceId);
   console.log(`🗑️ Deleted chunks for knowledgeSourceId: ${knowledgeSourceId}`);
 }
 
@@ -156,6 +172,7 @@ async function deleteBySourceId(knowledgeSourceId) {
 async function deleteBySubject(subjectId) {
   const col = await getCollection();
   await col.delete({ where: { subjectId: { $eq: subjectId } } });
+  bm25Store.deleteBySubject(subjectId);
   console.log(`🗑️ Deleted chunks for subjectId: ${subjectId}`);
 }
 

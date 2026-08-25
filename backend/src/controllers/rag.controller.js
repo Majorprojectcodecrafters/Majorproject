@@ -508,7 +508,10 @@ exports.saveGeneratedQP = async (req, res) => {
         llmModel: req.body.llmModel || process.env.GROQ_MODEL || 'openai/gpt-oss-20b',
         generatedAt: new Date(),
         questions: {
-          create: savedQuestions.map(q => ({ questionId: q.id }))
+          create: savedQuestions.map((q, idx) => ({
+            questionId: q.id,
+            orderInt: idx + 1
+          }))
         }
       },
       include: {
@@ -518,7 +521,10 @@ exports.saveGeneratedQP = async (req, res) => {
             user: { select: { id: true, name: true, email: true, role: true } }
           }
         },
-        questions: { include: { question: true } },
+        questions: {
+          include: { question: true },
+          orderBy: { orderInt: 'asc' }
+        },
         template: true
       }
     });

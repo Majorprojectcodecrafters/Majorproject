@@ -122,7 +122,7 @@ exports.getQPById = async (req, res) => {
         teacher: safeTeacherInclude,
         questions: {
           include: { question: { include: { chapter: true } } },
-          orderBy: { createdAt: 'asc' }
+          orderBy: { orderInt: 'asc' }
         },
         template: true,
         examResults: true

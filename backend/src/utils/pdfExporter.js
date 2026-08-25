@@ -142,12 +142,38 @@ function renderQuestionItem(q, numStr, showAnswers) {
 }
 
 /**
+function getPatternOrderPriority(q) {
+  const type = (q.questionType || q.type || '').toUpperCase();
+  const marks = Number(q.marks) || 1;
+  const isMcq = (q.options && q.options.length > 0) || type === 'MCQ';
+
+  if (isMcq) return 1;
+  if (type === 'VERY_SHORT' || (type === 'SHORT' && marks === 1)) return 2;
+  if (type === 'SHORT' && marks === 2) return 3;
+  if (type === 'SHORT' && marks === 3) return 4;
+  if (type === 'LONG' || marks >= 4) return 5;
+  return 99;
+}
+
+/**
  * Dynamic Section Body Renderer with 100% question inclusion, center-aligned section titles,
- * and simplified "Attempt any ___ for __ marks each" instructions.
+ * and single concise "Attempt any ___ for __ marks each" instructions without duplication.
  */
 function buildPatternSections(qp, showAnswers) {
   const patternData = qp.patternData;
-  const questionsList = (qp.questions || []).map(q => q.question || q);
+
+  // Extract questions with join order or pattern priority sorting
+  let rawQuestions = (qp.questions || []);
+  rawQuestions.sort((a, b) => {
+    const orderA = a.orderInt !== undefined ? a.orderInt : (getPatternOrderPriority(a.question || a));
+    const orderB = b.orderInt !== undefined ? b.orderInt : (getPatternOrderPriority(b.question || b));
+    return orderA - orderB;
+  });
+
+  let questionsList = rawQuestions.map(q => q.question || q);
+
+  // Guarantee strict pattern sequence: MCQ -> VSA -> Short(2m) -> Short(3m) -> Long(4m)
+  questionsList.sort((a, b) => getPatternOrderPriority(a) - getPatternOrderPriority(b));
 
   if (!patternData || !Array.isArray(patternData.sections) || !patternData.sections.length) {
     return buildFallbackSections(questionsList, showAnswers);
@@ -206,7 +232,7 @@ function buildPatternSections(qp, showAnswers) {
       sectionContentHtml = `
         <div class="section">
           <h3 class="section-title">${sec.sectionName} ${sec.title ? `— ${sec.title}` : ''}</h3>
-          <p class="section-info"><strong>${instructionText}</strong>${sec.instructions ? ` | ${sec.instructions}` : ''}</p>
+          <p class="section-info"><strong>${instructionText}</strong></p>
           ${itemsHtml}
         </div>
       `;
