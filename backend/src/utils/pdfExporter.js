@@ -137,11 +137,13 @@ function renderQuestionItem(q, numStr, showAnswers) {
         ? `<p class="answer"><strong>Answer Key:</strong> ${formattedAnswer || 'N/A'}</p>`
         : ''
       }
-    </div>
+}
   `;
 }
 
 /**
+ * Get question priority order based on question type and marks
+ */
 function getPatternOrderPriority(q) {
   const type = (q.questionType || q.type || '').toUpperCase();
   const marks = Number(q.marks) || 1;
