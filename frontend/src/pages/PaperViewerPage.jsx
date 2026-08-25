@@ -237,8 +237,10 @@ export default function PaperViewerPage() {
             <p className="text-lg font-bold text-gray-900">{paper.durationMins} mins</p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wider font-semibold text-gray-500">Difficulty</p>
-            <p className="text-lg font-bold text-gray-900">{paper.difficulty}</p>
+            <p className="text-xs uppercase tracking-wider font-semibold text-gray-500">Exam Date</p>
+            <p className="text-lg font-bold text-gray-900">
+              {paper.examDate ? new Date(paper.examDate).toLocaleDateString() : new Date(paper.createdAt).toLocaleDateString()}
+            </p>
           </div>
           <div>
             <p className="text-xs uppercase tracking-wider font-semibold text-gray-500">Status</p>

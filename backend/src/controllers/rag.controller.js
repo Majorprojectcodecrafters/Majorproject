@@ -457,6 +457,7 @@ exports.saveGeneratedQP = async (req, res) => {
       patternVersion,
       patternData,
       templateId,
+      examDate,
       questions
     } = req.body;
 
@@ -504,6 +505,7 @@ exports.saveGeneratedQP = async (req, res) => {
         teacherId,
         subjectId,
         templateId: templateId || null,
+        examDate: examDate ? new Date(examDate) : null,
         llmProvider: req.body.llmProvider || process.env.LLM_PROVIDER || 'groq',
         llmModel: req.body.llmModel || process.env.GROQ_MODEL || 'openai/gpt-oss-20b',
         generatedAt: new Date(),

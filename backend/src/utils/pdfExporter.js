@@ -340,7 +340,7 @@ async function exportQPToPDF(qp, showAnswers = false) {
       totalMarks: qp.totalMarks,
       durationMins: qp.durationMins,
       difficulty: qp.difficulty,
-      date: new Date(qp.createdAt || Date.now()).toLocaleDateString(),
+      date: qp.examDate ? new Date(qp.examDate).toLocaleDateString() : new Date(qp.createdAt || Date.now()).toLocaleDateString(),
       instructions: qp.instructions
     };
 

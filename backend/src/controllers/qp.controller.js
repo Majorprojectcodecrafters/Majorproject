@@ -71,8 +71,11 @@ exports.getAllQP = async (req, res) => {
   try {
     const { status, subjectId, difficulty, page = 1, limit = 10 } = req.query;
 
+    // Teachers view strictly their own generated papers; Admins view papers across all teachers
+    const isTeacher = req.user?.role === 'TEACHER' || (req.user?.teacherId && req.user?.role !== 'ADMIN');
     const where = {
       isDeleted: false,
+      ...(isTeacher && req.user?.teacherId ? { teacherId: req.user.teacherId } : {}),
       ...(status && { status }),
       ...(subjectId && { subjectId }),
       ...(difficulty && { difficulty })

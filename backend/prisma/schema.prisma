@@ -417,6 +417,7 @@ model QuestionPaper {
   pdfUrl         String?     // Optional convenience download link
   llmProvider    String?     // Audit metadata (e.g. "gemini", "groq", "ollama")
   llmModel       String?     // Audit metadata (e.g. "gemini-1.5-flash", "openai/gpt-oss-20b")
+  examDate       DateTime?   // Customized Date of Examination
   generatedAt    DateTime?   // Audit metadata
 
   createdAt DateTime @default(now())

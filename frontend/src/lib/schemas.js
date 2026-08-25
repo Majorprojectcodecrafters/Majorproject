@@ -33,6 +33,7 @@ export const generateQPSchema = z.object({
   shortCount: z.number().min(0).default(3),
   longCount: z.number().min(0).default(2),
   grade: z.string().optional(),
+  examDate: z.string().optional(),
 });
 
 // Save generated QP schema
@@ -47,6 +48,7 @@ export const saveQPSchema = z.object({
   board: z.string().optional(),
   patternVersion: z.string().optional(),
   patternData: z.any().optional(),
+  examDate: z.string().optional(),
   questions: z.array(z.object({
     questionText: z.string(),
     marks: z.number(),

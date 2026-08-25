@@ -215,6 +215,7 @@ export default function QPGeneratorPage() {
         board: generatedData.board,
         patternVersion: generatedData.patternVersion,
         patternData: generatedData.patternData,
+        examDate: watch('examDate'),
         questions: generatedData.questions
       };
 
@@ -320,6 +321,18 @@ export default function QPGeneratorPage() {
                 placeholder="e.g. HSC 12th Physics Board Practice Examination 2026"
                 className="input-field"
               />
+            </div>
+
+            <div>
+              <label className="input-label">Date of Examination (Customizable)</label>
+              <input
+                type="date"
+                {...register('examDate')}
+                className="input-field"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Optional. If specified, this date will be printed on the paper header and PDF export.
+              </p>
             </div>
 
             <div className="flex justify-end pt-4">
