@@ -9,42 +9,52 @@ export function formatScientificText(str) {
 
   let text = str;
 
-  // Reaction arrows in Chemistry
-  text = text.replace(/<==>|<=>|\\rightleftharpoons/g, '\\rightleftharpoons ');
-  text = text.replace(/-->|->|\\rightarrow/g, '\\rightarrow ');
-
   // Convert explicit inline math ($...$ or \(...\)) or display math ($$...$$ or \[...\])
-  const renderMathInText = (input) => {
-    return input.replace(/(\$\$[\s\S]+?\$\$|\$[^\$]+?\$|\\\(.+?\\\)|\\\[.+?\\\])/g, (match) => {
-      const isDisplay = match.startsWith('$$') || match.startsWith('\\[');
-      const cleanMath = match
-        .replace(/^\$\$|^\$|^\\\(|^\\\[/g, '')
-        .replace(/\$\$$|\$$|\\\)$|\\\]$/g, '')
-        .trim();
+  text = text.replace(/(\$\$[\s\S]+?\$\$|\$[^\$]+?\$|\\\(.+?\\\)|\\\[.+?\\\])/g, (match) => {
+    const isDisplay = match.startsWith('$$') || match.startsWith('\\[');
+    const cleanMath = match
+      .replace(/^\$\$|^\$|^\\\(|^\\\[/g, '')
+      .replace(/\$\$$|\$$|\\\)$|\\\]$/g, '')
+      .trim();
 
-      try {
-        return katex.renderToString(cleanMath, {
-          displayMode: isDisplay,
-          throwOnError: false
-        });
-      } catch (e) {
-        return match;
-      }
-    });
+    try {
+      return katex.renderToString(cleanMath, {
+        displayMode: isDisplay,
+        throwOnError: false
+      });
+    } catch (e) {
+      return match;
+    }
+  });
+
+  // Common LaTeX Greek letters & scientific symbol replacements for inline text
+  const symbolMap = {
+    '\\\\theta': 'θ', '\\\\Theta': 'Θ',
+    '\\\\omega': 'ω', '\\\\Omega': 'Ω',
+    '\\\\alpha': 'α', '\\\\beta': 'β', '\\\\gamma': 'γ', '\\\\Gamma': 'Γ',
+    '\\\\delta': 'δ', '\\\\Delta': 'Δ',
+    '\\\\epsilon': 'ε', '\\\\varepsilon': 'ε',
+    '\\\\lambda': 'λ', '\\\\Lambda': 'Λ',
+    '\\\\mu': 'μ', '\\\\nu': 'ν',
+    '\\\\pi': 'π', '\\\\Pi': 'Π',
+    '\\\\rho': 'ρ', '\\\\sigma': 'σ', '\\\\Sigma': 'Σ',
+    '\\\\degree': '°', '\\\\deg': '°',
+    '\\\\times': '×', '\\\\cdot': '·', '\\\\div': '÷',
+    '\\\\pm': '±', '\\\\mp': '∓',
+    '\\\\infty': '∞', '\\\\approx': '≈', '\\\\neq': '≠',
+    '\\\\leq': '≤', '\\\\geq': '≥', '\\\\in': '∈',
+    '\\\\rightarrow': '→', '\\\\rightleftharpoons': '⇌'
   };
 
-  if (text.includes('$') || text.includes('\\(') || text.includes('\\[')) {
-    return renderMathInText(text);
+  for (const [latex, unicode] of Object.entries(symbolMap)) {
+    const escLatex = latex.replace(/\\/g, '\\\\');
+    const regex = new RegExp(`${escLatex}(?![a-zA-Z])`, 'g');
+    text = text.replace(regex, unicode);
   }
 
-  // Auto-detect un-delimited TeX expressions (e.g. \frac{a}{b}, \sqrt{x}, \int_0^1, \theta, H_2SO_4)
-  if (/\\(frac|sqrt|int|sum|prod|alpha|beta|gamma|delta|theta|omega|pi|lambda|mu|sigma|rightarrow|rightleftharpoons)|[\^_]\{/i.test(text)) {
-    try {
-      return katex.renderToString(text, { displayMode: false, throwOnError: false });
-    } catch (e) {
-      return text;
-    }
-  }
+  // Reaction arrows in Chemistry
+  text = text.replace(/<==>|<=>|\\rightleftharpoons/g, '⇌');
+  text = text.replace(/-->|->|\\rightarrow/g, '→');
 
   return text;
 }

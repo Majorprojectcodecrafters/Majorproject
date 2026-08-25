@@ -17,7 +17,7 @@ function getLogoBase64() {
 function buildLetterhead(examInfo) {
   const logoBase64 = getLogoBase64();
   const logoHtml = logoBase64
-    ? `<img src="${logoBase64}" style="height: 80px; width: auto;" />`
+    ? `<img src="${logoBase64}" style="height: 70px; width: auto;" />`
     : '';
 
   return `
@@ -66,42 +66,52 @@ function formatScientificText(str) {
 
   let text = str;
 
-  // Reaction arrows in Chemistry
-  text = text.replace(/<==>|<=>|\\rightleftharpoons/g, '\\rightleftharpoons ');
-  text = text.replace(/-->|->|\\rightarrow/g, '\\rightarrow ');
-
   // Convert explicit inline math ($...$ or \(...\)) or display math ($$...$$ or \[...\])
-  const renderMathInText = (input) => {
-    return input.replace(/(\$\$[\s\S]+?\$\$|\$[^\$]+?\$|\\\(.+?\\\)|\\\[.+?\\\])/g, (match) => {
-      const isDisplay = match.startsWith('$$') || match.startsWith('\\[');
-      const cleanMath = match
-        .replace(/^\$\$|^\$|^\\\(|^\\\[/g, '')
-        .replace(/\$\$$|\$$|\\\)$|\\\]$/g, '')
-        .trim();
+  text = text.replace(/(\$\$[\s\S]+?\$\$|\$[^\$]+?\$|\\\(.+?\\\)|\\\[.+?\\\])/g, (match) => {
+    const isDisplay = match.startsWith('$$') || match.startsWith('\\[');
+    const cleanMath = match
+      .replace(/^\$\$|^\$|^\\\(|^\\\[/g, '')
+      .replace(/\$\$$|\$$|\\\)$|\\\]$/g, '')
+      .trim();
 
-      try {
-        return katex.renderToString(cleanMath, {
-          displayMode: isDisplay,
-          throwOnError: false
-        });
-      } catch (e) {
-        return match;
-      }
-    });
+    try {
+      return katex.renderToString(cleanMath, {
+        displayMode: isDisplay,
+        throwOnError: false
+      });
+    } catch (e) {
+      return match;
+    }
+  });
+
+  // Common LaTeX Greek letters & scientific symbol replacements for inline text
+  const symbolMap = {
+    '\\\\theta': 'θ', '\\\\Theta': 'Θ',
+    '\\\\omega': 'ω', '\\\\Omega': 'Ω',
+    '\\\\alpha': 'α', '\\\\beta': 'β', '\\\\gamma': 'γ', '\\\\Gamma': 'Γ',
+    '\\\\delta': 'δ', '\\\\Delta': 'Δ',
+    '\\\\epsilon': 'ε', '\\\\varepsilon': 'ε',
+    '\\\\lambda': 'λ', '\\\\Lambda': 'Λ',
+    '\\\\mu': 'μ', '\\\\nu': 'ν',
+    '\\\\pi': 'π', '\\\\Pi': 'Π',
+    '\\\\rho': 'ρ', '\\\\sigma': 'σ', '\\\\Sigma': 'Σ',
+    '\\\\degree': '°', '\\\\deg': '°',
+    '\\\\times': '×', '\\\\cdot': '·', '\\\\div': '÷',
+    '\\\\pm': '±', '\\\\mp': '∓',
+    '\\\\infty': '∞', '\\\\approx': '≈', '\\\\neq': '≠',
+    '\\\\leq': '≤', '\\\\geq': '≥', '\\\\in': '∈',
+    '\\\\rightarrow': '→', '\\\\rightleftharpoons': '⇌'
   };
 
-  if (text.includes('$') || text.includes('\\(') || text.includes('\\[')) {
-    return renderMathInText(text);
+  for (const [latex, unicode] of Object.entries(symbolMap)) {
+    const escLatex = latex.replace(/\\/g, '\\\\');
+    const regex = new RegExp(`${escLatex}(?![a-zA-Z])`, 'g');
+    text = text.replace(regex, unicode);
   }
 
-  // Auto-detect un-delimited TeX expressions (e.g. \frac{a}{b}, \sqrt{x}, \int_0^1, \theta, H_2SO_4)
-  if (/\\(frac|sqrt|int|sum|prod|alpha|beta|gamma|delta|theta|omega|pi|lambda|mu|sigma|rightarrow|rightleftharpoons)|[\^_]\{/i.test(text)) {
-    try {
-      return katex.renderToString(text, { displayMode: false, throwOnError: false });
-    } catch (e) {
-      return text;
-    }
-  }
+  // Reaction arrows in Chemistry
+  text = text.replace(/<==>|<=>|\\rightleftharpoons/g, '⇌');
+  text = text.replace(/-->|->|\\rightarrow/g, '→');
 
   return text;
 }
@@ -118,14 +128,14 @@ function renderQuestionItem(q, numStr, showAnswers) {
   const imageUrl = q.imageUrl || q.diagramUrl;
 
   return `
-    <div class="question" style="page-break-inside: avoid; break-inside: avoid;">
+    <div class="question">
       <p class="question-text">
         <strong>${numStr}.</strong> ${formattedText}
       </p>
       ${imageUrl ? `
-        <div class="diagram-container" style="text-align: center; margin: 8px 0;">
-          <img src="${imageUrl}" style="max-height: 180px; max-width: 90%; height: auto; border: 1px solid #ccc; padding: 4px; border-radius: 4px;" />
-          <div style="font-size: 8pt; font-style: italic; color: #555; margin-top: 2px;">Figure for ${numStr}</div>
+        <div class="diagram-container" style="text-align: center; margin: 4px 0;">
+          <img src="${imageUrl}" style="max-height: 140px; max-width: 85%; height: auto; border: 1px solid #ccc; padding: 3px; border-radius: 4px;" />
+          <div style="font-size: 8pt; font-style: italic; color: #555; margin-top: 1px;">Figure for ${numStr}</div>
         </div>
       ` : ''}
       ${isMcq && formattedOptions.length ? `
@@ -137,7 +147,7 @@ function renderQuestionItem(q, numStr, showAnswers) {
         ? `<p class="answer"><strong>Answer Key:</strong> ${formattedAnswer || 'N/A'}</p>`
         : ''
       }
-}
+    </div>
   `;
 }
 
@@ -347,12 +357,12 @@ async function exportQPToPDF(qp, showAnswers = false) {
         <style>
           @page {
             size: A4;
-            margin: 15mm 15mm 20mm 15mm;
+            margin: 12mm 15mm 15mm 15mm;
           }
           body {
             font-family: 'Times New Roman', Times, serif;
-            font-size: 11pt;
-            line-height: 1.4;
+            font-size: 10.5pt;
+            line-height: 1.35;
             color: #000;
             margin: 0;
             padding: 0;
@@ -361,93 +371,104 @@ async function exportQPToPDF(qp, showAnswers = false) {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
           }
           .letterhead-center {
             text-align: center;
             flex-grow: 1;
           }
           .school-name {
-            font-size: 18pt;
+            font-size: 16pt;
             font-weight: bold;
             text-transform: uppercase;
             margin: 0;
           }
           .school-info {
-            font-size: 9pt;
-            margin: 2px 0;
+            font-size: 8.5pt;
+            margin: 1px 0;
           }
           .divider {
             border: 0;
-            border-top: 1.5px solid #000;
-            margin: 8px 0;
+            border-top: 1px solid #000;
+            margin: 6px 0;
           }
           .exam-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 10pt;
+            font-size: 9.5pt;
           }
           .exam-table td {
-            padding: 3px 0;
+            padding: 2px 0;
             width: 33%;
           }
           .instructions {
-            font-size: 9.5pt;
+            font-size: 9pt;
             font-style: italic;
-            margin: 5px 0;
+            margin: 4px 0;
           }
           .section {
-            margin-top: 15px;
+            margin-top: 10px;
           }
           .section-title {
-            font-size: 12pt;
+            font-size: 11pt;
             font-weight: bold;
             text-transform: uppercase;
             text-align: center;
             border-bottom: 1px solid #000;
-            padding-bottom: 3px;
-            margin-top: 15px;
-            margin-bottom: 8px;
-          }
-          .section-info {
-            font-size: 9.5pt;
-            text-align: center;
-            margin-bottom: 10px;
-          }
-          .subsection-title {
-            font-size: 10.5pt;
+            padding-bottom: 2px;
             margin-top: 10px;
             margin-bottom: 4px;
+            page-break-after: avoid;
+            break-after: avoid;
+          }
+          .section-info {
+            font-size: 9pt;
+            text-align: center;
+            margin-bottom: 6px;
+            page-break-after: avoid;
+            break-after: avoid;
+          }
+          .subsection-title {
+            font-size: 10pt;
+            margin-top: 6px;
+            margin-bottom: 2px;
+            page-break-after: avoid;
+            break-after: avoid;
           }
           .subsection-note {
-            font-size: 9pt;
-            margin-bottom: 6px;
+            font-size: 8.5pt;
+            margin-bottom: 4px;
           }
           .question {
-            margin-bottom: 10px;
+            margin-bottom: 6px;
+            padding: 1px 0;
             page-break-inside: avoid;
             break-inside: avoid;
           }
           .question-text {
-            margin: 0 0 4px 0;
+            margin: 0 0 2px 0;
           }
           .options {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4px 15px;
-            padding-left: 20px;
-            margin-top: 4px;
+            display: flex;
+            flex-wrap: wrap;
+            padding-left: 15px;
+            margin-top: 2px;
           }
           .option {
-            font-size: 10pt;
+            width: 48%;
+            font-size: 9.5pt;
+            margin-bottom: 2px;
           }
           .answer {
-            font-size: 9.5pt;
+            font-size: 9pt;
             color: #1b5e20;
             background-color: #f1f8e9;
-            padding: 4px 8px;
+            padding: 3px 6px;
             border-left: 3px solid #4caf50;
-            margin-top: 4px;
+            margin-top: 2px;
+          }
+          .katex-html {
+            white-space: normal !important;
           }
         </style>
       </head>
@@ -471,8 +492,8 @@ async function exportQPToPDF(qp, showAnswers = false) {
         </div>
       `,
       margin: {
-        top: '15mm',
-        bottom: '20mm',
+        top: '12mm',
+        bottom: '15mm',
         left: '15mm',
         right: '15mm'
       }
