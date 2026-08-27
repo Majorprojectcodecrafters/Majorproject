@@ -59,24 +59,70 @@ exports.updateProfile = async (req, res) => {
 
 // ==================== STUDENTS ====================
 
-exports.getMyStudents = async (req, res) => {
+exports.getAssignedClasses = async (req, res) => {
   try {
-    const { classId, streamId, page = 1, limit = 10 } = req.query;
-
-    const assignments = await prisma.teacherStudent.findMany({
+    const assignments = await prisma.teacherAssignment.findMany({
       where: { teacherId: req.user.teacherId },
       include: {
-        student: {
-          include: {
-            user: { select: { name: true, email: true, dob: true } },
-            class: true,
-            stream: true
-          }
-        }
-      }
+        class: true,
+        subject: true
+      },
+      orderBy: { createdAt: 'desc' }
     });
 
-    let students = assignments.map(a => a.student);
+    res.json({ success: true, data: assignments });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getMyStudents = async (req, res) => {
+  try {
+    const { classId, streamId, page = 1, limit = 50 } = req.query;
+    const teacherId = req.user.teacherId;
+
+    // 1. Get class IDs assigned to teacher via TeacherAssignment
+    const teacherAssignments = await prisma.teacherAssignment.findMany({
+      where: { teacherId },
+      select: { classId: true }
+    });
+    const assignedClassIds = teacherAssignments.map(a => a.classId);
+
+    // 2. Get students assigned directly or via assigned classes
+    const [directAssignments, classStudents] = await Promise.all([
+      prisma.teacherStudent.findMany({
+        where: { teacherId },
+        include: {
+          student: {
+            include: {
+              user: { select: { name: true, email: true, dob: true } },
+              class: true,
+              stream: true
+            }
+          }
+        }
+      }),
+      assignedClassIds.length > 0 ? prisma.student.findMany({
+        where: { classId: { in: assignedClassIds } },
+        include: {
+          user: { select: { name: true, email: true, dob: true } },
+          class: true,
+          stream: true
+        }
+      }) : []
+    ]);
+
+    // 3. Merge and deduplicate
+    const studentMap = new Map();
+    directAssignments.forEach(a => {
+      if (a.student) studentMap.set(a.student.id, a.student);
+    });
+    classStudents.forEach(s => {
+      studentMap.set(s.id, s);
+    });
+
+    let students = Array.from(studentMap.values());
 
     // Filter
     if (classId)  students = students.filter(s => s.classId === classId);
@@ -104,20 +150,22 @@ exports.getMyStudents = async (req, res) => {
 
 exports.getStudentById = async (req, res) => {
   try {
-    // Verify student is assigned to this teacher
-    const assignment = await prisma.teacherStudent.findUnique({
-      where: {
-        teacherId_studentId: {
-          teacherId: req.user.teacherId,
-          studentId: req.params.id
-        }
-      }
+    const teacherId = req.user.teacherId;
+    const studentId = req.params.id;
+
+    // Verify student is assigned to this teacher directly or via assigned class
+    const teacherAssignments = await prisma.teacherAssignment.findMany({
+      where: { teacherId },
+      select: { classId: true }
+    });
+    const assignedClassIds = teacherAssignments.map(a => a.classId);
+
+    const directAssignment = await prisma.teacherStudent.findUnique({
+      where: { teacherId_studentId: { teacherId, studentId } }
     });
 
-    if (!assignment) return res.status(403).json({ success: false, message: 'Student not assigned to you' });
-
-    const student = await prisma.student.findUnique({
-      where: { id: req.params.id },
+    const targetStudent = await prisma.student.findUnique({
+      where: { id: studentId },
       include: {
         user: { select: { name: true, email: true, dob: true } },
         class: true,
@@ -128,11 +176,22 @@ exports.getStudentById = async (req, res) => {
           },
           orderBy: { examDate: 'desc' }
         },
+        quizAttempts: {
+          include: { quiz: { include: { subject: true } } },
+          orderBy: { submittedAt: 'desc' }
+        },
         semesterResults: { orderBy: { semester: 'asc' } }
       }
     });
 
-    res.json({ success: true, data: student });
+    if (!targetStudent) return res.status(404).json({ success: false, message: 'Student not found' });
+
+    const isAssignedViaClass = assignedClassIds.includes(targetStudent.classId);
+    if (!directAssignment && !isAssignedViaClass) {
+      return res.status(403).json({ success: false, message: 'Student is not assigned to your classes' });
+    }
+
+    res.json({ success: true, data: targetStudent });
 
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -269,46 +328,57 @@ exports.createExamResult = async (req, res) => {
       questionPaperId,
       obtainedMarks,
       examDate,
-      examType,
-      semester,
-      academicYear,
-      isPassed,
+      examType = 'Internal Test',
+      semester = 1,
+      academicYear = '2026-2027',
       remarks
     } = req.body;
 
-    // Verify student is assigned to this teacher
-    const assignment = await prisma.teacherStudent.findUnique({
-      where: { teacherId_studentId: { teacherId: req.user.teacherId, studentId } }
-    });
-    if (!assignment) return res.status(403).json({ success: false, message: 'Student not assigned to you' });
+    const teacherId = req.user.teacherId;
 
     // Verify QP exists and belongs to this teacher
     const qp = await prisma.questionPaper.findFirst({
-      where: { id: questionPaperId, teacherId: req.user.teacherId, isDeleted: false }
+      where: { id: questionPaperId, teacherId, isDeleted: false }
     });
     if (!qp) return res.status(404).json({ success: false, message: 'Question paper not found' });
 
-    // Check duplicate
-    const existing = await prisma.examResult.findUnique({
-      where: { studentId_questionPaperId: { studentId, questionPaperId } }
-    });
-    if (existing) return res.status(400).json({ success: false, message: 'Result already exists for this student and paper' });
+    // Validate marks
+    const numericObtained = Number(obtainedMarks);
+    if (isNaN(numericObtained) || numericObtained < 0 || numericObtained > qp.totalMarks) {
+      return res.status(400).json({
+        success: false,
+        message: `Obtained marks (${obtainedMarks}) must be between 0 and total marks (${qp.totalMarks})`
+      });
+    }
 
-    const result = await prisma.examResult.create({
-      data: {
-        teacherId: req.user.teacherId,
+    // Auto-calculate pass/fail (>= 35%)
+    const passThreshold = 0.35 * qp.totalMarks;
+    const computedIsPassed = numericObtained >= passThreshold;
+
+    const result = await prisma.examResult.upsert({
+      where: {
+        studentId_questionPaperId: { studentId, questionPaperId }
+      },
+      create: {
+        teacherId,
         studentId,
         questionPaperId,
-        obtainedMarks: Number(obtainedMarks),
-        examDate: new Date(examDate),
+        obtainedMarks: numericObtained,
+        examDate: examDate ? new Date(examDate) : (qp.examDate || new Date()),
         examType,
         semester: Number(semester),
         academicYear,
-        isPassed: isPassed ?? true,
+        isPassed: computedIsPassed,
+        remarks: remarks || null
+      },
+      update: {
+        obtainedMarks: numericObtained,
+        examDate: examDate ? new Date(examDate) : (qp.examDate || new Date()),
+        isPassed: computedIsPassed,
         remarks: remarks || null
       },
       include: {
-        student: { include: { user: { select: { name: true } } } },
+        student: { include: { user: { select: { name: true } }, class: true } },
         questionPaper: { include: { subject: true } }
       }
     });
@@ -557,3 +627,76 @@ exports.getChaptersBySubject = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+// ==================== RESULT EXPORTS ====================
+
+const { generateResultExcel } = require('../utils/resultExcelExporter');
+const { generateResultPdf } = require('../utils/resultPdfExporter');
+
+exports.exportExamResultsExcel = async (req, res) => {
+  try {
+    const { questionPaperId } = req.query;
+    const teacherId = req.user.teacherId;
+
+    if (!questionPaperId) {
+      return res.status(400).json({ success: false, message: 'Question paper ID is required' });
+    }
+
+    const qp = await prisma.questionPaper.findFirst({
+      where: { id: questionPaperId, teacherId, isDeleted: false },
+      include: { subject: true }
+    });
+    if (!qp) return res.status(404).json({ success: false, message: 'Question paper not found' });
+
+    const results = await prisma.examResult.findMany({
+      where: { questionPaperId, teacherId },
+      include: {
+        student: { include: { user: { select: { name: true, email: true } }, class: true } }
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    const buffer = await generateResultExcel(qp, results);
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${qp.title.replace(/[^a-zA-Z0-9_-]/g, '_')}_Results.xlsx"`);
+    res.send(buffer);
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.exportExamResultsPdf = async (req, res) => {
+  try {
+    const { questionPaperId } = req.query;
+    const teacherId = req.user.teacherId;
+
+    if (!questionPaperId) {
+      return res.status(400).json({ success: false, message: 'Question paper ID is required' });
+    }
+
+    const qp = await prisma.questionPaper.findFirst({
+      where: { id: questionPaperId, teacherId, isDeleted: false },
+      include: { subject: true }
+    });
+    if (!qp) return res.status(404).json({ success: false, message: 'Question paper not found' });
+
+    const results = await prisma.examResult.findMany({
+      where: { questionPaperId, teacherId },
+      include: {
+        student: { include: { user: { select: { name: true, email: true } }, class: true } }
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    const pdfBuffer = await generateResultPdf(qp, results);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${qp.title.replace(/[^a-zA-Z0-9_-]/g, '_')}_Results.pdf"`);
+    res.send(pdfBuffer);
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
