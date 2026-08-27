@@ -21,7 +21,7 @@ export default function ProtectedDocumentViewer({ documentId, title, onClose }) 
         setLoading(true);
         setError('');
         const token = localStorage.getItem('token');
-        const res = await fetch(`/api/rag/sources/${documentId}/view-secure`, {
+        const res = await fetch(`/api/student-library/materials/${documentId}/view`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

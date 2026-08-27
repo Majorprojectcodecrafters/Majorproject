@@ -73,6 +73,7 @@ const curriculumRoutes = require('./routes/curriculum.routes');
 const quizRoutes = require('./routes/quiz.routes');
 const practiceRoutes = require('./routes/practice.routes');
 const announcementRoutes = require('./routes/announcement.routes');
+const studentLibraryRoutes = require('./routes/studentLibrary.routes');
 
 // Serve uploads directory for announcement file attachments
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
@@ -89,6 +90,7 @@ app.use('/api/question-papers', qpRoutes);
 app.use('/api/quiz', quizRoutes);
 app.use('/api/practice', practiceRoutes);
 app.use('/api/announcements', announcementRoutes);
+app.use('/api/student-library', studentLibraryRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'API is running 🚀', version: '1.0.0' });

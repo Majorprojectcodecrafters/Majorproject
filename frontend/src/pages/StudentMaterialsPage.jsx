@@ -12,7 +12,7 @@ export default function StudentMaterialsPage() {
   const { data: materials = [], isLoading, error } = useQuery({
     queryKey: ['studentStudyMaterials', typeFilter],
     queryFn: async () => {
-      const res = await apiClient.get(`/rag/student/materials?sourceType=${typeFilter}`);
+      const res = await apiClient.get(`/student-library/materials?category=${typeFilter}`);
       return res.data.data || [];
     }
   });

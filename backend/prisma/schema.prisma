@@ -185,6 +185,7 @@ model Class {
   quizzes           Quiz[]
   announcements     Announcement[]
   practiceChallenges PracticeChallenge[]
+  studyMaterials    StudyMaterial[]
 
   @@unique([name, academicYear, streamId]) 
 }
@@ -228,6 +229,7 @@ model Subject {
   quizzes           Quiz[]
   practiceAttempts  PracticeQuizAttempt[]
   practiceChallenges PracticeChallenge[]
+  studyMaterials    StudyMaterial[]
 
   @@unique([name, streamId])
 }
@@ -281,6 +283,7 @@ model Chapter {
   diagrams          DiagramRegistry[]
   practiceAttempts  PracticeQuizAttempt[]
   practiceChallenges PracticeChallenge[]
+  studyMaterials    StudyMaterial[]
 
   @@unique([name, subjectId])
 }
@@ -719,6 +722,37 @@ model PracticeChallenge {
   @@index([challengerId])
   @@index([opponentId])
   @@index([classId])
+}
+
+// STUDENT LIBRARY / NOTES & STUDY MATERIALS MODEL
+model StudyMaterial {
+  id            String   @id @default(uuid())
+  title         String
+  category      String   @default("TEACHER_NOTES") // "TEACHER_NOTES", "CHAPTER_NOTES", "TEXTBOOK", "PAST_PAPER", "REFERENCE"
+  description   String?
+  fileName      String
+  fileUrl       String?
+  driveFileId   String?  // Authoritative Google Drive reference
+  driveFolderId String?  // Google Drive parent folder reference
+  fileSize      Int?
+  mimeType      String   @default("application/pdf")
+  uploadedBy    String   // User ID of uploader
+  authorName    String?
+  authorRole    String?
+  classId       String?
+  subjectId     String?
+  chapterId     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  class   Class?   @relation(fields: [classId], references: [id], onDelete: SetNull)
+  subject Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  chapter Chapter? @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+
+  @@index([classId])
+  @@index([subjectId])
+  @@index([chapterId])
 }
 
 

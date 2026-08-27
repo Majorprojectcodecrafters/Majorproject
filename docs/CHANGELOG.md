@@ -2,6 +2,15 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.3.1] - 2026-08-27 (Strict Architectural Separation of RAG Vector Store & Student Library)
+
+### Added
+- **Database Model Isolation (`StudyMaterial`)**: Created `StudyMaterial` model in `schema.prisma` and ran `npx prisma db push` to keep Student Library PDF notes and Google Drive materials completely separate from RAG `KnowledgeSource` vector store records.
+- **Dedicated Student Library Module (`studentLibrary.controller.js` & `studentLibrary.routes.js`)**: Mounted at `/api/student-library`. Handles PDF notes and study material uploads directly to Google Drive folder `16_gh9hL3CHaHQ59KU7N2ejhIdKQ0rhJw`.
+- **RAG & Question Paper Pipeline Protection**: Ensured 0 ChromaDB chunking or RAG vector indexing is triggered by Student Library uploads, keeping the existing Question Paper Generation and Practice Quiz RAG pipeline 100% undisturbed and clean.
+
+---
+
 ## [1.3.0] - 2026-08-27 (Google Drive OAuth Storage & Protected Document Viewer)
 
 ### Added
