@@ -14,6 +14,8 @@ export const registerSchema = z.object({
   dob: z.string().min(1, 'Date of birth is required'),
   education: z.string().optional(),
   experienceYears: z.number().optional(),
+  classId: z.string().optional(),
+  contact: z.string().optional(),
 });
 
 // Question Paper Generation schema
