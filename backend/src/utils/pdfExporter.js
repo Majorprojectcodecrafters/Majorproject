@@ -327,7 +327,7 @@ function buildFallbackSections(questions, showAnswers) {
 
 async function exportQPToPDF(qp, showAnswers = false) {
   const browser = await puppeteer.launch({
-    headless: 'new',
+    headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
 

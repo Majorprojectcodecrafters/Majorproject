@@ -23,6 +23,9 @@ import StudentQuizPage from './pages/StudentQuizPage';
 import TeacherProfilePage from './pages/TeacherProfilePage';
 import StudentProfilePage from './pages/StudentProfilePage';
 import AdminAllocationsPage from './pages/AdminAllocationsPage';
+import StudentPracticePage from './pages/StudentPracticePage';
+import StudentAnnouncementsPage from './pages/StudentAnnouncementsPage';
+import ManageAnnouncementsPage from './pages/ManageAnnouncementsPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 
 const queryClient = new QueryClient({
@@ -151,6 +154,30 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['STUDENT']}>
             <StudentQuizPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/practice"
+        element={
+          <ProtectedRoute allowedRoles={['STUDENT']}>
+            <StudentPracticePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/announcements"
+        element={
+          <ProtectedRoute allowedRoles={['STUDENT']}>
+            <StudentAnnouncementsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manage/announcements"
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN', 'TEACHER']}>
+            <ManageAnnouncementsPage />
           </ProtectedRoute>
         }
       />

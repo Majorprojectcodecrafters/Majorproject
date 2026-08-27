@@ -42,6 +42,9 @@ export default function Navbar() {
                   <Link to="/teacher/quiz" className="text-gray-600 hover:text-gray-900">
                     Quizzes
                   </Link>
+                  <Link to="/manage/announcements" className="text-gray-600 hover:text-gray-900 font-bold text-purple-700">
+                    Announcements
+                  </Link>
                   <Link to="/admin/knowledge-base" className="text-gray-600 hover:text-gray-900">
                     Knowledge Base
                   </Link>
@@ -59,6 +62,9 @@ export default function Navbar() {
                   <Link to="/admin/allocations" className="text-gray-600 hover:text-gray-900">
                     Allocations
                   </Link>
+                  <Link to="/manage/announcements" className="text-gray-600 hover:text-gray-900 font-bold text-purple-700">
+                    Announcements
+                  </Link>
                   <Link to="/admin/knowledge-base" className="text-gray-600 hover:text-gray-900">
                     Student Library
                   </Link>
@@ -69,6 +75,12 @@ export default function Navbar() {
                 <>
                   <Link to="/student/papers" className="text-gray-600 hover:text-gray-900">
                     Papers
+                  </Link>
+                  <Link to="/student/practice" className="text-purple-700 hover:text-purple-900 font-bold bg-purple-50 px-2 py-1 rounded">
+                    Practice (MHT-CET)
+                  </Link>
+                  <Link to="/student/announcements" className="text-gray-600 hover:text-gray-900 font-bold text-purple-700">
+                    Announcements
                   </Link>
                   <Link to="/student/materials" className="text-gray-600 hover:text-gray-900">
                     Study Materials

@@ -70,6 +70,11 @@ app.use((req, res, next) => {
 const patternRoutes = require('./routes/pattern.routes');
 const curriculumRoutes = require('./routes/curriculum.routes');
 const quizRoutes = require('./routes/quiz.routes');
+const practiceRoutes = require('./routes/practice.routes');
+const announcementRoutes = require('./routes/announcement.routes');
+
+// Serve uploads directory for announcement file attachments
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -81,6 +86,8 @@ app.use('/api/patterns', patternRoutes);
 app.use('/api/curriculum', curriculumRoutes);
 app.use('/api/question-papers', qpRoutes);
 app.use('/api/quiz', quizRoutes);
+app.use('/api/practice', practiceRoutes);
+app.use('/api/announcements', announcementRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'API is running 🚀', version: '1.0.0' });

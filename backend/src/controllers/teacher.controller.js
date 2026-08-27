@@ -180,6 +180,10 @@ exports.getStudentById = async (req, res) => {
           include: { quiz: { include: { subject: true } } },
           orderBy: { submittedAt: 'desc' }
         },
+        practiceAttempts: {
+          include: { subject: true, chapter: true },
+          orderBy: { submittedAt: 'desc' }
+        },
         semesterResults: { orderBy: { semester: 'asc' } }
       }
     });
