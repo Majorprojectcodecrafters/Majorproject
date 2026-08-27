@@ -258,3 +258,120 @@ exports.getPublicStreams = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+// ==================== FORGOT PASSWORD OTP FLOW ====================
+
+const { sendPasswordResetOtpEmail } = require('../utils/emailService');
+
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ success: false, message: 'Email address is required' });
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'No registered user found with this email address' });
+    }
+
+    // Generate 6-digit numeric OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes lifetime
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetOtp: otpCode,
+        resetOtpExpires: expiresAt,
+        resetOtpAttempts: 0
+      }
+    });
+
+    // Send system OTP email
+    await sendPasswordResetOtpEmail(user.email, user.name, otpCode);
+
+    res.json({
+      success: true,
+      message: `A 6-digit OTP code has been sent to your email (${user.email}). It expires in 10 minutes.`
+    });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.verifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) return res.status(400).json({ success: false, message: 'Email and OTP are required' });
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    if (!user.resetOtp || !user.resetOtpExpires) {
+      return res.status(400).json({ success: false, message: 'No OTP reset request found for this account. Please request a new OTP.' });
+    }
+
+    if (new Date() > new Date(user.resetOtpExpires)) {
+      return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new OTP code.' });
+    }
+
+    if (user.resetOtpAttempts >= 3) {
+      return res.status(400).json({ success: false, message: 'Maximum OTP verification attempts exceeded. Please request a new OTP.' });
+    }
+
+    if (user.resetOtp !== otp.toString().trim()) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { resetOtpAttempts: user.resetOtpAttempts + 1 }
+      });
+      return res.status(400).json({ success: false, message: 'Invalid OTP code. Please check your email and try again.' });
+    }
+
+    res.json({ success: true, message: 'OTP code verified successfully! You may now set your new password.' });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Email, OTP, and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'New password must be at least 6 characters long' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    if (!user.resetOtp || user.resetOtp !== otp.toString().trim()) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP token' });
+    }
+
+    if (new Date() > new Date(user.resetOtpExpires)) {
+      return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new OTP.' });
+    }
+
+    // Hash new password and clear OTP fields
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetOtp: null,
+        resetOtpExpires: null,
+        resetOtpAttempts: 0
+      }
+    });
+
+    res.json({ success: true, message: 'Password reset successfully! You can now sign in with your new password.' });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};

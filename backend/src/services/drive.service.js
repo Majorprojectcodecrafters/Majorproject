@@ -212,11 +212,37 @@ async function deleteFileFromDrive(driveFileId) {
   }
 }
 
+/**
+ * List files and subfolders from connected Google Drive folder for automatic sync
+ */
+async function listDriveFilesAndFolders(parentFolderId = null) {
+  const drive = getDriveClient();
+  if (!drive) return [];
+
+  const folderId = parentFolderId || process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
+  if (!folderId) return [];
+
+  try {
+    const query = `'${folderId}' in parents and trashed=false`;
+    const res = await drive.files.list({
+      q: query,
+      fields: 'files(id, name, mimeType, webViewLink, size, createdTime)',
+      pageSize: 100
+    });
+
+    return res.data.files || [];
+  } catch (error) {
+    console.error('❌ Failed to list Google Drive files:', error.message);
+    return [];
+  }
+}
+
 module.exports = {
   isDriveConfigured,
   ensureFolderStructure,
   uploadFileToDrive,
   downloadFileFromDrive,
   getFileStreamFromDrive,
-  deleteFileFromDrive
+  deleteFileFromDrive,
+  listDriveFilesAndFolders
 };

@@ -9,6 +9,11 @@ router.get('/me',        protect, authController.getMe);
 router.get('/classes',   authController.getPublicClasses);
 router.get('/streams',   authController.getPublicStreams);
 
+// Forgot Password Email OTP Flow Routes
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/verify-otp',      authController.verifyOtp);
+router.post('/reset-password',   authController.resetPassword);
+
 // Google Drive OAuth 2.0 Flow Routes
 router.get('/google/url',      authController.getGoogleAuthUrl);
 router.get('/google/callback', authController.googleOAuthCallback);

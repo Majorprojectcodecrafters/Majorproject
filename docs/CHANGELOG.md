@@ -2,6 +2,16 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.4.0] - 2026-08-27 (Google Drive Folder Sync, Grade-Level Division Scoping & Email OTP Forgot Password)
+
+### Added
+- **Google Drive Folder Sync (`listDriveFilesAndFolders` & `/api/student-library/sync`)**: Implemented automatic Google Drive folder scanning to reflect all existing PDF study materials stored in Google Drive folder `16_gh9hL3CHaHQ59KU7N2ejhIdKQ0rhJw`.
+- **Grade-Level Division Scoping (`getStudyMaterials`)**: Programmed Grade-level division scoping so all divisions of 11th (11th C, 11th D, etc.) automatically access all 11th Grade study materials, and all 12th divisions access 12th Grade materials.
+- **Forgot Password Email OTP Flow (`emailService.js`, `auth.controller.js`, `ForgotPasswordModal.jsx`)**: Built a complete 6-digit Email OTP verification flow (`/api/auth/forgot-password`, `/api/auth/verify-otp`, `/api/auth/reset-password`) using Nodemailer SMTP with 10-minute OTP expiration and 3-attempt lockouts. Added "Forgot password?" link on Login page.
+- **RAG & Exam Generation Protection**: RAG vector store, chunk retrieval, ChromaDB, and Question Paper generation pipelines remain 100% untouched and undisturbed.
+
+---
+
 ## [1.3.1] - 2026-08-27 (Strict Architectural Separation of RAG Vector Store & Student Library)
 
 ### Added

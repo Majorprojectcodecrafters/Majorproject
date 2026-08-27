@@ -27,6 +27,7 @@ const upload = multer({
 
 // Student Library Routes
 router.post('/upload',               protect, authorize('ADMIN', 'TEACHER'), upload.single('file'), studentLibraryController.uploadStudyMaterial);
+router.post('/sync',                 protect, authorize('ADMIN', 'TEACHER'), studentLibraryController.syncDriveMaterials);
 router.get('/materials',            protect, authorize('ADMIN', 'TEACHER', 'STUDENT'), studentLibraryController.getStudyMaterials);
 router.get('/materials/:id/view',   protect, authorize('ADMIN', 'TEACHER', 'STUDENT'), studentLibraryController.streamStudyMaterialSecure);
 router.delete('/materials/:id',     protect, authorize('ADMIN', 'TEACHER'), studentLibraryController.deleteStudyMaterial);

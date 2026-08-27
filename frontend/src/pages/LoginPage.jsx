@@ -6,12 +6,14 @@ import { loginSchema } from '../lib/schemas';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import Logo from '../components/Logo';
+import ForgotPasswordModal from '../components/ForgotPasswordModal';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
 
   const {
     register,
@@ -66,7 +68,16 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="auth-label">Password</label>
+              <div className="flex items-center justify-between">
+                <label className="auth-label">Password</label>
+                <button
+                  type="button"
+                  onClick={() => setShowForgotModal(true)}
+                  className="text-xs font-semibold text-purple-700 hover:text-purple-900"
+                >
+                  Forgot password?
+                </button>
+              </div>
               <input
                 type="password"
                 {...register('password')}
@@ -111,6 +122,8 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {showForgotModal && <ForgotPasswordModal onClose={() => setShowForgotModal(false)} />}
     </div>
   );
 }

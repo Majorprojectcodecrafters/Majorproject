@@ -78,19 +78,42 @@ exports.uploadStudyMaterial = async (req, res) => {
   }
 };
 
-// ==================== GET STUDY MATERIALS ====================
+// ==================== GET STUDY MATERIALS (GRADE-LEVEL DIVISION SCOPED) ====================
+
+const { listDriveFilesAndFolders } = require('../services/drive.service');
 
 exports.getStudyMaterials = async (req, res) => {
   try {
     const { classId, subjectId, chapterId, category } = req.query;
     const where = {};
 
-    // Filter by student class if student role
+    // Filter by Grade Level (e.g. 11th or 12th - all divisions included)
     if (req.user.role === 'STUDENT') {
-      const student = await prisma.student.findUnique({ where: { id: req.user.studentId } });
-      if (student?.classId) {
+      const student = await prisma.student.findUnique({
+        where: { id: req.user.studentId },
+        include: { class: true }
+      });
+
+      let classIds = [];
+      if (student?.class) {
+        const className = student.class.name;
+        let gradeKeyword = null;
+        if (className.includes('11')) gradeKeyword = '11';
+        else if (className.includes('12')) gradeKeyword = '12';
+
+        if (gradeKeyword) {
+          const matchingClasses = await prisma.class.findMany({
+            where: { name: { contains: gradeKeyword } }
+          });
+          classIds = matchingClasses.map(c => c.id);
+        } else {
+          classIds = [student.classId];
+        }
+      }
+
+      if (classIds.length > 0) {
         where.OR = [
-          { classId: student.classId },
+          { classId: { in: classIds } },
           { classId: null }
         ];
       }
@@ -113,6 +136,63 @@ exports.getStudyMaterials = async (req, res) => {
     });
 
     res.json({ success: true, data: materials });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// ==================== SYNC CONNECTED GOOGLE DRIVE FOLDERS ====================
+
+exports.syncDriveMaterials = async (req, res) => {
+  try {
+    const driveFiles = await listDriveFilesAndFolders();
+    let syncedCount = 0;
+
+    for (const file of driveFiles) {
+      if (file.mimeType === 'application/pdf') {
+        const existing = await prisma.studyMaterial.findFirst({
+          where: { driveFileId: file.id }
+        });
+
+        if (!existing) {
+          // Infer grade level / subject from folder/filename if possible
+          let targetClassId = null;
+          if (file.name.includes('11')) {
+            const cls = await prisma.class.findFirst({ where: { name: { contains: '11' } } });
+            if (cls) targetClassId = cls.id;
+          } else if (file.name.includes('12')) {
+            const cls = await prisma.class.findFirst({ where: { name: { contains: '12' } } });
+            if (cls) targetClassId = cls.id;
+          }
+
+          await prisma.studyMaterial.create({
+            data: {
+              title: file.name.replace(/\.pdf$/i, ''),
+              category: 'TEACHER_NOTES',
+              description: 'Synchronized from connected Google Drive Folder',
+              fileName: file.name,
+              fileUrl: file.webViewLink,
+              driveFileId: file.id,
+              fileSize: file.size ? Number(file.size) : null,
+              mimeType: file.mimeType,
+              uploadedBy: req.user.id,
+              authorName: 'Google Drive Auto-Sync',
+              authorRole: 'SYSTEM',
+              classId: targetClassId
+            }
+          });
+          syncedCount++;
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Google Drive Sync Complete! ${syncedCount} new documents synchronized from root folder.`,
+      totalDriveFiles: driveFiles.length,
+      syncedNewCount: syncedCount
+    });
 
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

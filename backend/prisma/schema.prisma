@@ -83,6 +83,10 @@ model User {
   role      Role
   dob       DateTime
 
+  resetOtp         String?
+  resetOtpExpires  DateTime?
+  resetOtpAttempts Int      @default(0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
