@@ -3,6 +3,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
 
+const cleanOptionText = (text) => {
+  if (typeof text !== 'string') return String(text || '');
+  return text.trim().replace(/^[\(\[]?[a-dA-D1-4][\)\.\:\-]\s*/, '').trim();
+};
+
 export default function StudentPracticePage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
@@ -409,7 +414,7 @@ export default function StudentPracticePage() {
                             key={oIdx}
                             className={`p-2 rounded border ${isCorrectChoice ? 'bg-green-200 border-green-500 font-bold text-green-950' : isChosen ? 'bg-red-200 border-red-500 font-bold text-red-950' : 'bg-white'}`}
                           >
-                            {String.fromCharCode(65 + oIdx)}) {opt} {isCorrectChoice && ' ✓'}
+                            {String.fromCharCode(65 + oIdx)}) {cleanOptionText(opt)} {isCorrectChoice && ' ✓'}
                           </div>
                         );
                       })}
@@ -464,7 +469,7 @@ export default function StudentPracticePage() {
                       onClick={() => handleOptionSelect(qId, oIdx)}
                       className={`p-4 rounded-xl border-2 text-left text-sm transition-all ${styleClass}`}
                     >
-                      <span className="font-bold text-purple-700 mr-2">{String.fromCharCode(65 + oIdx)}.</span> {opt}
+                      <span className="font-bold text-purple-700 mr-2">{String.fromCharCode(65 + oIdx)}.</span> {cleanOptionText(opt)}
                     </button>
                   );
                 })}

@@ -33,13 +33,22 @@ function parseCorrectOption(val, options = [], explanation = '') {
 }
 
 /**
+ * Strips duplicate option letter prefixes like "A) ", "B. ", "(C) ", "D - "
+ */
+function cleanOptionText(text) {
+  if (typeof text !== 'string') return String(text || '');
+  return text.trim().replace(/^[\(\[]?[a-dA-D1-4][\)\.\:\-]\s*/, '').trim();
+}
+
+/**
  * Shuffles option order randomly so correct choice is distributed across A, B, C, D
  */
 function shuffleOptionsAndCorrectIndex(options, correctIndex) {
   if (!Array.isArray(options) || options.length < 4) return { options: options || [], correctOption: correctIndex || 0 };
 
-  const safeIndex = (typeof correctIndex === 'number' && correctIndex >= 0 && correctIndex < options.length) ? correctIndex : 0;
-  const items = options.slice(0, 4).map((opt, i) => ({ opt, isCorrect: i === safeIndex }));
+  const cleanedOptions = options.map(cleanOptionText);
+  const safeIndex = (typeof correctIndex === 'number' && correctIndex >= 0 && correctIndex < cleanedOptions.length) ? correctIndex : 0;
+  const items = cleanedOptions.slice(0, 4).map((opt, i) => ({ opt, isCorrect: i === safeIndex }));
 
   // Fisher-Yates shuffle
   for (let i = items.length - 1; i > 0; i--) {

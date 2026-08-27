@@ -2,6 +2,13 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.2.4] - 2026-08-27 (Duplicate Option Prefix Cleanup Fix)
+
+### Fixed
+- **Duplicate Option Letter Prefixes (`practice.controller.js` & `StudentPracticePage.jsx`)**: Implemented `cleanOptionText` helper function using regex `^[\(\[]?[a-dA-D1-4][\)\.\:\-]\s*` to automatically strip any embedded option letters (e.g. `"D) Growth rate"`, `"B) Development"`) before rendering. Resolves duplicate option label bug (`A) D) Growth rate` $\rightarrow$ `A. Growth rate`).
+
+---
+
 ## [1.2.3] - 2026-08-27 (Practice Quiz Answer Evaluation & UI Rendering Fix)
 
 ### Fixed
