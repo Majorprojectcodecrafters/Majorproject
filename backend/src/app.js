@@ -69,6 +69,7 @@ app.use((req, res, next) => {
 
 const patternRoutes = require('./routes/pattern.routes');
 const curriculumRoutes = require('./routes/curriculum.routes');
+const quizRoutes = require('./routes/quiz.routes');
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -79,6 +80,7 @@ app.use('/api/rag', ragRoutes);
 app.use('/api/patterns', patternRoutes);
 app.use('/api/curriculum', curriculumRoutes);
 app.use('/api/question-papers', qpRoutes);
+app.use('/api/quiz', quizRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'API is running 🚀', version: '1.0.0' });
