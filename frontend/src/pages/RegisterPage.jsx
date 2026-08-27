@@ -31,14 +31,12 @@ const registerFormSchema = z.object({
   }
 
   if (values.role === 'STUDENT') {
-    for (const field of ['uniqueId', 'contact', 'classId', 'streamId']) {
-      if (!values[field]) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: [field],
-          message: 'This field is required for students',
-        });
-      }
+    if (!values.classId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['classId'],
+        message: 'Please select your class to register',
+      });
     }
   }
 });
@@ -208,30 +206,22 @@ export default function RegisterPage() {
             {role === 'STUDENT' && (
               <>
                 <div>
-                  <label className="auth-label">Unique ID</label>
-                  <input {...register('uniqueId')} className="input-field mt-2 w-full" placeholder="Student ID" />
-                  {fieldError('uniqueId')}
-                </div>
-                <div>
-                  <label className="auth-label">Contact</label>
-                  <input {...register('contact')} className="input-field mt-2 w-full" placeholder="Phone number" />
-                  {fieldError('contact')}
-                </div>
-                <div>
-                  <label className="auth-label">Class</label>
+                  <label className="auth-label">Class <span className="text-red-500">*</span></label>
                   <select {...register('classId')} className="input-field mt-2 w-full" disabled={optionsLoading}>
-                    <option value="">{optionsLoading ? 'Loading classes...' : 'Select a class'}</option>
+                    <option value="">{optionsLoading ? 'Loading classes...' : 'Select your class / division'}</option>
                     {classes.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.academicYear})</option>)}
                   </select>
                   {fieldError('classId')}
                 </div>
                 <div>
-                  <label className="auth-label">Stream</label>
-                  <select {...register('streamId')} className="input-field mt-2 w-full" disabled={optionsLoading}>
-                    <option value="">{optionsLoading ? 'Loading streams...' : 'Select a stream'}</option>
-                    {streams.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                  </select>
-                  {fieldError('streamId')}
+                  <label className="auth-label">Student ID <span className="font-normal text-slate-400">(optional - auto-generated if empty)</span></label>
+                  <input {...register('uniqueId')} className="input-field mt-2 w-full" placeholder="e.g. STU-948201" />
+                  {fieldError('uniqueId')}
+                </div>
+                <div>
+                  <label className="auth-label">Contact number <span className="font-normal text-slate-400">(optional)</span></label>
+                  <input {...register('contact')} className="input-field mt-2 w-full" placeholder="Phone number" />
+                  {fieldError('contact')}
                 </div>
                 {optionsError && <p className="form-error">{optionsError}</p>}
               </>
