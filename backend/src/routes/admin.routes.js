@@ -41,6 +41,12 @@ router.delete('/chapters/:id', ...isAdmin, admin.deleteChapter);
 router.post('/assign',   ...isAdmin, admin.assignTeacherToStudent);
 router.delete('/assign', ...isAdmin, admin.unassignTeacherFromStudent);
 
+// Teacher-Class-Subject Allocation
+router.post('/teacher-assignments',       ...isAdmin, admin.createTeacherAssignment);
+router.get('/teacher-assignments',        ...isAdmin, admin.getTeacherAssignments);
+router.delete('/teacher-assignments/:id', ...isAdmin, admin.deleteTeacherAssignment);
+router.put('/students/:studentId/class',   ...isAdmin, admin.updateStudentClass);
+
 // Templates
 router.post('/templates',       ...isAdmin, admin.createTemplate);
 router.get('/templates',        ...isAdmin, admin.getAllTemplates);
