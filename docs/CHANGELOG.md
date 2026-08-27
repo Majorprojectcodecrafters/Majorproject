@@ -2,6 +2,20 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.3.0] - 2026-08-27 (Google Drive OAuth Storage & Protected Document Viewer)
+
+### Added
+- **Google Drive Storage Integration (`drive.service.js`)**: Linked Google Drive OAuth 2.0 credentials (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_DRIVE_ROOT_FOLDER_ID`, `GOOGLE_REFRESH_TOKEN`). Admins and Teachers can upload textbooks, notes, and study material PDFs directly to Google Drive folder `16_gh9hL3CHaHQ59KU7N2ejhIdKQ0rhJw`.
+- **Google Drive Lock Down (`copyRequiresWriterPermission: true`)**: Configured Google Drive permissions API to set `copyRequiresWriterPermission: true` on uploaded files, prohibiting downloading, printing, and copying for all reader accounts.
+- **Protected Document Viewer (`ProtectedDocumentViewer.jsx`)**: Built a multi-layer protected inline PDF viewer modal for students featuring:
+  - **Dynamic Tiled Watermarks**: Renders `CONFIDENTIAL • STUDENT: {NAME} ({ID}) • QPGEN PROTECTED COPY`.
+  - **Download & Copy Interception**: Right-click context menu, text selection, drag & drop, and shortcut key combos (`Ctrl+P`, `Ctrl+S`, `Ctrl+C`, `Cmd+P`, `Cmd+S`, `Cmd+C`, `F12`) are strictly disabled.
+  - **Anti-Screenshot Deterrent**: Blurs viewer display (`filter: blur(12px)`) when window focus is lost or screen grab utilities are triggered.
+  - **Print Shield**: CSS `@media print` rules hide document content on any print trigger.
+- **Student Materials Hub (`StudentMaterialsPage.jsx`)**: Students can directly browse and view class study materials in protected mode.
+
+---
+
 ## [1.2.5] - 2026-08-27 (Google Drive Service Account Env Binding Standardization)
 
 ### Added

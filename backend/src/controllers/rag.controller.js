@@ -287,6 +287,78 @@ exports.getKnowledgeSources = async (req, res) => {
   }
 };
 
+// Student API to fetch study materials for student's assigned class & subjects
+exports.getStudentKnowledgeSources = async (req, res) => {
+  try {
+    const studentId = req.user.studentId;
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      include: { class: true }
+    });
+
+    const { sourceType, subjectId, chapterId } = req.query;
+    const where = {};
+
+    if (student?.classId) {
+      where.OR = [
+        { classId: student.classId },
+        { classId: null }
+      ];
+    }
+    if (subjectId) where.subjectId = subjectId;
+    if (chapterId) where.chapterId = chapterId;
+    if (sourceType && sourceType !== 'all') where.sourceType = sourceType;
+
+    const sources = await prisma.knowledgeSource.findMany({
+      where,
+      include: {
+        class: true,
+        subject: true,
+        chapter: true
+      },
+      orderBy: [
+        { sourcePriority: 'desc' },
+        { createdAt: 'desc' }
+      ]
+    });
+
+    res.json({ success: true, data: sources });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// Secure Stream Endpoint for Students (Content-Disposition: inline, Anti-Download Headers)
+exports.streamKnowledgeSourceSecure = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const ks = await prisma.knowledgeSource.findUnique({ where: { id } });
+    if (!ks) return res.status(404).json({ success: false, message: 'Document not found' });
+
+    res.setHeader('Content-Type', ks.mimeType || 'application/pdf');
+    res.setHeader('Content-Disposition', 'inline; filename="protected_study_material.pdf"');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+
+    if (ks.driveFileId) {
+      const stream = await getFileStreamFromDrive(ks.driveFileId);
+      if (stream) {
+        return stream.pipe(res);
+      }
+    }
+
+    if (fs.existsSync(ks.filePath)) {
+      return fs.createReadStream(ks.filePath).pipe(res);
+    }
+
+    res.status(404).json({ success: false, message: 'File asset unavailable' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 // Delete knowledge source with 3-tier synchronized cleanup (DB + Drive + Chroma)
 exports.deleteKnowledgeSource = async (req, res) => {
   try {
