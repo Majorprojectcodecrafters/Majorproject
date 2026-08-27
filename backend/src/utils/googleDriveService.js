@@ -14,10 +14,9 @@ async function uploadAttachmentFile(file) {
   }
 
   // 1. Try Google Drive API if Service Account / OAuth credentials present
-  const googleDriveClientEmail = process.env.GOOGLE_DRIVE_CLIENT_EMAIL;
-  const googleDrivePrivateKey = process.env.GOOGLE_DRIVE_PRIVATE_KEY;
-  const googleDriveRefreshToken = process.env.GOOGLE_DRIVE_REFRESH_TOKEN;
-  const googleDriveFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+  const googleDriveClientEmail = process.env.GOOGLE_DRIVE_CLIENT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const googleDrivePrivateKey = process.env.GOOGLE_DRIVE_PRIVATE_KEY || process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
+  const googleDriveFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID || process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
 
   if (googleDriveClientEmail && googleDrivePrivateKey) {
     try {

@@ -2,6 +2,13 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.2.5] - 2026-08-27 (Google Drive Service Account Env Binding Standardization)
+
+### Added
+- **Google Drive Storage Services (`drive.service.js` & `googleDriveService.js`)**: Enhanced Google Drive authentication fallbacks so that both `GOOGLE_SERVICE_ACCOUNT_EMAIL` / `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` and `GOOGLE_DRIVE_CLIENT_EMAIL` / `GOOGLE_DRIVE_PRIVATE_KEY` environment variable naming conventions work seamlessly for RAG study material uploads and Announcement file attachments.
+
+---
+
 ## [1.2.4] - 2026-08-27 (Duplicate Option Prefix Cleanup Fix)
 
 ### Fixed
