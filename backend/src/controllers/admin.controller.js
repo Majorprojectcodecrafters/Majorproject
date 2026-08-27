@@ -537,3 +537,125 @@ exports.deleteTemplate = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+// ==================== TEACHER-CLASS-SUBJECT ALLOCATION ====================
+
+exports.createTeacherAssignment = async (req, res) => {
+  try {
+    const { teacherId, classId, subjectId } = req.body;
+
+    const [teacher, targetClass, subject] = await Promise.all([
+      prisma.teacher.findUnique({ where: { id: teacherId } }),
+      prisma.class.findUnique({ where: { id: classId } }),
+      prisma.subject.findUnique({ where: { id: subjectId } })
+    ]);
+
+    if (!teacher) return res.status(404).json({ success: false, message: 'Teacher not found' });
+    if (!targetClass) return res.status(404).json({ success: false, message: 'Class not found' });
+    if (!subject) return res.status(404).json({ success: false, message: 'Subject not found' });
+
+    const existing = await prisma.teacherAssignment.findUnique({
+      where: { teacherId_classId_subjectId: { teacherId, classId, subjectId } }
+    });
+
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'Teacher is already assigned to this Subject and Class' });
+    }
+
+    const assignment = await prisma.teacherAssignment.create({
+      data: { teacherId, classId, subjectId },
+      include: {
+        teacher: { include: { user: { select: { name: true, email: true } } } },
+        class: true,
+        subject: true
+      }
+    });
+
+    // Also sync TeacherStudent entries for existing students in this class
+    const classStudents = await prisma.student.findMany({ where: { classId } });
+    for (const student of classStudents) {
+      await prisma.teacherStudent.upsert({
+        where: { teacherId_studentId: { teacherId, studentId: student.id } },
+        create: { teacherId, studentId: student.id },
+        update: {}
+      }).catch(() => {});
+    }
+
+    res.status(201).json({ success: true, data: assignment });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getTeacherAssignments = async (req, res) => {
+  try {
+    const { teacherId, classId, subjectId } = req.query;
+
+    const assignments = await prisma.teacherAssignment.findMany({
+      where: {
+        ...(teacherId && { teacherId }),
+        ...(classId && { classId }),
+        ...(subjectId && { subjectId })
+      },
+      include: {
+        teacher: { include: { user: { select: { name: true, email: true } } } },
+        class: true,
+        subject: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({ success: true, data: assignments });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.deleteTeacherAssignment = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const existing = await prisma.teacherAssignment.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ success: false, message: 'Teacher assignment not found' });
+
+    await prisma.teacherAssignment.delete({ where: { id } });
+
+    res.json({ success: true, message: 'Teacher assignment removed successfully' });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.updateStudentClass = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const { classId } = req.body;
+
+    const student = await prisma.student.findUnique({ where: { id: studentId } });
+    if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
+
+    const targetClass = await prisma.class.findUnique({ where: { id: classId } });
+    if (!targetClass) return res.status(404).json({ success: false, message: 'Class not found' });
+
+    const updated = await prisma.student.update({
+      where: { id: studentId },
+      data: {
+        classId,
+        ...(targetClass.streamId && { streamId: targetClass.streamId })
+      },
+      include: {
+        user: { select: { name: true, email: true } },
+        class: true,
+        stream: true
+      }
+    });
+
+    res.json({ success: true, data: updated });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
