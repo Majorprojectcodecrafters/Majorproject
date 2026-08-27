@@ -1,6 +1,11 @@
 const prisma = require('../config/prisma');
 const fs = require('fs');
-const { uploadFileToDrive, getFileStreamFromDrive, deleteFileFromDrive } = require('../services/drive.service');
+const {
+  uploadFileToDrive,
+  getFileStreamFromDrive,
+  deleteFileFromDrive,
+  listAllDriveFilesRecursive
+} = require('../services/drive.service');
 
 // ==================== UPLOAD STUDY MATERIAL TO GOOGLE DRIVE ====================
 
@@ -11,7 +16,7 @@ exports.uploadStudyMaterial = async (req, res) => {
   try {
     const {
       title,
-      category = 'TEACHER_NOTES', // "TEACHER_NOTES", "CHAPTER_NOTES", "TEXTBOOK", "PAST_PAPER", "REFERENCE"
+      category = 'TEACHER_NOTES',
       classId,
       subjectId,
       chapterId,
@@ -34,10 +39,9 @@ exports.uploadStudyMaterial = async (req, res) => {
 
     const fileName = `${className}_${subjectName}_${Date.now()}_${file.originalname}`;
 
-    // 1. Upload file directly to Google Drive folder (with copy/download lockdown)
+    // Upload file directly to Google Drive folder
     const driveResult = await uploadFileToDrive(tempFilePath, fileName, file.mimetype);
 
-    // 2. Save metadata in StudyMaterial table (Separate from RAG KnowledgeSource)
     const studyMaterial = await prisma.studyMaterial.create({
       data: {
         title: title || file.originalname,
@@ -78,16 +82,14 @@ exports.uploadStudyMaterial = async (req, res) => {
   }
 };
 
-// ==================== GET STUDY MATERIALS (GRADE-LEVEL DIVISION SCOPED) ====================
-
-const { listDriveFilesAndFolders } = require('../services/drive.service');
+// ==================== GET STUDY MATERIALS (ROLE & GRADE SCOPED) ====================
 
 exports.getStudyMaterials = async (req, res) => {
   try {
     const { classId, subjectId, chapterId, category } = req.query;
     const where = {};
 
-    // Filter by Grade Level (e.g. 11th or 12th - all divisions included)
+    // 1. STUDENT SCOPING: Only materials matching Student's Grade Level (11th or 12th) across all divisions
     if (req.user.role === 'STUDENT') {
       const student = await prisma.student.findUnique({
         where: { id: req.user.studentId },
@@ -95,15 +97,16 @@ exports.getStudyMaterials = async (req, res) => {
       });
 
       let classIds = [];
+      let gradeStr = null;
+
       if (student?.class) {
         const className = student.class.name;
-        let gradeKeyword = null;
-        if (className.includes('11')) gradeKeyword = '11';
-        else if (className.includes('12')) gradeKeyword = '12';
+        if (className.includes('11')) gradeStr = '11';
+        else if (className.includes('12')) gradeStr = '12';
 
-        if (gradeKeyword) {
+        if (gradeStr) {
           const matchingClasses = await prisma.class.findMany({
-            where: { name: { contains: gradeKeyword } }
+            where: { name: { contains: gradeStr } }
           });
           classIds = matchingClasses.map(c => c.id);
         } else {
@@ -111,13 +114,40 @@ exports.getStudyMaterials = async (req, res) => {
         }
       }
 
+      const orConditions = [];
       if (classIds.length > 0) {
+        orConditions.push({ classId: { in: classIds } });
+      }
+      if (gradeStr) {
+        orConditions.push({ title: { contains: gradeStr, mode: 'insensitive' } });
+        orConditions.push({ fileName: { contains: gradeStr, mode: 'insensitive' } });
+      }
+      orConditions.push({ classId: null });
+
+      where.OR = orConditions;
+    }
+
+    // 2. TEACHER SCOPING: Materials matching Teacher's Assigned Classes & Subjects
+    else if (req.user.role === 'TEACHER') {
+      const teacher = await prisma.teacher.findUnique({
+        where: { userId: req.user.id },
+        include: { teacherAssignments: true }
+      });
+
+      if (teacher && teacher.teacherAssignments.length > 0) {
+        const assignedClassIds = Array.from(new Set(teacher.teacherAssignments.map(a => a.classId).filter(Boolean)));
+        const assignedSubjectIds = Array.from(new Set(teacher.teacherAssignments.map(a => a.subjectId).filter(Boolean)));
+
         where.OR = [
-          { classId: { in: classIds } },
+          { classId: { in: assignedClassIds } },
+          { subjectId: { in: assignedSubjectIds } },
           { classId: null }
         ];
       }
-    } else if (classId) {
+    }
+
+    // 3. ADMIN SCOPING: Optional query filtering
+    else if (classId) {
       where.classId = classId;
     }
 
@@ -142,11 +172,11 @@ exports.getStudyMaterials = async (req, res) => {
   }
 };
 
-// ==================== SYNC CONNECTED GOOGLE DRIVE FOLDERS ====================
+// ==================== SYNC CONNECTED GOOGLE DRIVE RECURSIVE FOLDERS ====================
 
 exports.syncDriveMaterials = async (req, res) => {
   try {
-    const driveFiles = await listDriveFilesAndFolders();
+    const { files: driveFiles, folderTree } = await listAllDriveFilesRecursive();
     let syncedCount = 0;
 
     for (const file of driveFiles) {
@@ -156,21 +186,38 @@ exports.syncDriveMaterials = async (req, res) => {
         });
 
         if (!existing) {
-          // Infer grade level / subject from folder/filename if possible
+          // Infer grade level / subject from folderPath and fileName
           let targetClassId = null;
-          if (file.name.includes('11')) {
+          let targetSubjectId = null;
+          const searchPath = `${file.folderPath} ${file.name}`.toLowerCase();
+
+          if (searchPath.includes('11')) {
             const cls = await prisma.class.findFirst({ where: { name: { contains: '11' } } });
             if (cls) targetClassId = cls.id;
-          } else if (file.name.includes('12')) {
+          } else if (searchPath.includes('12')) {
             const cls = await prisma.class.findFirst({ where: { name: { contains: '12' } } });
             if (cls) targetClassId = cls.id;
+          }
+
+          if (searchPath.includes('physics')) {
+            const sub = await prisma.subject.findFirst({ where: { name: { contains: 'Physics', mode: 'insensitive' } } });
+            if (sub) targetSubjectId = sub.id;
+          } else if (searchPath.includes('chem')) {
+            const sub = await prisma.subject.findFirst({ where: { name: { contains: 'Chemistry', mode: 'insensitive' } } });
+            if (sub) targetSubjectId = sub.id;
+          } else if (searchPath.includes('math')) {
+            const sub = await prisma.subject.findFirst({ where: { name: { contains: 'Math', mode: 'insensitive' } } });
+            if (sub) targetSubjectId = sub.id;
+          } else if (searchPath.includes('bio')) {
+            const sub = await prisma.subject.findFirst({ where: { name: { contains: 'Biology', mode: 'insensitive' } } });
+            if (sub) targetSubjectId = sub.id;
           }
 
           await prisma.studyMaterial.create({
             data: {
               title: file.name.replace(/\.pdf$/i, ''),
-              category: 'TEACHER_NOTES',
-              description: 'Synchronized from connected Google Drive Folder',
+              category: file.folderPath.toLowerCase().includes('textbook') ? 'TEXTBOOK' : 'TEACHER_NOTES',
+              description: `Google Drive Folder: ${file.folderPath}`,
               fileName: file.name,
               fileUrl: file.webViewLink,
               driveFileId: file.id,
@@ -179,7 +226,8 @@ exports.syncDriveMaterials = async (req, res) => {
               uploadedBy: req.user.id,
               authorName: 'Google Drive Auto-Sync',
               authorRole: 'SYSTEM',
-              classId: targetClassId
+              classId: targetClassId,
+              subjectId: targetSubjectId
             }
           });
           syncedCount++;
@@ -189,9 +237,34 @@ exports.syncDriveMaterials = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Google Drive Sync Complete! ${syncedCount} new documents synchronized from root folder.`,
-      totalDriveFiles: driveFiles.length,
-      syncedNewCount: syncedCount
+      message: `Google Drive Sync Complete! ${syncedCount} new documents synchronized from Google Drive subfolders.`,
+      totalDriveFilesFound: driveFiles.length,
+      syncedNewCount: syncedCount,
+      folderTree
+    });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// ==================== ADMIN FULL GOOGLE DRIVE TREE ====================
+
+exports.getAdminDriveTree = async (req, res) => {
+  try {
+    const { files, folderTree } = await listAllDriveFilesRecursive();
+    const dbMaterials = await prisma.studyMaterial.findMany({
+      include: { class: true, subject: true, chapter: true }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        totalDriveFiles: files.length,
+        folderTree,
+        driveFiles: files,
+        dbMaterials
+      }
     });
 
   } catch (error) {
@@ -238,7 +311,6 @@ exports.deleteStudyMaterial = async (req, res) => {
 
     if (!material) return res.status(404).json({ success: false, message: 'Study material not found' });
 
-    // Delete from Google Drive
     if (material.driveFileId) {
       try {
         await deleteFileFromDrive(material.driveFileId);
@@ -247,7 +319,6 @@ exports.deleteStudyMaterial = async (req, res) => {
       }
     }
 
-    // Delete Prisma DB record
     await prisma.studyMaterial.delete({ where: { id } });
 
     res.json({ success: true, message: `Study material "${material.title}" deleted successfully.` });

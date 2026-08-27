@@ -237,6 +237,56 @@ async function listDriveFilesAndFolders(parentFolderId = null) {
   }
 }
 
+/**
+ * Recursively list all files and subfolders in Google Drive folder tree
+ */
+async function listAllDriveFilesRecursive(folderId = null) {
+  const drive = getDriveClient();
+  if (!drive) return { files: [], folderTree: [] };
+
+  const rootId = folderId || process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
+  if (!rootId) return { files: [], folderTree: [] };
+
+  const allFiles = [];
+  const folderTree = [];
+
+  async function crawlFolder(currentFolderId, folderPath = '') {
+    try {
+      const query = `'${currentFolderId}' in parents and trashed=false`;
+      const res = await drive.files.list({
+        q: query,
+        fields: 'files(id, name, mimeType, webViewLink, size, createdTime, parents)',
+        pageSize: 100
+      });
+
+      const items = res.data.files || [];
+
+      for (const item of items) {
+        if (item.mimeType === 'application/vnd.google-apps.folder') {
+          const currentPath = folderPath ? `${folderPath} / ${item.name}` : item.name;
+          folderTree.push({
+            id: item.id,
+            name: item.name,
+            path: currentPath,
+            parentId: currentFolderId
+          });
+          await crawlFolder(item.id, currentPath);
+        } else {
+          allFiles.push({
+            ...item,
+            folderPath: folderPath || 'Root Folder'
+          });
+        }
+      }
+    } catch (err) {
+      console.warn(`⚠️ Failed to crawl Drive folder (${currentFolderId}):`, err.message);
+    }
+  }
+
+  await crawlFolder(rootId, '');
+  return { files: allFiles, folderTree };
+}
+
 module.exports = {
   isDriveConfigured,
   ensureFolderStructure,
@@ -244,5 +294,6 @@ module.exports = {
   downloadFileFromDrive,
   getFileStreamFromDrive,
   deleteFileFromDrive,
-  listDriveFilesAndFolders
+  listDriveFilesAndFolders,
+  listAllDriveFilesRecursive
 };

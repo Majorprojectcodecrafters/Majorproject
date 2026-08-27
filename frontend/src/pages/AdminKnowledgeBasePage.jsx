@@ -143,13 +143,47 @@ export default function AdminKnowledgeBasePage() {
     }
   };
 
+  const [syncing, setSyncing] = useState(false);
+
+  // Fetch full Google Drive folder tree for Admin
+  const { data: driveTreeData, refetch: refetchDriveTree, isLoading: driveTreeLoading } = useQuery({
+    queryKey: ['adminDriveTree'],
+    queryFn: async () => {
+      const res = await apiClient.get('/student-library/admin-tree');
+      return res.data.data;
+    }
+  });
+
+  const handleDriveSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await apiClient.post('/student-library/sync');
+      showToast(res.data.message || 'Google Drive Sync Complete!', 'success');
+      refetchDriveTree();
+      queryClient.invalidateQueries(['knowledge-sources']);
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to sync Google Drive', 'error');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8">
-      <div className="mb-8 border-b pb-4">
-        <h1 className="text-2xl font-bold text-gray-900">Curriculum-Mapped Knowledge Source Management</h1>
-        <p className="text-sm text-gray-600">
-          Upload textbooks, notes, question glossaries, and PYQs mapped strictly to Curriculum Hierarchy.
-        </p>
+      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Curriculum-Mapped Knowledge & Google Drive Explorer</h1>
+          <p className="text-sm text-gray-600">
+            Upload textbooks, notes, and PYQs mapped to Curriculum, or sync connected Google Drive folders.
+          </p>
+        </div>
+        <button
+          onClick={handleDriveSync}
+          disabled={syncing}
+          className="btn-primary flex items-center gap-2 text-sm font-bold py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md"
+        >
+          {syncing ? <><span className="spinner mr-2"></span>Syncing Drive...</> : '🔄 Sync Connected Google Drive'}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

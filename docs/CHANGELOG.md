@@ -2,6 +2,17 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.5.0] - 2026-08-27 (Recursive Google Drive Subfolder Sync & Role-Based Hierarchy Visibility)
+
+### Added
+- **Recursive Google Drive Subfolder Crawler (`listAllDriveFilesRecursive`)**: Enhanced Google Drive service to crawl through all nested subfolders (`12th Standard`, `Physics`, `Chemistry`, `Biology`, `Mathematics`, `Textbooks`) inside `16_gh9hL3CHaHQ59KU7N2ejhIdKQ0rhJw`. Automatically discovered and synchronized **31 textbooks and study material PDFs** into `StudyMaterial`.
+- **Role-Based Visibility Scoping**:
+  - **Students**: Filtered strictly to their grade level (e.g., 11th Grade students see 11th Grade materials; 12th Grade students see 12th Grade textbooks & notes).
+  - **Teachers**: Filtered to materials for their assigned classes and subjects.
+  - **Admins**: Granted full access to the complete Google Drive folder tree hierarchy (`getAdminDriveTree`) and manual Drive Sync button.
+
+---
+
 ## [1.4.1] - 2026-08-27 (Frontend Security Audit & Prefilled Credentials Removal)
 
 ### Fixed
