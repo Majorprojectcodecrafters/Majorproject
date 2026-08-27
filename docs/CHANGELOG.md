@@ -2,6 +2,14 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.5.1] - 2026-08-27 (Generated Papers Exclusion & PYQs Folder Sync Categorization)
+
+### Fixed
+- **Generated Test Papers Exclusion (`studentLibrary.controller.js`)**: Automatically excluded and purged any test papers coming from `Generated Papers` Google Drive subfolders from the Study Materials section.
+- **Previous Year Question Papers (PYQs) Categorization**: Enhanced sync crawler to detect Google Drive folders named `Previous Year Question Papers`, `PYQ`, `PYQs`, `Past Papers`, or `Board Papers`, and categorize their PDFs as `PREVIOUS_BOARD_PAPER` for direct access in the Study Materials section.
+
+---
+
 ## [1.5.0] - 2026-08-27 (Recursive Google Drive Subfolder Sync & Role-Based Hierarchy Visibility)
 
 ### Added

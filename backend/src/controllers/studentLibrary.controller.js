@@ -155,6 +155,12 @@ exports.getStudyMaterials = async (req, res) => {
     if (chapterId) where.chapterId = chapterId;
     if (category && category !== 'all') where.category = category;
 
+    // Never return Generated Test Papers in Study Materials!
+    where.NOT = [
+      { description: { contains: 'Generated Papers', mode: 'insensitive' } },
+      { title: { contains: 'Generated', mode: 'insensitive' } }
+    ];
+
     const materials = await prisma.studyMaterial.findMany({
       where,
       include: {
@@ -176,11 +182,33 @@ exports.getStudyMaterials = async (req, res) => {
 
 exports.syncDriveMaterials = async (req, res) => {
   try {
+    // 1. Purge any previously synced Generated Test Papers from StudyMaterial DB
+    await prisma.studyMaterial.deleteMany({
+      where: {
+        OR: [
+          { description: { contains: 'Generated Papers', mode: 'insensitive' } },
+          { title: { contains: 'Generated', mode: 'insensitive' } }
+        ]
+      }
+    });
+
     const { files: driveFiles, folderTree } = await listAllDriveFilesRecursive();
     let syncedCount = 0;
 
     for (const file of driveFiles) {
       if (file.mimeType === 'application/pdf') {
+        const folderPathLower = (file.folderPath || '').toLowerCase();
+        const fileNameLower = (file.name || '').toLowerCase();
+
+        // 2. EXCLUDE Generated Test Papers from Study Material Library!
+        if (
+          folderPathLower.includes('generated papers') ||
+          folderPathLower.includes('generated') ||
+          fileNameLower.includes('generated')
+        ) {
+          continue; // Skip generated test papers!
+        }
+
         const existing = await prisma.studyMaterial.findFirst({
           where: { driveFileId: file.id }
         });
@@ -213,10 +241,26 @@ exports.syncDriveMaterials = async (req, res) => {
             if (sub) targetSubjectId = sub.id;
           }
 
+          // 3. Categorize Textbooks, PYQs / Previous Board Papers, and Notes
+          let category = 'TEACHER_NOTES';
+          if (folderPathLower.includes('textbook') || fileNameLower.includes('textbook')) {
+            category = 'TEXTBOOK';
+          } else if (
+            folderPathLower.includes('previous') ||
+            folderPathLower.includes('pyq') ||
+            folderPathLower.includes('past') ||
+            folderPathLower.includes('board paper') ||
+            folderPathLower.includes('question paper') ||
+            fileNameLower.includes('pyq') ||
+            fileNameLower.includes('previous')
+          ) {
+            category = 'PREVIOUS_BOARD_PAPER';
+          }
+
           await prisma.studyMaterial.create({
             data: {
               title: file.name.replace(/\.pdf$/i, ''),
-              category: file.folderPath.toLowerCase().includes('textbook') ? 'TEXTBOOK' : 'TEACHER_NOTES',
+              category,
               description: `Google Drive Folder: ${file.folderPath}`,
               fileName: file.name,
               fileUrl: file.webViewLink,
@@ -237,8 +281,7 @@ exports.syncDriveMaterials = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Google Drive Sync Complete! ${syncedCount} new documents synchronized from Google Drive subfolders.`,
-      totalDriveFilesFound: driveFiles.length,
+      message: `Google Drive Sync Complete! ${syncedCount} study materials (Textbooks, PYQs & Notes) synchronized. Generated Test Papers excluded.`,
       syncedNewCount: syncedCount,
       folderTree
     });
