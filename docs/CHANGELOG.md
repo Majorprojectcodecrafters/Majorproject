@@ -2,6 +2,14 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.4.1] - 2026-08-27 (Frontend Security Audit & Prefilled Credentials Removal)
+
+### Fixed
+- **Exposed Demo Credentials Removal (`LoginPage.jsx`)**: Removed plain-text demo credentials block (`teacher@school.com` / `teacher123`, `admin@school.com` / `admin123`) from the login UI.
+- **Form Auto-Fill Protection (`RegisterPage.jsx` & `LoginPage.jsx`)**: Added `autoComplete="new-password"` attributes to prevent browser password managers from auto-populating saved passwords into registration fields.
+
+---
+
 ## [1.4.0] - 2026-08-27 (Google Drive Folder Sync, Grade-Level Division Scoping & Email OTP Forgot Password)
 
 ### Added

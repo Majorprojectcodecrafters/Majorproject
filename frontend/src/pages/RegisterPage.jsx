@@ -165,13 +165,13 @@ export default function RegisterPage() {
 
             <div>
               <label className="auth-label">Password</label>
-              <input type="password" {...register('password')} className="input-field mt-2 w-full" placeholder="At least 6 characters" />
+              <input type="password" autoComplete="new-password" {...register('password')} className="input-field mt-2 w-full" placeholder="At least 6 characters" />
               {fieldError('password')}
             </div>
 
             <div>
               <label className="auth-label">Confirm password</label>
-              <input type="password" {...register('confirmPassword')} className="input-field mt-2 w-full" placeholder="Repeat your password" />
+              <input type="password" autoComplete="new-password" {...register('confirmPassword')} className="input-field mt-2 w-full" placeholder="Repeat your password" />
               {fieldError('confirmPassword')}
             </div>
 

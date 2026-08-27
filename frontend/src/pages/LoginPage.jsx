@@ -107,19 +107,6 @@ export default function LoginPage() {
             Don't have an account?{' '}
             <Link to="/register" className="auth-link">Register</Link>
           </p>
-
-          <div className="mt-8 border-t border-slate-200 pt-5 text-center text-sm text-slate-500">
-            <p className="font-semibold text-slate-700">Demo credentials</p>
-            <p className="mt-3 font-mono text-xs leading-5">
-              Email: teacher@school.com<br />
-              Password: teacher123
-            </p>
-            <p className="my-2 text-xs uppercase tracking-wider text-slate-400">or</p>
-            <p className="font-mono text-xs leading-5">
-              Email: admin@school.com<br />
-              Password: admin123
-            </p>
-          </div>
         </div>
       </div>
 
