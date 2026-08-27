@@ -235,3 +235,26 @@ exports.googleOAuthCallback = async (req, res) => {
     res.status(500).send(`<h3>❌ Google Drive OAuth Token Exchange Failed:</h3><p>${error.message}</p>`);
   }
 };
+
+// PUBLIC CLASSES & STREAMS FOR REGISTRATION
+exports.getPublicClasses = async (req, res) => {
+  try {
+    const classes = await prisma.class.findMany({
+      orderBy: { name: 'asc' }
+    });
+    res.json({ success: true, data: classes });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.getPublicStreams = async (req, res) => {
+  try {
+    const streams = await prisma.stream.findMany({
+      orderBy: { name: 'asc' }
+    });
+    res.json({ success: true, data: streams });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};

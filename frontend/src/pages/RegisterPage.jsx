@@ -85,8 +85,8 @@ export default function RegisterPage() {
       setOptionsError('');
       try {
         const [classesResponse, streamsResponse] = await Promise.all([
-          apiClient.get('/admin/classes'),
-          apiClient.get('/admin/streams'),
+          apiClient.get('/auth/classes'),
+          apiClient.get('/auth/streams'),
         ]);
         if (!active) return;
         setClasses(classesResponse.data.data || []);

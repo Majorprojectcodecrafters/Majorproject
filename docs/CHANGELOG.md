@@ -2,6 +2,15 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.2.2] - 2026-08-27 (Student Registration Form Bug Fix)
+
+### Fixed
+- **Student Self-Registration (`/register`)**: Fixed a UI blocking bug where unauthenticated students visiting `/register` were unable to populate the mandatory Class dropdown due to calls to admin-only protected routes (`/api/admin/classes` and `/api/admin/streams`).
+- Created public unauthenticated endpoints `GET /api/auth/classes` and `GET /api/auth/streams` in `auth.controller.js` and `auth.routes.js`.
+- Registered test student **Chiku** (`chiku@gg.com` / `stu123456`) successfully with auto-generated ID `STU-759761` and verified instant login capabilities.
+
+---
+
 ## [1.2.1] - 2026-08-27 (Server Startup Path Import Fix)
 
 ### Fixed
