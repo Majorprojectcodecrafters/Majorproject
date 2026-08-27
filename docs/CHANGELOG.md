@@ -2,6 +2,11 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.2.1] - 2026-08-27 (Server Startup Path Import Fix)
+
+### Fixed
+- **App Startup (`backend/src/app.js`)**: Added missing `const path = require('path');` import required for static file serving of `/uploads`. Backend server starts and runs cleanly on port `5000` with HTTP `200 OK` response on `/health` endpoint.
+
 ---
 
 ## [1.2.0] - 2026-08-27 (Gamified MHT-CET Practice Arena & Announcement System)
