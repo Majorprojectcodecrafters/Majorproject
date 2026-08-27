@@ -11,6 +11,7 @@ router.get('/profile', ...isTeacher, teacher.getProfile);
 router.put('/profile', ...isTeacher, teacher.updateProfile);
 
 // Students
+router.get('/assigned-classes', ...isTeacher, teacher.getAssignedClasses);
 router.get('/students', ...isTeacher, teacher.getMyStudents);
 router.get('/students/:id', ...isTeacher, teacher.getStudentById);
 
@@ -33,11 +34,13 @@ router.patch('/qp/:id/publish', ...isTeacher, qpController.publishQP);
 router.get('/qp/:id/export/student', ...isTeacher, qpController.exportQPStudent);
 router.get('/qp/:id/export/teacher', ...isTeacher, qpController.exportQPTeacher);
 
-// Exam Results
+// Exam Results & Exports
 router.post('/results/exam', ...isTeacher, teacher.createExamResult);
 router.get('/results/exam', ...isTeacher, teacher.getExamResults);
 router.put('/results/exam/:id', ...isTeacher, teacher.updateExamResult);
 router.delete('/results/exam/:id', ...isTeacher, teacher.deleteExamResult);
+router.get('/results/export/excel', ...isTeacher, teacher.exportExamResultsExcel);
+router.get('/results/export/pdf', ...isTeacher, teacher.exportExamResultsPdf);
 
 // Semester Results
 router.post('/results/semester', ...isTeacher, teacher.createSemesterResult);
