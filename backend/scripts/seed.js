@@ -49,7 +49,25 @@ const seed = async () => {
       console.log('⏭️  Teacher user already exists');
     }
 
-    // 3. Create Board
+    // 3. Create Student User
+    const studentExists = await prisma.user.findUnique({ where: { email: 'student@school.com' } });
+    if (!studentExists) {
+      const hashedPassword = await bcrypt.hash('student123', 10);
+      await prisma.user.create({
+        data: {
+          name: 'Student User',
+          email: 'student@school.com',
+          password: hashedPassword,
+          role: 'STUDENT',
+          dob: new Date('2007-08-10')
+        }
+      });
+      console.log('✅ Student user created (student@school.com / student123)');
+    } else {
+      console.log('⏭️  Student user already exists');
+    }
+
+    // 4. Create Board
     let board = await prisma.board.findUnique({ where: { code: 'MSBSHSE' } });
     if (!board) {
       board = await prisma.board.create({
