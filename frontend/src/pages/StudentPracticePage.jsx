@@ -314,7 +314,7 @@ export default function StudentPracticePage() {
               <div className="font-bold text-purple-900 text-sm">⚡ MHT-CET Gamification Rewards Engine:</div>
               <ul className="list-disc pl-4 space-y-1">
                 <li><strong>Base XP:</strong> 10 XP per correct MHT-CET question.</li>
-                <li><strong>Streak Multiplier:</strong> 3 consecutive correct $\rightarrow 1.5\times$ XP (15 XP/q); 5 consecutive correct $\rightarrow 2.0\times$ XP (20 XP/q).</li>
+                <li><strong>Streak Multiplier:</strong> 3 consecutive correct → 1.5× XP (15 XP/q); 5 consecutive correct → 2.0× XP (20 XP/q).</li>
                 <li><strong>Speed Bonus:</strong> +5 XP bonus if question is answered in under 15 seconds.</li>
                 <li><strong>Retakes:</strong> Unlimited chapter practice retakes with randomized questions.</li>
               </ul>

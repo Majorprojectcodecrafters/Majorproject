@@ -1,6 +1,58 @@
 const prisma = require('../config/prisma');
 const { generateLLMResponse } = require('../rag/llmClient');
 
+/**
+ * Robust helper function to resolve correctOption index (0..3) from answerKey or LLM output
+ */
+function parseCorrectOption(val, options = [], explanation = '') {
+  if (val === 0 || val === 1 || val === 2 || val === 3) return val;
+  if (typeof val === 'number' && val >= 0 && val <= 3) return Math.floor(val);
+
+  if (val !== undefined && val !== null) {
+    const s = String(val).trim().toUpperCase();
+    if (s === '0' || s === 'A' || s === 'OPTION A' || s.startsWith('A)') || s.startsWith('(A)')) return 0;
+    if (s === '1' || s === 'B' || s === 'OPTION B' || s.startsWith('B)') || s.startsWith('(B)')) return 1;
+    if (s === '2' || s === 'C' || s === 'OPTION C' || s.startsWith('C)') || s.startsWith('(C)')) return 2;
+    if (s === '3' || s === 'D' || s === 'OPTION D' || s.startsWith('D)') || s.startsWith('(D)')) return 3;
+
+    // Check if string matches option text
+    const idx = options.findIndex(o => String(o).trim().toLowerCase() === String(val).trim().toLowerCase());
+    if (idx !== -1) return idx;
+  }
+
+  // Fallback: check if explanation mentions correct choice option
+  if (explanation) {
+    const exp = String(explanation).toUpperCase();
+    if (exp.includes('OPTION A') || exp.includes('CORRECT ANSWER IS A') || exp.includes('CHOICE A')) return 0;
+    if (exp.includes('OPTION B') || exp.includes('CORRECT ANSWER IS B') || exp.includes('CHOICE B')) return 1;
+    if (exp.includes('OPTION C') || exp.includes('CORRECT ANSWER IS C') || exp.includes('CHOICE C')) return 2;
+    if (exp.includes('OPTION D') || exp.includes('CORRECT ANSWER IS D') || exp.includes('CHOICE D')) return 3;
+  }
+
+  return 0;
+}
+
+/**
+ * Shuffles option order randomly so correct choice is distributed across A, B, C, D
+ */
+function shuffleOptionsAndCorrectIndex(options, correctIndex) {
+  if (!Array.isArray(options) || options.length < 4) return { options: options || [], correctOption: correctIndex || 0 };
+
+  const safeIndex = (typeof correctIndex === 'number' && correctIndex >= 0 && correctIndex < options.length) ? correctIndex : 0;
+  const items = options.slice(0, 4).map((opt, i) => ({ opt, isCorrect: i === safeIndex }));
+
+  // Fisher-Yates shuffle
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [items[i], items[j]] = [items[j], items[i]];
+  }
+
+  const newOptions = items.map(x => x.opt);
+  const newCorrectIndex = items.findIndex(x => x.isCorrect);
+
+  return { options: newOptions, correctOption: newCorrectIndex >= 0 ? newCorrectIndex : 0 };
+}
+
 // ==================== PRACTICE QUIZ GENERATION ====================
 
 exports.getPracticeSubjects = async (req, res) => {
@@ -57,11 +109,15 @@ exports.generatePracticeQuiz = async (req, res) => {
         try { optionsArr = JSON.parse(q.options); } catch (e) {}
       }
       if (optionsArr.length >= 4) {
+        const rawOptions = optionsArr.slice(0, 4);
+        const origCorrect = parseCorrectOption(q.answerKey, rawOptions, q.answerKey);
+        const { options, correctOption } = shuffleOptionsAndCorrectIndex(rawOptions, origCorrect);
+
         selectedQuestions.push({
           id: q.id,
           questionText: q.questionText,
-          options: optionsArr.slice(0, 4),
-          correctOption: 0,
+          options,
+          correctOption,
           explanation: q.answerKey || 'MHT-CET standard textbook concept explanation.'
         });
       }
@@ -75,8 +131,10 @@ Format Requirements:
 Return ONLY a valid JSON array of objects. Each object MUST contain:
 - "questionText": string (conceptual/problem-solving MHT-CET standard)
 - "options": array of 4 distinct string choices
-- "correctOption": integer index (0, 1, 2, or 3)
+- "correctOption": integer index (0 for Option A, 1 for Option B, 2 for Option C, 3 for Option D)
 - "explanation": brief 1-2 sentence step-by-step solution/concept explanation
+
+Important: Distribute the correct answer index across 0, 1, 2, and 3 evenly. Do NOT make 0 (Option A) the correct answer for every question.
 
 Example:
 [
@@ -95,11 +153,15 @@ Example:
           const generated = JSON.parse(jsonMatch[0]);
           generated.forEach((g, idx) => {
             if (g.questionText && Array.isArray(g.options) && g.options.length >= 4) {
+              const rawOptions = g.options.slice(0, 4);
+              const origCorrect = parseCorrectOption(g.correctOption, rawOptions, g.explanation);
+              const { options, correctOption } = shuffleOptionsAndCorrectIndex(rawOptions, origCorrect);
+
               selectedQuestions.push({
                 id: `gen_${Date.now()}_${idx}`,
                 questionText: g.questionText,
-                options: g.options.slice(0, 4),
-                correctOption: Number(g.correctOption) || 0,
+                options,
+                correctOption,
                 explanation: g.explanation || 'MHT-CET concept solution.'
               });
             }
@@ -166,7 +228,8 @@ exports.submitPracticeAttempt = async (req, res) => {
     rawQuestions.forEach((q, idx) => {
       const selectedIndex = answers[q.id] !== undefined ? Number(answers[q.id]) : null;
       const timeSpent = questionTimes[q.id] || 0;
-      const isCorrect = selectedIndex !== null && selectedIndex === q.correctOption;
+      const expectedOption = parseCorrectOption(q.correctOption, q.options, q.explanation);
+      const isCorrect = selectedIndex !== null && selectedIndex === expectedOption;
 
       let qBase = 0;
       let qStreak = 0;
@@ -204,7 +267,7 @@ exports.submitPracticeAttempt = async (req, res) => {
         questionText: q.questionText,
         options: q.options,
         selectedIndex,
-        correctOption: q.correctOption,
+        correctOption: expectedOption,
         isCorrect,
         explanation: q.explanation
       });
@@ -407,24 +470,37 @@ exports.createChallenge = async (req, res) => {
       take: count
     });
 
-    let challengeQs = dbQuestions.map((q, idx) => ({
-      id: q.id,
-      questionText: q.questionText,
-      options: Array.isArray(q.options) ? q.options.slice(0, 4) : ['A', 'B', 'C', 'D'],
-      correctOption: 0,
-      explanation: q.answerKey || 'MHT-CET challenge solution.'
-    }));
+    let challengeQs = dbQuestions.map((q, idx) => {
+      let optionsArr = Array.isArray(q.options) ? q.options : [];
+      if (typeof q.options === 'string') {
+        try { optionsArr = JSON.parse(q.options); } catch (e) {}
+      }
+      const rawOptions = optionsArr.length >= 4 ? optionsArr.slice(0, 4) : ['Option A', 'Option B', 'Option C', 'Option D'];
+      const origCorrect = parseCorrectOption(q.answerKey, rawOptions, q.answerKey);
+      const { options, correctOption } = shuffleOptionsAndCorrectIndex(rawOptions, origCorrect);
+
+      return {
+        id: q.id,
+        questionText: q.questionText,
+        options,
+        correctOption,
+        explanation: q.answerKey || 'MHT-CET challenge solution.'
+      };
+    });
 
     if (challengeQs.length < count) {
       const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
       const chapter = await prisma.chapter.findUnique({ where: { id: chapterId } });
       for (let i = challengeQs.length; i < count; i++) {
+        const rawOptions = ['(2/5) MR^2', '(1/2) MR^2', '(2/3) MR^2', '(7/5) MR^2'];
+        const { options, correctOption } = shuffleOptionsAndCorrectIndex(rawOptions, 0);
+
         challengeQs.push({
           id: `chall_q_${i}`,
           questionText: `MHT-CET Standard Practice Question ${i + 1} for ${chapter?.name || 'Chapter'}`,
-          options: ['Option A', 'Option B', 'Option C', 'Option D'],
-          correctOption: 0,
-          explanation: 'Standard formula solution.'
+          options,
+          correctOption,
+          explanation: 'Standard MHT-CET formula solution.'
         });
       }
     }
@@ -506,7 +582,8 @@ exports.submitChallengeAttempt = async (req, res) => {
     let xp = 0;
 
     questions.forEach(q => {
-      if (answers[q.id] !== undefined && Number(answers[q.id]) === q.correctOption) {
+      const expectedOption = parseCorrectOption(q.correctOption, q.options, q.explanation);
+      if (answers[q.id] !== undefined && Number(answers[q.id]) === expectedOption) {
         score++;
         xp += 10;
       }

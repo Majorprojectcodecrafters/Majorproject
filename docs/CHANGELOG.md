@@ -2,6 +2,14 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.2.3] - 2026-08-27 (Practice Quiz Answer Evaluation & UI Rendering Fix)
+
+### Fixed
+- **Answer Key Evaluation (`backend/src/controllers/practice.controller.js`)**: Implemented `parseCorrectOption` helper function to intelligently map database `answerKey` values (letters 'A'-'D', option index '0'-'3', or full text strings) and LLM string options. Implemented `shuffleOptionsAndCorrectIndex` to randomly shuffle MCQ options on every session retake so Option (A) is no longer hardcoded as the correct answer.
+- **UI LaTeX Code Cleanup (`frontend/src/pages/StudentPracticePage.jsx`)**: Replaced raw unrendered LaTeX string literals (`$\rightarrow 1.5\times$`) with clean, polished unicode text formatting (`→ 1.5×`).
+
+---
+
 ## [1.2.2] - 2026-08-27 (Student Registration Form Bug Fix)
 
 ### Fixed
