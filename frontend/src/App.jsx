@@ -16,6 +16,13 @@ import AdminKnowledgeBasePage from './pages/AdminKnowledgeBasePage';
 import StudentDashboard from './pages/StudentDashboard';
 import StudentResultsPage from './pages/StudentResultsPage';
 import StudentMaterialsPage from './pages/StudentMaterialsPage';
+import TeacherStudentsPage from './pages/TeacherStudentsPage';
+import CreateResultPage from './pages/CreateResultPage';
+import TeacherQuizPage from './pages/TeacherQuizPage';
+import StudentQuizPage from './pages/StudentQuizPage';
+import TeacherProfilePage from './pages/TeacherProfilePage';
+import StudentProfilePage from './pages/StudentProfilePage';
+import AdminAllocationsPage from './pages/AdminAllocationsPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 
 const queryClient = new QueryClient({
@@ -74,6 +81,38 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/teacher/students"
+        element={
+          <ProtectedRoute allowedRoles={['TEACHER']}>
+            <TeacherStudentsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/results/create"
+        element={
+          <ProtectedRoute allowedRoles={['TEACHER']}>
+            <CreateResultPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/quiz"
+        element={
+          <ProtectedRoute allowedRoles={['TEACHER']}>
+            <TeacherQuizPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/profile"
+        element={
+          <ProtectedRoute allowedRoles={['TEACHER']}>
+            <TeacherProfilePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/paper/:paperId"
         element={
           <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN', 'STUDENT']}>
@@ -98,11 +137,28 @@ function AppRoutes() {
             <StudentMaterialsPage />
           </ProtectedRoute>
         }
-      />      <Route
+      />
+      <Route
         path="/student/results"
         element={
           <ProtectedRoute allowedRoles={['STUDENT']}>
             <StudentResultsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/quizzes"
+        element={
+          <ProtectedRoute allowedRoles={['STUDENT']}>
+            <StudentQuizPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/profile"
+        element={
+          <ProtectedRoute allowedRoles={['STUDENT']}>
+            <StudentProfilePage />
           </ProtectedRoute>
         }
       />
@@ -113,6 +169,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['ADMIN']}>
             <AdminDashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/allocations"
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <AdminAllocationsPage />
           </ProtectedRoute>
         }
       />
