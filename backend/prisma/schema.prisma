@@ -104,6 +104,8 @@ model Teacher {
   students          TeacherStudent[]
   examResults       ExamResult[]
   customPatterns    CustomPattern[]
+  assignments       TeacherAssignment[]
+  quizzes           Quiz[]
 }
 
 model Student {
@@ -123,6 +125,7 @@ model Student {
   teachers        TeacherStudent[]
   examResults     ExamResult[]
   semesterResults SemesterResult[]
+  quizAttempts    QuizAttempt[]
 }
 
 // MANY TO MANY RELATION
@@ -175,6 +178,8 @@ model Class {
   students          Student[]
   knowledgeSources  KnowledgeSource[]
   chapterWeightages ChapterWeightage[]
+  teacherAssignments TeacherAssignment[]
+  quizzes           Quiz[]
 
   @@unique([name, academicYear, streamId]) 
 }
@@ -214,6 +219,8 @@ model Subject {
   knowledgeSources  KnowledgeSource[]
   chapterWeightages ChapterWeightage[]
   diagrams          DiagramRegistry[]
+  teacherAssignments TeacherAssignment[]
+  quizzes           Quiz[]
 
   @@unique([name, streamId])
 }
@@ -535,4 +542,85 @@ model Template {
 
   questionPapers QuestionPaper[]
 }
+
+// TEACHER-CLASS-SUBJECT ASSIGNMENT MODEL
+
+model TeacherAssignment {
+  id        String   @id @default(uuid())
+  teacherId String
+  classId   String
+  subjectId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, classId, subjectId])
+  @@index([teacherId])
+  @@index([classId])
+  @@index([subjectId])
+}
+
+// QUIZ SYSTEM MODELS
+
+model Quiz {
+  id           String   @id @default(uuid())
+  title        String
+  teacherId    String
+  subjectId    String
+  classId      String
+  totalMarks   Int      @default(10)
+  durationMins Int      @default(15)
+  isPublished  Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teacher   Teacher        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  subject   Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  class     Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+
+  @@index([teacherId])
+  @@index([classId])
+  @@index([subjectId])
+}
+
+model QuizQuestion {
+  id            String  @id @default(uuid())
+  quizId        String
+  questionText  String
+  options       Json    // Array of string choices (e.g. ["A", "B", "C", "D"])
+  correctOption Int     // 0-indexed index of correct choice (0..3)
+  explanation   String?
+  marks         Int     @default(1)
+  orderInt      Int     @default(0)
+
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([quizId])
+}
+
+model QuizAttempt {
+  id          String   @id @default(uuid())
+  quizId      String
+  studentId   String
+  score       Float
+  totalMarks  Float
+  isPassed    Boolean  @default(true)
+  submittedAt DateTime @default(now())
+  answers     Json     // Object mapping questionId -> selectedOptionIndex
+
+  quiz    Quiz    @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([quizId, studentId])
+  @@index([quizId])
+  @@index([studentId])
+}
+
 
