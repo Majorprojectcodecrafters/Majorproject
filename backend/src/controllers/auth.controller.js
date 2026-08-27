@@ -19,6 +19,30 @@ exports.register = async (req, res) => {
       return res.status(400).json({ success: false, message: 'User already exists' });
     }
 
+    // Pre-resolve student class/stream if student role
+    let studentClassId = req.body.classId;
+    let studentStreamId = req.body.streamId;
+
+    if (role === 'STUDENT') {
+      if (!studentClassId) {
+        return res.status(400).json({ success: false, message: 'Class selection is required for student registration' });
+      }
+      const targetClass = await prisma.class.findUnique({ where: { id: studentClassId } });
+      if (!targetClass) {
+        return res.status(400).json({ success: false, message: 'Selected class does not exist' });
+      }
+      if (!studentStreamId && targetClass.streamId) {
+        studentStreamId = targetClass.streamId;
+      }
+      if (!studentStreamId) {
+        const firstStream = await prisma.stream.findFirst();
+        studentStreamId = firstStream ? firstStream.id : null;
+      }
+      if (!studentStreamId) {
+        return res.status(400).json({ success: false, message: 'No valid stream found for class allocation' });
+      }
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
@@ -27,14 +51,14 @@ exports.register = async (req, res) => {
         email,
         password: hashedPassword,
         role,
-        dob: new Date(dob),
+        dob: new Date(dob || '2005-01-01'),
 
         // Auto-create role profile
         ...(role === 'TEACHER' && {
           teacher: {
             create: {
-              education: req.body.education || '',
-              experienceYears: req.body.experienceYears || 0
+              education: req.body.education || 'N/A',
+              experienceYears: Number(req.body.experienceYears || 0)
             }
           }
         }),
@@ -42,17 +66,22 @@ exports.register = async (req, res) => {
         ...(role === 'STUDENT' && {
           student: {
             create: {
-              uniqueId: req.body.uniqueId,
-              contact: req.body.contact,
-              classId: req.body.classId,
-              streamId: req.body.streamId
+              uniqueId: req.body.uniqueId || `STU-${Math.floor(100000 + Math.random() * 900000)}`,
+              contact: req.body.contact || 'N/A',
+              classId: studentClassId,
+              streamId: studentStreamId
             }
           }
         })
       },
       include: {
         teacher: true,
-        student: true
+        student: {
+          include: {
+            class: true,
+            stream: true
+          }
+        }
       }
     });
 
