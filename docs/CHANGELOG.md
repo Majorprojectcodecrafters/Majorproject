@@ -2,6 +2,14 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.5.2] - 2026-08-27 (Admin Dashboard Student Library Connection Fix)
+
+### Fixed
+- **Admin Dashboard Student Library Integration (`AdminKnowledgeBasePage.jsx`)**: Connected the Admin Student Library page (`/admin/knowledge-base`) directly to the Student Library API (`/api/student-library/materials`, `/api/student-library/upload`, `/api/student-library/sync`, `/api/student-library/admin-tree`).
+- **Admin Storage Management**: Admins can upload textbooks and PYQs directly to Google Drive, trigger recursive Google Drive syncs, browse the full Google Drive folder tree hierarchy, and preview materials in protected mode.
+
+---
+
 ## [1.5.1] - 2026-08-27 (Generated Papers Exclusion & PYQs Folder Sync Categorization)
 
 ### Fixed
