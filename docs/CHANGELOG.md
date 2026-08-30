@@ -2,6 +2,14 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.6.1] - 2026-08-30 (Registration & Login Pipeline Retest & CORS Origin Sync)
+
+### Fixed
+- **Dynamic CORS Origin Matching (`app.js`)**: Updated CORS configuration to dynamically support multiple local frontend origins (`http://localhost:5173`, `http://127.0.0.1:5173`) with `credentials: true`. Resolves CORS preflight rejection when navigating between loopback addresses.
+- **Development Rate Limiting Threshold Adjustment (`auth.routes.js`)**: Adjusted authentication rate limits (`authLimiter` to 100 requests per 15 min; `otpLimiter` to 30 requests per 15 min) to prevent `HTTP 429 Too Many Requests` false positives during registration testing.
+
+---
+
 ## [1.6.0] - 2026-08-30 (HttpOnly Cookie Authentication & System Security Enhancement)
 
 ### Added

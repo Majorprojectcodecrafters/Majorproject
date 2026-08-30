@@ -4,9 +4,9 @@ const { protect } = require('../middlewares/auth.middleware');
 const authController = require('../controllers/auth.controller');
 const rateLimit = require('../middlewares/rateLimit.middleware');
 
-// Strict rate limits for brute-force protection
-const authLimiter = rateLimit(10, 15 * 60 * 1000); // 10 attempts per 15 min
-const otpLimiter = rateLimit(5, 15 * 60 * 1000);   // 5 OTP attempts per 15 min
+// Rate limits for brute-force protection
+const authLimiter = rateLimit(100, 15 * 60 * 1000); // 100 attempts per 15 min
+const otpLimiter = rateLimit(30, 15 * 60 * 1000);   // 30 OTP attempts per 15 min
 
 router.post('/register',        authLimiter, authController.register);
 router.post('/login',           authLimiter, authController.login);
