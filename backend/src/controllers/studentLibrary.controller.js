@@ -243,12 +243,13 @@ exports.getStudyMaterials = async (req, res) => {
 
 exports.syncDriveMaterials = async (req, res) => {
   try {
-    // 1. Purge any previously synced Generated Test Papers from StudyMaterial DB
+    // 1. Purge any previously synced Generated Test Papers OR old hardcoded dummy records from StudyMaterial DB
     await prisma.studyMaterial.deleteMany({
       where: {
         OR: [
           { description: { contains: 'Generated Papers', mode: 'insensitive' } },
-          { title: { contains: 'Generated', mode: 'insensitive' } }
+          { title: { contains: 'Generated', mode: 'insensitive' } },
+          { description: { contains: 'QPGen / MSB / Science', mode: 'insensitive' } }
         ]
       }
     });
@@ -257,7 +258,7 @@ exports.syncDriveMaterials = async (req, res) => {
     let syncedCount = 0;
 
     for (const file of driveFiles) {
-      if (file.mimeType === 'application/pdf') {
+      if (file.mimeType === 'application/pdf' || (file.name && file.name.toLowerCase().endsWith('.pdf'))) {
         const folderPathLower = (file.folderPath || '').toLowerCase();
         const fileNameLower = (file.name || '').toLowerCase();
 
@@ -336,7 +337,7 @@ exports.syncDriveMaterials = async (req, res) => {
             data: {
               title: file.name.replace(/\.pdf$/i, ''),
               category,
-              description: `Google Drive Folder: ${file.folderPath}`,
+              description: file.folderPath || 'QpGen_dataset',
               fileName: file.name,
               fileUrl: file.webViewLink,
               driveFileId: file.id,
@@ -356,7 +357,7 @@ exports.syncDriveMaterials = async (req, res) => {
             where: { id: existing.id },
             data: {
               category,
-              description: `Google Drive Folder: ${file.folderPath}`,
+              description: file.folderPath || 'QpGen_dataset',
               classId: targetClassId || existing.classId,
               subjectId: targetSubjectId || existing.subjectId
             }

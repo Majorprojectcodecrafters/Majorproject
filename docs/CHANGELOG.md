@@ -2,6 +2,14 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.8.4] - 2026-08-30 (Legacy Hardcoded Record Cleanup & Dynamic Folder Path Fix)
+
+### Fixed
+- **Legacy Hardcoded Dummy Record Purge (`studentLibrary.controller.js`)**: Purged old hardcoded dummy textbook records containing `QPGen / MSB / Science` from the `StudyMaterial` database table.
+- **100% Dynamic Folder Path (`studentLibrary.controller.js`)**: Removed hardcoded prefix strings in `description`. Materials now dynamically store their exact relative Google Drive folder path (e.g. `QpGen_dataset / 12th Science / Physics / Notes` or `QpGen_dataset / 12th Science / Physics / Previous Year Board Papers`).
+
+---
+
 ## [1.8.3] - 2026-08-30 (Category Grouping Expansion & Tab Navigation Fix)
 
 ### Fixed
