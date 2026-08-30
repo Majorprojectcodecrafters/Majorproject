@@ -600,10 +600,26 @@ exports.streamDriveFileSecure = async (req, res) => {
   try {
     const { id } = req.params; // fileId or driveFileId
 
-    // 1. Check local uploads storage
+    // 1. Look up DB material record
+    const material = await prisma.studyMaterial.findFirst({
+      where: { OR: [{ id }, { driveFileId: id }] }
+    });
+
+    const realDriveId = (material?.driveFileId && !material.driveFileId.startsWith('drive-sync-'))
+      ? material.driveFileId
+      : (!id.startsWith('drive-sync-') ? id : null);
+
+    // 2. Check local disk storage
     const uploadDir = path.join(__dirname, '../../uploads/student_library');
+    if (material?.fileUrl && fs.existsSync(material.fileUrl)) {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline; filename="study_material.pdf"');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      return fs.createReadStream(material.fileUrl).pipe(res);
+    }
+
     if (fs.existsSync(uploadDir)) {
-      const match = fs.readdirSync(uploadDir).find(f => f.includes(id));
+      const match = fs.readdirSync(uploadDir).find(f => f.includes(id) || (material && f.includes(material.id)));
       if (match) {
         const localPath = path.join(uploadDir, match);
         res.setHeader('Content-Type', 'application/pdf');
@@ -613,38 +629,26 @@ exports.streamDriveFileSecure = async (req, res) => {
       }
     }
 
-    // 2. Check DB record for local file path
-    const material = await prisma.studyMaterial.findFirst({
-      where: { OR: [{ id }, { driveFileId: id }] }
-    });
-
-    if (material?.fileUrl && fs.existsSync(material.fileUrl)) {
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'inline; filename="study_material.pdf"');
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-      return fs.createReadStream(material.fileUrl).pipe(res);
-    }
-
     // 3. Try streaming from Google Drive API
-    const { getFileStreamFromDrive } = require('../services/drive.service');
-    try {
-      const stream = await getFileStreamFromDrive(id);
-      if (stream) {
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'inline; filename="study_material.pdf"');
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-        return stream.pipe(res);
+    if (realDriveId) {
+      const { getFileStreamFromDrive } = require('../services/drive.service');
+      try {
+        const stream = await getFileStreamFromDrive(realDriveId);
+        if (stream) {
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', 'inline; filename="study_material.pdf"');
+          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+          return stream.pipe(res);
+        }
+      } catch (driveErr) {
+        console.warn('⚠️ Google Drive API stream warning:', driveErr.message);
       }
-    } catch (driveErr) {
-      console.warn('⚠️ Google Drive API stream warning:', driveErr.message);
+
+      // 4. Redirect to Google Drive preview iframe if real drive file ID exists
+      return res.redirect(`https://drive.google.com/file/d/${realDriveId}/preview`);
     }
 
-    // 4. Direct Drive Preview redirect fallback so viewer iframe always renders authentic PDF
-    if (id && !id.startsWith('drive-sync-')) {
-      return res.redirect(`https://drive.google.com/file/d/${id}/preview`);
-    }
-
-    // If local sample file is available in uploads directory, stream first available PDF
+    // 5. If local sample PDF exists in uploads directory, stream first available PDF
     if (fs.existsSync(uploadDir)) {
       const firstPdf = fs.readdirSync(uploadDir).find(f => f.endsWith('.pdf'));
       if (firstPdf) {
@@ -654,10 +658,51 @@ exports.streamDriveFileSecure = async (req, res) => {
       }
     }
 
-    return res.status(404).send('Document content stream not available.');
+    // 6. Render clean HTML status card inside viewer iframe
+    const documentName = material?.title || material?.fileName || 'Study Material';
+    res.setHeader('Content-Type', 'text/html');
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 90vh; margin: 0; background: #f8fafc; color: #334155; }
+            .card { background: white; padding: 2.5rem; border-radius: 1.25rem; border: 1px solid #e2e8f0; text-align: center; max-width: 420px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
+            .icon { width: 50px; h-height: 50px; background: #f1f5f9; color: #64748b; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto; font-weight: bold; font-size: 1.2rem; }
+            h3 { margin: 0 0 0.5rem 0; font-size: 1.1rem; color: #0f172a; }
+            p { font-size: 0.85rem; color: #64748b; line-height: 1.5; margin: 0; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="icon">📄</div>
+            <h3>${documentName}</h3>
+            <p>The exact PDF file for this study material has not been uploaded to Google Drive storage yet.</p>
+          </div>
+        </body>
+      </html>
+    `);
 
   } catch (error) {
-    res.status(500).send('Unable to stream document content.');
+    res.setHeader('Content-Type', 'text/html');
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 90vh; margin: 0; background: #f8fafc; color: #334155; }
+            .card { background: white; padding: 2rem; border-radius: 1rem; border: 1px solid #e2e8f0; text-align: center; max-width: 400px; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h3>Document Stream Unavailable</h3>
+            <p>Unable to stream document content. Please verify file upload status.</p>
+          </div>
+        </body>
+      </html>
+    `);
   }
 };
 

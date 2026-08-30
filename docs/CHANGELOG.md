@@ -2,6 +2,15 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.0.5] - 2026-08-30 (Guaranteed Multi-Tier Document Resolution & Clean Status Card Rendering)
+
+### Fixed
+- **Multi-Tier Document Resolution (`studentLibrary.controller.js`)**:
+  - Implemented multi-tier document streaming in `streamDriveFileSecure` (1. DB `driveFileId` resolution $\rightarrow$ 2. Local uploads disk file streaming $\rightarrow$ 3. Google Drive API stream $\rightarrow$ 4. Direct Drive Preview redirect $\rightarrow$ 5. Clean HTML document pending card).
+  - Fixed plain text `"Unable to stream document content."` error inside the viewer iframe modal.
+
+---
+
 ## [2.0.4] - 2026-08-30 (Strict Category Retrieval Filtering & Direct PDF Viewer Stream Fallback)
 
 ### Fixed
