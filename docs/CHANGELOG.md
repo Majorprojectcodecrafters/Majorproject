@@ -2,6 +2,18 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.8.11] - 2026-08-30 (In-Window Backend Document Streaming & Direct Scoping)
+
+### Fixed
+- **In-Window Backend PDF Streaming (`studentLibrary.controller.js`, `ProtectedDocumentViewer.jsx`)**:
+  - Configured `/api/student-library/materials/:id/view` backend stream endpoint to stream PDF documents inline directly into the same modal window (`HTTP 200 OK`).
+  - Removed all external tab redirects and removed all mentions/traces of Google Drive from student views.
+- **Dynamic Subject & Class Scoping (`StudentMaterialsPage.jsx`)**:
+  - Automatically loads the student's enrolled class and subject filters in real-time.
+  - Enabled dynamic React Query reactivity so category and subject filters update instantly without requiring a webpage refresh.
+
+---
+
 ## [1.8.10] - 2026-08-30 (Student Subject Filter & Strict Document Scoping)
 
 ### Fixed

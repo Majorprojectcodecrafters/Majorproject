@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 
-export default function ProtectedDocumentViewer({ documentId, title, documentTitle, fileUrl, driveFileId, subjectName, className, onClose }) {
+export default function ProtectedDocumentViewer({ documentId, title, documentTitle, subjectName, className, onClose }) {
   const displayTitle = title || documentTitle || 'Study Material Document';
-  const [iframeError, setIframeError] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
 
   const triggerCopyCutWarning = () => {
@@ -27,22 +26,8 @@ export default function ProtectedDocumentViewer({ documentId, title, documentTit
     };
   }, []);
 
-  // Compute Google Drive official file embed URL (Strictly File Level — No Root Folder Fallback!)
-  const getEmbedUrl = () => {
-    if (fileUrl && fileUrl.includes('drive.google.com/file/d/')) {
-      const match = fileUrl.match(/\/file\/d\/([^\/]+)/);
-      if (match) return `https://drive.google.com/file/d/${match[1]}/preview`;
-    }
-
-    if (driveFileId && !driveFileId.startsWith('drive-sync-') && !driveFileId.startsWith('local-sim-')) {
-      return `https://drive.google.com/file/d/${driveFileId}/preview`;
-    }
-
-    return null;
-  };
-
-  const embedUrl = getEmbedUrl();
-  const directLink = fileUrl && !fileUrl.includes('drive-sync-') ? fileUrl : null;
+  // Direct backend in-window document stream endpoint (NO EXTERNAL REDIRECTS)
+  const streamUrl = `/api/student-library/materials/${documentId}/view#toolbar=0&navpanes=0&scrollbar=1`;
 
   return (
     <div
@@ -62,24 +47,12 @@ export default function ProtectedDocumentViewer({ documentId, title, documentTit
             <h3 className="font-bold text-base text-slate-100 truncate max-w-xl">{displayTitle}</h3>
           </div>
 
-          <div className="flex items-center gap-3">
-            {directLink && (
-              <a
-                href={directLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition-all shadow-sm"
-              >
-                Open in Drive
-              </a>
-            )}
-            <button
-              onClick={onClose}
-              className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-all"
-            >
-              Close
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-all"
+          >
+            Close
+          </button>
         </div>
 
         {/* Dynamic Toast Alert */}
@@ -90,45 +63,14 @@ export default function ProtectedDocumentViewer({ documentId, title, documentTit
           </div>
         )}
 
-        {/* Main Document Body */}
-        <div className="relative flex-1 bg-slate-100 overflow-hidden flex flex-col items-center justify-center p-4">
-          {embedUrl && !iframeError ? (
-            <iframe
-              src={embedUrl}
-              title={displayTitle}
-              className="w-full h-full rounded-xl border border-slate-300 shadow-inner bg-white"
-              onError={() => setIframeError(true)}
-              onContextMenu={(e) => e.preventDefault()}
-            />
-          ) : (
-            <div className="text-center p-8 bg-white rounded-2xl shadow-md border border-slate-200 max-w-lg w-full space-y-4">
-              <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center mx-auto font-bold text-xl">
-                PDF
-              </div>
-              <h4 className="font-bold text-lg text-slate-900">{displayTitle}</h4>
-              
-              <div className="bg-slate-50 p-4 rounded-xl text-xs text-slate-700 space-y-2 border text-left">
-                {className && <div><span className="font-semibold text-slate-500">Target Class:</span> {className}</div>}
-                {subjectName && <div><span className="font-semibold text-slate-500">Subject:</span> {subjectName}</div>}
-                <div><span className="font-semibold text-slate-500">Status:</span> Synchronized Study Material</div>
-              </div>
-
-              {directLink ? (
-                <a
-                  href={directLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center w-full py-3 bg-purple-700 hover:bg-purple-800 text-white rounded-xl font-bold text-xs shadow-md transition-all"
-                >
-                  View Document File on Google Drive
-                </a>
-              ) : (
-                <p className="text-xs text-slate-500 font-semibold bg-purple-50 p-3 rounded-lg text-purple-900 border border-purple-100">
-                  This document is synchronized for your enrolled class & subject.
-                </p>
-              )}
-            </div>
-          )}
+        {/* Main Document Body — Native Backend Stream Iframe */}
+        <div className="relative flex-1 bg-slate-100 overflow-hidden flex flex-col items-center justify-center p-3">
+          <iframe
+            src={streamUrl}
+            title={displayTitle}
+            className="w-full h-full rounded-xl border border-slate-300 shadow-inner bg-white"
+            onContextMenu={(e) => e.preventDefault()}
+          />
         </div>
       </div>
     </div>
