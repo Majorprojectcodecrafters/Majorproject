@@ -31,9 +31,10 @@ const CATEGORIES = [
 
 export default function StudentMaterialsPage() {
   const [selectedStream, setSelectedStream] = useState('12th Science');
-  const [selectedSubject, setSelectedSubject] = useState('Physics');
-  const [selectedCategory, setSelectedCategory] = useState('PYQP');
+  const [selectedSubject, setSelectedSubject] = useState('Mathematics');
+  const [selectedCategory, setSelectedCategory] = useState('Textbook');
   const [activeDocument, setActiveDocument] = useState(null);
+  const [forceRefresh, setForceRefresh] = useState(false);
 
   // 1. Fetch Student Profile for Context Auto-Resolution
   const { data: profile } = useQuery({
@@ -56,13 +57,14 @@ export default function StudentMaterialsPage() {
   const activeSubject = availableSubjects.includes(selectedSubject) ? selectedSubject : availableSubjects[0];
 
   // 2. Fetch Actual Files directly from Google Drive Folder Tree
-  const { data: driveResponse, isLoading: filesLoading, error } = useQuery({
-    queryKey: ['googleDriveFiles', selectedStream, activeSubject, selectedCategory],
+  const { data: driveResponse, isLoading: filesLoading, error, refetch } = useQuery({
+    queryKey: ['googleDriveFiles', selectedStream, activeSubject, selectedCategory, forceRefresh],
     queryFn: async () => {
       const params = new URLSearchParams({
         stream: selectedStream,
         subject: activeSubject,
-        category: selectedCategory
+        category: selectedCategory,
+        ...(forceRefresh ? { refresh: 'true' } : {})
       });
       const res = await apiClient.get(`/student-library/drive-files?${params.toString()}`);
       return res.data;
@@ -70,7 +72,6 @@ export default function StudentMaterialsPage() {
   });
 
   const driveFiles = driveResponse?.data || [];
-  const folderPath = driveResponse?.folderPath || `${selectedStream} / ${activeSubject} / ${selectedCategory}`;
 
   const formatBytes = (bytes) => {
     if (!bytes) return 'PDF File';
@@ -85,6 +86,11 @@ export default function StudentMaterialsPage() {
     window.open(downloadUrl, '_blank');
   };
 
+  const handleManualSync = () => {
+    setForceRefresh(prev => !prev);
+    refetch();
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl space-y-8 select-none">
       {/* Header Banner */}
@@ -92,29 +98,31 @@ export default function StudentMaterialsPage() {
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded bg-purple-600/30 border border-purple-400/40 text-purple-200 text-[10px] font-bold uppercase tracking-wider">
-              Google Drive Library System
+              Institutional Library
             </span>
-            <span className="text-xs text-purple-300 font-semibold">
-              Root Folder: QpGen_dataset
-            </span>
+            {profile?.rawClassName && (
+              <span className="text-xs text-purple-300 font-semibold">
+                Enrolled: {profile.rawClassName}
+              </span>
+            )}
           </div>
-          <h1 className="text-3xl font-extrabold mt-1 text-slate-100">Student Study Library</h1>
+          <h1 className="text-3xl font-extrabold mt-1 text-slate-100">Study Materials & Notes</h1>
           <p className="text-sm text-slate-300 mt-1">
-            Directly retrieving authentic curriculum study materials from institutional Google Drive folders.
+            Access official curriculum textbooks, chapter notes, previous year board papers, and reference materials.
           </p>
         </div>
+
+        <button
+          onClick={handleManualSync}
+          className="px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center gap-2"
+        >
+          Sync Files
+        </button>
       </div>
 
       {/* Level 1: Stream / Class Context Selector */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Academic Stream / Class</h2>
-          {profile?.rawClassName && (
-            <span className="text-xs text-purple-700 font-bold bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200">
-              Enrolled Class Profile: {profile.rawClassName}
-            </span>
-          )}
-        </div>
+        <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Academic Class & Stream</h2>
         <div className="flex flex-wrap gap-2">
           {STREAMS.map((st) => (
             <button
@@ -136,15 +144,13 @@ export default function StudentMaterialsPage() {
         </div>
       </div>
 
-      {/* Breadcrumb Folder Path */}
-      <div className="flex items-center gap-2 text-xs text-slate-600 font-semibold bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
-        <span className="text-purple-700 font-bold">QpGen_dataset</span>
+      {/* Clean Breadcrumb Path */}
+      <div className="flex items-center gap-2 text-xs font-bold bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm text-slate-700">
+        <span className="text-slate-900">{selectedStream}</span>
         <span className="text-slate-300">/</span>
-        <span className="text-slate-800 font-bold">{selectedStream}</span>
+        <span className="text-slate-900">{activeSubject}</span>
         <span className="text-slate-300">/</span>
-        <span className="text-slate-800 font-bold">{activeSubject}</span>
-        <span className="text-slate-300">/</span>
-        <span className="text-purple-800 font-bold uppercase">{selectedCategory}</span>
+        <span className="text-purple-700 font-extrabold uppercase">{selectedCategory}</span>
       </div>
 
       {/* Level 2: Stream-Scoped Subjects */}
@@ -166,7 +172,6 @@ export default function StudentMaterialsPage() {
                 }`}
               >
                 <div className="text-sm font-bold truncate">{sub}</div>
-                <div className="text-[10px] text-slate-400 mt-1">Google Drive Folder</div>
               </button>
             );
           })}
@@ -191,27 +196,24 @@ export default function StudentMaterialsPage() {
           </div>
 
           <div className="text-xs text-slate-500 font-bold">
-            Total Files in Drive: {driveFiles.length}
+            Available: {driveFiles.length} {driveFiles.length === 1 ? 'File' : 'Files'}
           </div>
         </div>
 
         {filesLoading && <TableSkeleton rows={4} columns={3} />}
         {error && (
           <div className="rounded-xl bg-red-50 p-4 border border-red-200 text-red-700 text-sm">
-            Unable to fetch Google Drive files. Please ensure Google Drive API connection is active.
+            Unable to load study materials. Please check network connection.
           </div>
         )}
 
         {!filesLoading && !error && driveFiles.length === 0 && (
           <div className="text-center py-12 space-y-2 bg-slate-50/60 rounded-xl border border-dashed border-slate-300">
-            <div className="w-12 h-12 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mx-auto text-xl font-bold">
-              📂
-            </div>
             <p className="text-base font-bold text-slate-700">
-              No study material available in this Google Drive folder.
+              No study material available in this folder.
             </p>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto font-mono">
-              Folder Path: {folderPath}
+            <p className="text-xs text-slate-500">
+              Check back soon or click "Sync Files" to refresh latest uploads.
             </p>
           </div>
         )}
@@ -225,8 +227,8 @@ export default function StudentMaterialsPage() {
               >
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 text-[10px] font-bold uppercase tracking-wider">
-                      Google Drive File
+                    <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-900 text-[10px] font-bold uppercase tracking-wider">
+                      {selectedCategory}
                     </span>
                     <span className="text-[10px] text-slate-400 font-mono">
                       {formatBytes(file.fileSize)}
@@ -235,9 +237,9 @@ export default function StudentMaterialsPage() {
 
                   <h3 className="font-bold text-sm text-slate-900 line-clamp-2 break-all">{file.name}</h3>
 
-                  <div className="pt-2 text-xs text-slate-500 space-y-1 border-t border-slate-100 font-mono">
-                    <div><strong>Folder:</strong> {selectedCategory}</div>
+                  <div className="pt-2 text-xs text-slate-500 space-y-1 border-t border-slate-100">
                     <div><strong>Subject:</strong> {activeSubject}</div>
+                    <div><strong>Class:</strong> {selectedStream}</div>
                   </div>
                 </div>
 

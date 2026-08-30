@@ -227,6 +227,8 @@ async function listDriveFilesAndFolders(parentFolderId = null) {
     const res = await drive.files.list({
       q: query,
       fields: 'files(id, name, mimeType, webViewLink, size, createdTime)',
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
       pageSize: 100
     });
 
@@ -258,6 +260,8 @@ async function listAllDriveFilesRecursive(folderId = null) {
         const res = await drive.files.list({
           q: query,
           fields: 'nextPageToken, files(id, name, mimeType, webViewLink, size, createdTime, parents)',
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true,
           pageSize: 1000,
           pageToken: pageToken || undefined
         });
@@ -297,9 +301,7 @@ async function listAllDriveFilesRecursive(folderId = null) {
 /**
  * Resolve folder ID by walking subfolder names: ['12th Science', 'Physics', 'PYQP']
  */
-const driveFolderCache = new Map();
-
-async function getDriveFolderFilesByPath(pathParts = []) {
+async function getDriveFolderFilesByPath(pathParts = [], forceRefresh = false) {
   const drive = getDriveClient();
   if (!drive) return [];
 
@@ -307,9 +309,11 @@ async function getDriveFolderFilesByPath(pathParts = []) {
   if (!rootId) return [];
 
   const cacheKey = pathParts.join('/');
-  const cached = driveFolderCache.get(cacheKey);
-  if (cached && Date.now() - cached.timestamp < 300000) { // 5 min cache
-    return cached.files;
+  if (!forceRefresh) {
+    const cached = driveFolderCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < 120000) { // 2 min cache
+      return cached.files;
+    }
   }
 
   try {
@@ -321,30 +325,44 @@ async function getDriveFolderFilesByPath(pathParts = []) {
       const res = await drive.files.list({
         q: query,
         fields: 'files(id, name)',
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true,
         pageSize: 100
       });
 
       const folders = res.data.files || [];
-      const matched = folders.find(f => f.name.toLowerCase().trim() === part.toLowerCase().trim());
+      const targetNorm = part.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      let matched = folders.find(f => f.name.toLowerCase().replace(/[^a-z0-9]/g, '') === targetNorm);
 
       if (!matched) {
-        // Try fallback partial match (e.g. "12th Science" vs "12th science")
-        const partialMatch = folders.find(f => f.name.toLowerCase().includes(part.toLowerCase().trim()));
-        if (!partialMatch) {
-          console.warn(`⚠️ Drive subfolder "${part}" not found under parent ${currentFolderId}`);
-          return [];
+        // Alias mapping for common categories
+        if (targetNorm.includes('textbook')) {
+          matched = folders.find(f => f.name.toLowerCase().includes('textbook'));
+        } else if (targetNorm.includes('note')) {
+          matched = folders.find(f => f.name.toLowerCase().includes('note'));
+        } else if (targetNorm.includes('pyqp') || targetNorm.includes('previous') || targetNorm.includes('paper')) {
+          matched = folders.find(f => f.name.toLowerCase().includes('pyq') || f.name.toLowerCase().includes('paper'));
+        } else if (targetNorm.includes('bank') || targetNorm.includes('question')) {
+          matched = folders.find(f => f.name.toLowerCase().includes('bank') || f.name.toLowerCase().includes('question'));
         }
-        currentFolderId = partialMatch.id;
-      } else {
-        currentFolderId = matched.id;
       }
+
+      if (!matched) {
+        console.warn(`⚠️ Shared Drive subfolder "${part}" not found under parent ${currentFolderId}. Available folders:`, folders.map(f => f.name));
+        return [];
+      }
+
+      currentFolderId = matched.id;
     }
 
-    // List all non-folder files inside leaf folder
+    // List all non-folder files inside leaf folder in Shared Drive
     const fileQuery = `'${currentFolderId}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed=false`;
     const fileRes = await drive.files.list({
       q: fileQuery,
       fields: 'files(id, name, mimeType, webViewLink, size, createdTime)',
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
       pageSize: 500,
       orderBy: 'name asc'
     });
@@ -354,8 +372,34 @@ async function getDriveFolderFilesByPath(pathParts = []) {
     return files;
 
   } catch (error) {
-    console.error('❌ Failed to retrieve Google Drive files by path:', error.message);
-    return [];
+    console.warn(`⚠️ Google Drive API query notice for ${pathParts.join('/')}:`, error.message);
+
+    // Fallback: Query database records matching class, subject, and category
+    try {
+      const [stream, subjectName, categoryName] = pathParts;
+      const prisma = require('../config/prisma');
+
+      const materials = await prisma.studyMaterial.findMany({
+        where: {
+          class: { name: { contains: stream.substring(0, 4) } },
+          subject: { name: { contains: subjectName, mode: 'insensitive' } }
+        },
+        include: { class: true, subject: true }
+      });
+
+      const fallbackFiles = materials.map(m => ({
+        id: m.driveFileId || m.id,
+        name: m.fileName || m.title,
+        mimeType: m.mimeType || 'application/pdf',
+        size: m.fileSize,
+        createdTime: m.createdAt,
+        webViewLink: m.fileUrl
+      }));
+
+      return fallbackFiles;
+    } catch (dbErr) {
+      return [];
+    }
   }
 }
 

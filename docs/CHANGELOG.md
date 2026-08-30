@@ -2,6 +2,19 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.0.1] - 2026-08-30 (Shared Google Drive API Integration & UI Minimalist Cleanup)
+
+### Fixed & Cleaned
+- **Shared Drive Support & Flexible Matching (`drive.service.js`)**:
+  - Added `supportsAllDrives: true` and `includeItemsFromAllDrives: true` to all Google Drive API list queries.
+  - Implemented database fallback to ensure study materials (Textbooks, PYQPs, Notes) are 100% visible and accessible across all folders.
+- **UI Minimalist Cleanup (`StudentMaterialsPage.jsx`)**:
+  - Stripped all clutter labels (`"Google Drive Folder"`, `"QpGen_dataset /"`, `"Root Folder"`).
+  - Cleaned up breadcrumb path bar (`12th Science / Mathematics / Textbook`).
+  - Added "Sync Files" button for instant manual folder refresh.
+
+---
+
 ## [2.0.0] - 2026-08-30 (Complete Google Drive-Backed Student Library Architecture)
 
 ### Added & Rebuilt
