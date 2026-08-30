@@ -449,6 +449,7 @@ export default function AdminKnowledgeBasePage() {
           documentId={activeDocument.id}
           documentTitle={activeDocument.title}
           fileUrl={activeDocument.fileUrl}
+          driveFileId={activeDocument.driveFileId}
           onClose={() => setActiveDocument(null)}
         />
       )}

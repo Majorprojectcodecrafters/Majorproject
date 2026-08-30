@@ -127,6 +127,7 @@ export default function StudentMaterialsPage() {
           documentId={activeDocument.id}
           title={`${activeDocument.title} (${activeDocument.subject?.name || 'Subject'})`}
           fileUrl={activeDocument.fileUrl}
+          driveFileId={activeDocument.driveFileId}
           onClose={() => setActiveDocument(null)}
         />
       )}

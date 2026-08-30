@@ -2,6 +2,14 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.8.7] - 2026-08-30 (Google Drive Official Embed URL Formatting & Fallback Action Card)
+
+### Fixed
+- **Google Drive Embed Formatting (`ProtectedDocumentViewer.jsx`)**: Updated URL generator to convert Google Drive file links to `/file/d/{fileId}/preview` and folder links to `https://drive.google.com/embeddedfolderview?id={folderId}#list` to prevent Google `403 Access Denied` framing errors.
+- **Fallback Action Card**: Added an inline **"Open Study Material in Google Drive"** button card in case browser cross-origin policy blocks iframe rendering.
+
+---
+
 ## [1.8.6] - 2026-08-30 (Standard Document Viewer & Copy/Cut Prevention)
 
 ### Fixed
