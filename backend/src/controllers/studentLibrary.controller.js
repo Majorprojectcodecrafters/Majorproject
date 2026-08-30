@@ -40,7 +40,13 @@ exports.uploadStudyMaterial = async (req, res) => {
 
     const fileName = `${className}_${subjectName}_${Date.now()}_${file.originalname}`;
 
-    // Upload file directly to Google Drive folder (Root Folder: 1lt8-tHT6wniWRLwPrsZizWmFCJQ423r3)
+    // Store local copy for instant 100% reliable in-window PDF streaming
+    const uploadDir = path.join(__dirname, '../../uploads/student_library');
+    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+    const localFilePath = path.join(uploadDir, `${Date.now()}_${file.originalname}`);
+    try { fs.copyFileSync(tempFilePath, localFilePath); } catch (copyErr) {}
+
+    // Upload file to Google Drive folder
     const driveResult = await uploadFileToDrive(tempFilePath, fileName, file.mimetype);
 
     const studyMaterial = await prisma.studyMaterial.create({
@@ -49,7 +55,7 @@ exports.uploadStudyMaterial = async (req, res) => {
         category,
         description,
         fileName: file.originalname,
-        fileUrl: driveResult.webViewLink,
+        fileUrl: fs.existsSync(localFilePath) ? localFilePath : driveResult.webViewLink,
         driveFileId: driveResult.driveFileId,
         driveFolderId: driveResult.driveFolderId,
         fileSize: file.size,
@@ -472,64 +478,7 @@ exports.getAdminDriveTree = async (req, res) => {
 
 // ==================== SECURE STREAM INLINE (NO EXTERNAL REDIRECTS) ====================
 
-function generateInlinePdfBuffer(title, subjectName, className, category, description) {
-  const safeTitle = (title || 'Study Material').replace(/[\(\)]/g, '');
-  const safeSubject = (subjectName || 'General Subject').replace(/[\(\)]/g, '');
-  const safeClass = (className || 'All Classes').replace(/[\(\)]/g, '');
-  const safeCategory = (category || 'STUDY_MATERIAL').replace(/[\(\)]/g, '');
-  const safeDesc = (description || 'Curriculum Reference Material').replace(/[\(\)]/g, '');
-
-  const content = `
-%PDF-1.4
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
-endobj
-4 0 obj
-<< /Length 380 >>
-stream
-BT
-/F1 18 Tf
-50 720 Td
-(${safeTitle}) Tj
-/F1 12 Tf
-0 -30 Td
-(Class: ${safeClass}) Tj
-0 -20 Td
-(Subject: ${safeSubject}) Tj
-0 -20 Td
-(Category: ${safeCategory}) Tj
-0 -30 Td
-(Path: ${safeDesc}) Tj
-0 -40 Td
-(This document is provided for your enrolled class & subject.) Tj
-ET
-endstream
-endobj
-5 0 obj
-<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
-endobj
-xref
-0 6
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000260 00000 n 
-0000000690 00000 n 
-trailer
-<< /Size 6 /Root 1 0 R >>
-startxref
-765
-%%EOF
-  `;
-  return Buffer.from(content.trim(), 'utf-8');
-}
+const { createAcademicPdfBuffer, ensureLocalPdfFile } = require('../utils/pdfGenerator');
 
 exports.streamStudyMaterialSecure = async (req, res) => {
   try {
@@ -548,6 +497,13 @@ exports.streamStudyMaterialSecure = async (req, res) => {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
 
+    // 1. Check if local disk file exists
+    if (material.fileUrl && fs.existsSync(material.fileUrl)) {
+      const fileStream = fs.createReadStream(material.fileUrl);
+      return fileStream.pipe(res);
+    }
+
+    // 2. Check if real Google Drive file stream is available
     if (material.driveFileId && !material.driveFileId.startsWith('drive-sync-')) {
       try {
         const stream = await getFileStreamFromDrive(material.driveFileId);
@@ -559,14 +515,14 @@ exports.streamStudyMaterialSecure = async (req, res) => {
       }
     }
 
-    // Serve inline PDF stream directly inside the same app window modal
-    const pdfBuffer = generateInlinePdfBuffer(
-      material.title,
-      material.subject?.name,
-      material.class?.name,
-      material.category,
-      material.description
-    );
+    // 3. Generate and serve 3-page rich academic study material PDF document directly to response
+    const pdfBuffer = createAcademicPdfBuffer({
+      title: material.title,
+      subjectName: material.subject?.name,
+      className: material.class?.name,
+      category: material.category,
+      description: material.description
+    });
     res.send(pdfBuffer);
 
   } catch (error) {

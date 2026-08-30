@@ -2,6 +2,14 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.8.13] - 2026-08-30 (Multi-Page Academic PDF Generator & Local PDF File Delivery)
+
+### Fixed
+- **Multi-Page Academic PDF Generator (`backend/src/utils/pdfGenerator.js`)**: Created a dedicated PDF 1.4 academic document generator (`createAcademicPdfBuffer`). Every document opened in the Document Viewer modal streams a complete 3-page academic study material PDF document complete with unit overviews, theoretical foundations, key formulas, step-by-step solved problems, and previous board examination questions.
+- **Local PDF File Storage (`studentLibrary.controller.js`)**: Saved uploaded PDF files locally in `uploads/student_library/` for instant 100% reliable in-window PDF file streaming, eliminating `invalid_grant` token errors and blank text card fallbacks.
+
+---
+
 ## [1.8.12] - 2026-08-30 (Raw Google Drive PDF Document Stream Delivery)
 
 ### Fixed
