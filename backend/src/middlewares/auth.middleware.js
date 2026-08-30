@@ -3,13 +3,20 @@ const prisma = require('../config/prisma');
 
 const protect = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
+    let token = null;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ success: false, message: 'No token provided' });
+    // 1. Read token from HttpOnly cookie first
+    if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
+    }
+    // 2. Fallback to Authorization: Bearer header
+    else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+      token = req.headers.authorization.split(' ')[1];
     }
 
-    const token = authHeader.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'No authentication token provided' });
+    }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 

@@ -2,6 +2,20 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.6.0] - 2026-08-30 (HttpOnly Cookie Authentication & System Security Enhancement)
+
+### Added
+- **HttpOnly Cookie Authentication (`cookie-parser`, `auth.controller.js`, `auth.middleware.js`)**: Implemented secure HttpOnly cookie mechanism for JWT tokens (`Set-Cookie: token=...; HttpOnly; SameSite=Lax`). Completely prevents token theft via Cross-Site Scripting (XSS) attacks.
+- **Backwards Compatible Token Transport**: Configured `auth.middleware.js` to inspect `req.cookies.token` first, falling back to `Authorization: Bearer` header for non-browser client compatibility.
+- **Logout Cookie Clearance (`POST /api/auth/logout`)**: Added server-side cookie invalidation endpoint that clears authentication cookies on logout.
+- **Frontend Axios Credentials Sync (`api.js`)**: Configured `apiClient` with `withCredentials: true` for automatic browser cookie transmission.
+
+### Security Enhancements
+- **Brute-Force Rate Limiting (`auth.routes.js`)**: Applied strict rate limiters to authentication routes (`/api/auth/login`, `/api/auth/register` capped at 10 requests/15 min; `/api/auth/forgot-password`, `/api/auth/verify-otp` capped at 5 requests/15 min).
+- **User Object Sanitization (`auth.controller.js`)**: Sanitized all user authentication responses to omit `password`, `resetOtp`, `resetOtpExpires`, and `resetOtpAttempts`.
+
+---
+
 ## [1.5.2] - 2026-08-27 (Admin Dashboard Student Library Connection Fix)
 
 ### Fixed

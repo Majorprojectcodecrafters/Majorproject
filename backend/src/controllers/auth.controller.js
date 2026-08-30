@@ -4,6 +4,13 @@ const { generateToken } = require('../utils/jwt');
 
 
 
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+};
+
 // REGISTER
 exports.register = async (req, res) => {
   try {
@@ -86,7 +93,10 @@ exports.register = async (req, res) => {
     });
 
     const token = generateToken(user);
-    const { password: _, ...safeUser } = user;
+    const { password: _, resetOtp: __, resetOtpExpires: ___, resetOtpAttempts: ____, ...safeUser } = user;
+
+    // Set HttpOnly cookie
+    res.cookie('token', token, COOKIE_OPTIONS);
 
     res.status(201).json({ success: true, data: { user: safeUser, token } });
 
@@ -118,10 +128,27 @@ exports.login = async (req, res) => {
     }
 
     const token = generateToken(user);
-    const { password: _, ...safeUser } = user;
+    const { password: _, resetOtp: __, resetOtpExpires: ___, resetOtpAttempts: ____, ...safeUser } = user;
+
+    // Set HttpOnly cookie
+    res.cookie('token', token, COOKIE_OPTIONS);
 
     res.json({ success: true, data: { user: safeUser, token } });
 
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// LOGOUT
+exports.logout = async (req, res) => {
+  try {
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    });
+    res.json({ success: true, message: 'Logged out successfully' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -147,7 +174,7 @@ exports.getMe = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    const { password: _, ...safeUser } = user;
+    const { password: _, resetOtp: __, resetOtpExpires: ___, resetOtpAttempts: ____, ...safeUser } = user;
     res.json({ success: true, data: safeUser });
 
   } catch (error) {

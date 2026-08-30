@@ -15,18 +15,21 @@ const teacherRoutes = require('./routes/teacher.routes');
 const ragRoutes = require('./routes/rag.routes');
 const qpRoutes = require('./routes/qp.routes');
 
+const cookieParser = require('cookie-parser');
+
 const app = express();
 
 // Security middleware
 app.use(helmet());
 
-// CORS
+// CORS with credentials support for cookies
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   credentials: true
 }));
 
-// Body parsing
+// Cookie Parser & Body parsing
+app.use(cookieParser());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
