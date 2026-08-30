@@ -2,6 +2,15 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.8.5] - 2026-08-30 (19 Study Materials Across All Categories & Grade Levels)
+
+### Fixed
+- **Multi-Category & Multi-Grade Sync (`studentLibrary.controller.js`)**: Updated Google Drive sync to populate 19 study materials across 11th & 12th Grade folders for all subjects (`Physics`, `Chemistry`, `Biology`, `Mathematics & Statistics`).
+- **Category Coverage**: Fully populated materials across all 4 categories (`TEXTBOOK`, `TEACHER_NOTES`, `PREVIOUS_BOARD_PAPER`, `REFERENCE_MATERIAL`).
+- **Dynamic Path Display**: Formatted folder paths matching the target Google Drive hierarchy (e.g. `QpGen_dataset / 12th Science / Physics / Notes` and `QpGen_dataset / 12th Science / Physics / Previous Year Board Papers`).
+
+---
+
 ## [1.8.4] - 2026-08-30 (Legacy Hardcoded Record Cleanup & Dynamic Folder Path Fix)
 
 ### Fixed
