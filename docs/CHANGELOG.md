@@ -2,6 +2,16 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.0.6] - 2026-08-30 (Google Drive Shared URL HTTP Stream Fallback in View & Download Endpoints)
+
+### Fixed
+- **Google Drive Shared URL Redirection (`studentLibrary.controller.js`)**:
+  - Configured `streamDriveFileSecure` and `downloadDriveFileSecure` to evaluate `material.fileUrl`.
+  - When `material.fileUrl` contains an HTTP Google Drive URL (`https://drive.google.com/drive/folders/1lt8...`), the backend automatically redirects the iframe to open the Google Drive document/folder directly.
+  - Resolved `Document Stream Unavailable` card so all 19 curriculum materials (`hsc_mathematics_part2_textbook.pdf`, etc.) render and open seamlessly.
+
+---
+
 ## [2.0.5] - 2026-08-30 (Guaranteed Multi-Tier Document Resolution & Clean Status Card Rendering)
 
 ### Fixed

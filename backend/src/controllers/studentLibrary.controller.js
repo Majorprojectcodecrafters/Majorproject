@@ -609,15 +609,20 @@ exports.streamDriveFileSecure = async (req, res) => {
       ? material.driveFileId
       : (!id.startsWith('drive-sync-') ? id : null);
 
-    // 2. Check local disk storage
-    const uploadDir = path.join(__dirname, '../../uploads/student_library');
-    if (material?.fileUrl && fs.existsSync(material.fileUrl)) {
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'inline; filename="study_material.pdf"');
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-      return fs.createReadStream(material.fileUrl).pipe(res);
+    // 2. Check DB record for local file path or Google Drive URL
+    if (material?.fileUrl) {
+      if (fs.existsSync(material.fileUrl)) {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline; filename="study_material.pdf"');
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        return fs.createReadStream(material.fileUrl).pipe(res);
+      }
+      if (material.fileUrl.startsWith('http')) {
+        return res.redirect(material.fileUrl);
+      }
     }
 
+    const uploadDir = path.join(__dirname, '../../uploads/student_library');
     if (fs.existsSync(uploadDir)) {
       const match = fs.readdirSync(uploadDir).find(f => f.includes(id) || (material && f.includes(material.id)));
       if (match) {
@@ -710,16 +715,41 @@ exports.downloadDriveFileSecure = async (req, res) => {
   try {
     const { id } = req.params; // fileId
     const fileName = req.query.fileName || 'document.pdf';
-    const { getFileStreamFromDrive } = require('../services/drive.service');
 
-    const stream = await getFileStreamFromDrive(id);
-    if (!stream) {
-      return res.status(404).json({ success: false, message: 'Google Drive file stream not available for download' });
+    // 1. Check DB material record
+    const material = await prisma.studyMaterial.findFirst({
+      where: { OR: [{ id }, { driveFileId: id }] }
+    });
+
+    if (material?.fileUrl) {
+      if (fs.existsSync(material.fileUrl)) {
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+        res.setHeader('Content-Type', 'application/octet-stream');
+        return fs.createReadStream(material.fileUrl).pipe(res);
+      }
+      if (material.fileUrl.startsWith('http')) {
+        return res.redirect(material.fileUrl);
+      }
     }
 
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
-    res.setHeader('Content-Type', 'application/octet-stream');
-    stream.pipe(res);
+    const realDriveId = (material?.driveFileId && !material.driveFileId.startsWith('drive-sync-'))
+      ? material.driveFileId
+      : (!id.startsWith('drive-sync-') ? id : null);
+
+    if (realDriveId) {
+      const { getFileStreamFromDrive } = require('../services/drive.service');
+      try {
+        const stream = await getFileStreamFromDrive(realDriveId);
+        if (stream) {
+          res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+          res.setHeader('Content-Type', 'application/octet-stream');
+          return stream.pipe(res);
+        }
+      } catch (err) {}
+      return res.redirect(`https://drive.google.com/file/d/${realDriveId}/view`);
+    }
+
+    return res.redirect('https://drive.google.com/drive/folders/1lt8-tHT6wniWRLwPrsZizWmFCJQ423r3');
 
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
