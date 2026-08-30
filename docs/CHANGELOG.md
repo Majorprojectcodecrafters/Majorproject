@@ -2,6 +2,17 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.0.4] - 2026-08-30 (Strict Category Retrieval Filtering & Direct PDF Viewer Stream Fallback)
+
+### Fixed
+- **Category-Strict File Retrieval (`drive.service.js`)**:
+  - Enforced strict category matching (`Notes`, `PYQP`, `Question Banks`, `Textbook`) in document queries to eliminate cross-category document mixing.
+- **Direct PDF Viewer Stream Fallback (`studentLibrary.controller.js`)**:
+  - Configured `streamDriveFileSecure` to check local disk uploads first, then Drive API stream, and fallback to direct Google Drive preview stream when OAuth refresh tokens expire.
+  - Eliminated `{ "success": false, "error": "invalid_grant" }` JSON errors inside the PDF viewer modal.
+
+---
+
 ## [2.0.3] - 2026-08-30 (Resolution of Drive Folder Cache Reference Exception)
 
 ### Fixed

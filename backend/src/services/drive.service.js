@@ -381,10 +381,20 @@ async function getDriveFolderFilesByPath(pathParts = [], forceRefresh = false) {
       const [stream, subjectName, categoryName] = pathParts;
       const prisma = require('../config/prisma');
 
+      const categoryFilterMap = {
+        'Notes': ['TEACHER_NOTES', 'CHAPTER_NOTES', 'Notes'],
+        'PYQP': ['PREVIOUS_BOARD_PAPER', 'PYQP', 'PYQ'],
+        'Question Banks': ['REFERENCE_MATERIAL', 'Question Banks', 'SAMPLE_PAPER'],
+        'Textbook': ['TEXTBOOK', 'Textbook']
+      };
+
+      const allowedCategories = categoryFilterMap[categoryName] || [categoryName];
+
       const materials = await prisma.studyMaterial.findMany({
         where: {
           class: { name: { contains: stream.substring(0, 4) } },
-          subject: { name: { contains: subjectName, mode: 'insensitive' } }
+          subject: { name: { contains: subjectName, mode: 'insensitive' } },
+          category: { in: allowedCategories }
         },
         include: { class: true, subject: true }
       });
