@@ -40,11 +40,11 @@ export default function StudentMaterialsPage() {
         <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
           <div className="flex flex-wrap gap-2">
             {[
-              ['all', '📚 All Materials'],
-              ['TEXTBOOK', '📖 Textbooks'],
-              ['TEACHER_NOTES', '📝 Notes & Study Material'],
-              ['PREVIOUS_BOARD_PAPER', '🏛️ Past Papers (PYQ)'],
-              ['REFERENCE_MATERIAL', '📑 Question Banks & Reference']
+              ['all', 'All Materials'],
+              ['TEXTBOOK', 'Textbooks'],
+              ['TEACHER_NOTES', 'Notes & Study Material'],
+              ['PREVIOUS_BOARD_PAPER', 'Past Papers (PYQ)'],
+              ['REFERENCE_MATERIAL', 'Question Banks & Reference']
             ].map(([value, label]) => (
               <button
                 key={value}
@@ -70,7 +70,6 @@ export default function StudentMaterialsPage() {
 
         {!isLoading && !error && materials.length === 0 && (
           <div className="text-center py-12 space-y-3 bg-gray-50/50 rounded-xl border border-dashed border-gray-300">
-            <span className="text-4xl">📂</span>
             <p className="text-base font-bold text-gray-700">No study materials available</p>
             <p className="text-xs text-gray-500">Your teachers haven't uploaded notes for this category yet.</p>
           </div>
@@ -90,7 +89,7 @@ export default function StudentMaterialsPage() {
                     </span>
                     {item.driveFileId && (
                       <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1">
-                        ☁️ Google Drive
+                        Google Drive
                       </span>
                     )}
                   </div>
@@ -108,7 +107,7 @@ export default function StudentMaterialsPage() {
                   onClick={() => setActiveDocument(item)}
                   className="w-full btn-primary py-2.5 text-xs font-bold flex items-center justify-center gap-2"
                 >
-                  👁️ View Document
+                  View Document
                 </button>
               </div>
             ))}

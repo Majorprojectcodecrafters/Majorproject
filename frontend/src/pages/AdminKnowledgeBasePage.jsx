@@ -151,10 +151,7 @@ export default function AdminKnowledgeBasePage() {
       {/* Top Header */}
       <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">📚</span>
-            <h1 className="text-2xl font-bold text-gray-900">Student Library & Google Drive Explorer</h1>
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900">Student Library & Google Drive Explorer</h1>
           <p className="text-sm text-gray-600 mt-1">
             Manage textbooks, notes, and previous year question papers stored on Google Drive for students.
           </p>
@@ -165,7 +162,7 @@ export default function AdminKnowledgeBasePage() {
           disabled={syncing}
           className="btn-primary flex items-center gap-2 text-sm font-bold py-2.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md"
         >
-          {syncing ? <><span className="spinner mr-2"></span>Syncing Drive...</> : '🔄 Sync Connected Google Drive'}
+          {syncing ? <><span className="spinner mr-2"></span>Syncing Drive...</> : 'Sync Connected Google Drive'}
         </button>
       </div>
 
@@ -173,8 +170,8 @@ export default function AdminKnowledgeBasePage() {
         {/* Upload Form */}
         <div className="md:col-span-2">
           <div className="card space-y-4 shadow-sm border border-slate-200">
-            <h2 className="text-lg font-bold text-gray-900 border-b pb-2 flex items-center gap-2">
-              <span>📤</span> Upload Study Material to Google Drive
+            <h2 className="text-lg font-bold text-gray-900 border-b pb-2">
+              Upload Study Material to Google Drive
             </h2>
 
             <form onSubmit={handleUpload} className="space-y-4">
@@ -278,7 +275,7 @@ export default function AdminKnowledgeBasePage() {
                     onChange={(e) => setFormData({ ...formData, indexToRag: e.target.checked })}
                     className="h-4 w-4 rounded border-purple-300 text-purple-700 focus:ring-purple-500"
                   />
-                  <span>⚡ Also index into ChromaDB Vector Store for AI Question Paper Generation</span>
+                  <span>Also index into ChromaDB Vector Store for AI Question Paper Generation</span>
                 </label>
                 <p className="text-[11px] text-purple-700 mt-1 pl-6 leading-tight">
                   Unchecked (Default): Saves cleanly as a Student Library study material on Google Drive without chunking compute overhead.
@@ -290,7 +287,7 @@ export default function AdminKnowledgeBasePage() {
                 disabled={uploading || !file}
                 className="btn-primary w-full py-3 font-bold text-sm bg-purple-700 hover:bg-purple-800"
               >
-                {uploading ? <><span className="spinner mr-2"></span>Uploading to Google Drive...</> : '☁️ Upload to Google Drive'}
+                {uploading ? <><span className="spinner mr-2"></span>Uploading to Google Drive...</> : 'Upload to Google Drive'}
               </button>
             </form>
           </div>
@@ -299,8 +296,8 @@ export default function AdminKnowledgeBasePage() {
         {/* Stats Column */}
         <div className="md:col-span-1 space-y-4">
           <div className="card shadow-sm border border-slate-200">
-            <h2 className="text-base font-bold text-gray-900 mb-3 border-b pb-2 flex items-center gap-2">
-              <span>📊</span> Google Drive Storage Overview
+            <h2 className="text-base font-bold text-gray-900 mb-3 border-b pb-2">
+              Google Drive Storage Overview
             </h2>
             <div className="space-y-3 text-xs">
               <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
@@ -310,9 +307,6 @@ export default function AdminKnowledgeBasePage() {
               <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
                 <span className="text-blue-700 font-semibold block">Drive Subfolders Explored</span>
                 <span className="text-3xl font-extrabold text-blue-900">{driveTreeData?.folderTree?.length || 0}</span>
-              </div>
-              <div className="bg-amber-50 p-3 rounded-lg border border-amber-200 text-amber-900 font-medium leading-relaxed">
-                🔒 Files stored on Google Drive are protected with download/copy lockdown & anti-screenshot watermarking for students.
               </div>
             </div>
           </div>
@@ -329,7 +323,7 @@ export default function AdminKnowledgeBasePage() {
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
-          📂 Synced Study Materials ({materials.length})
+          Synced Study Materials ({materials.length})
         </button>
         <button
           onClick={() => setActiveTab('tree')}
@@ -339,7 +333,7 @@ export default function AdminKnowledgeBasePage() {
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
-          🌳 Google Drive Hierarchy Tree ({driveTreeData?.folderTree?.length || 0} Folders)
+          Google Drive Hierarchy Tree ({driveTreeData?.folderTree?.length || 0} Folders)
         </button>
       </div>
 
@@ -350,9 +344,8 @@ export default function AdminKnowledgeBasePage() {
             <Skeleton className="h-48 w-full" />
           ) : materials.length === 0 ? (
             <div className="text-center py-12 text-slate-500">
-              <span className="text-4xl block mb-2">📭</span>
               <p className="font-semibold text-slate-700">No study materials found in Google Drive</p>
-              <p className="text-xs text-slate-500 mt-1">Click "🔄 Sync Connected Google Drive" to discover uploaded textbooks and notes.</p>
+              <p className="text-xs text-slate-500 mt-1">Click "Sync Connected Google Drive" to discover uploaded textbooks and notes.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -397,7 +390,7 @@ export default function AdminKnowledgeBasePage() {
                           onClick={() => setActiveDocument(item)}
                           className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white rounded-lg font-bold text-xs shadow-sm"
                         >
-                          👁️ View Document
+                          View Document
                         </button>
                         <button
                           onClick={() => {
@@ -407,7 +400,7 @@ export default function AdminKnowledgeBasePage() {
                           }}
                           className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg font-bold text-xs"
                         >
-                          🗑️
+                          Delete
                         </button>
                       </td>
                     </tr>
@@ -422,8 +415,8 @@ export default function AdminKnowledgeBasePage() {
       {/* Tab 2: Full Google Drive Hierarchy Tree */}
       {activeTab === 'tree' && (
         <div className="card shadow-sm border border-slate-200">
-          <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <span>🌳</span> Google Drive Connected Root Folder Hierarchy
+          <h3 className="font-bold text-slate-900 mb-4">
+            Google Drive Connected Root Folder Hierarchy
           </h3>
           {driveTreeLoading ? (
             <Skeleton className="h-48 w-full" />
@@ -434,7 +427,6 @@ export default function AdminKnowledgeBasePage() {
               <div className="text-emerald-400 font-bold mb-3">ROOT: Google Drive [1lt8-tHT6wniWRLwPrsZizWmFCJQ423r3]</div>
               {driveTreeData.folderTree.map((folder) => (
                 <div key={folder.id} className="hover:text-emerald-300 transition-colors flex items-center gap-2 py-1">
-                  <span className="text-slate-500">📁</span>
                   <span className="font-semibold text-slate-200">{folder.path}</span>
                 </div>
               ))}

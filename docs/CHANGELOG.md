@@ -2,6 +2,15 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.8.9] - 2026-08-30 (Removal of Decorative Emojis for Minimal Web Design)
+
+### Fixed
+- **Minimal Web Design Alignment (`ProtectedDocumentViewer.jsx`, `StudentMaterialsPage.jsx`, `AdminKnowledgeBasePage.jsx`)**:
+  - Removed decorative emojis (`✂️`, `🛡️`, `👁️`, `📚`, `📖`, `📝`, `🏛️`, `📑`, `☁️`, `🗑️`, `🌳`, `📭`, `📂`, `🔗`, `⚡`) from button labels, card headers, tabs, and alerts across the UI.
+  - Achieved a clean, professional, minimal institutional web design.
+
+---
+
 ## [1.8.8] - 2026-08-30 (Dynamic Event-Triggered Copy/Cut Warning Toast)
 
 ### Fixed

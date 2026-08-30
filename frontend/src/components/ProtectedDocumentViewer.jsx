@@ -63,8 +63,8 @@ export default function ProtectedDocumentViewer({ documentId, title, documentTit
         {/* Header Bar */}
         <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white">
           <div className="flex items-center gap-3">
-            <span className="px-2.5 py-1 rounded bg-purple-600/30 border border-purple-400/40 text-purple-200 text-xs font-bold uppercase">
-              📄 Document Viewer
+            <span className="px-2.5 py-1 rounded bg-purple-600/30 border border-purple-400/40 text-purple-200 text-xs font-bold uppercase tracking-wide">
+              Document Viewer
             </span>
             <h3 className="font-bold text-base text-slate-100 truncate max-w-xl">{displayTitle}</h3>
           </div>
@@ -74,27 +74,24 @@ export default function ProtectedDocumentViewer({ documentId, title, documentTit
               href={directLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm"
+              className="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition-all shadow-sm"
             >
-              <span>🔗</span> Open in Drive
+              Open in Drive
             </a>
             <button
               onClick={onClose}
               className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-all"
             >
-              ✕ Close
+              Close
             </button>
           </div>
         </div>
 
         {/* Dynamic Toast Alert (Triggers ONLY when user attempts to copy or cut) */}
         {showWarning && (
-          <div className="bg-amber-500 text-white px-6 py-2.5 flex items-center justify-between text-xs font-bold shadow-md animate-bounce">
-            <div className="flex items-center gap-2">
-              <span>✂️</span>
-              <span>Text copying and cutting are disabled for institutional study materials.</span>
-            </div>
-            <button onClick={() => setShowWarning(false)} className="text-white hover:text-amber-200">✕</button>
+          <div className="bg-amber-600 text-white px-6 py-2.5 flex items-center justify-between text-xs font-bold shadow-md">
+            <span>Text copying and cutting are disabled for institutional study materials.</span>
+            <button onClick={() => setShowWarning(false)} className="text-white hover:text-amber-200 ml-4">✕</button>
           </div>
         )}
 
@@ -102,7 +99,6 @@ export default function ProtectedDocumentViewer({ documentId, title, documentTit
         <div className="relative flex-1 bg-slate-100 overflow-hidden flex flex-col items-center justify-center p-3">
           {iframeError ? (
             <div className="text-center p-8 bg-white rounded-2xl shadow-md border border-slate-200 max-w-md space-y-4">
-              <span className="text-4xl block">📂</span>
               <h4 className="font-bold text-base text-slate-800">Google Drive Document Access</h4>
               <p className="text-xs text-slate-500">
                 To view this document directly on Google Drive, click the button below.
@@ -113,7 +109,7 @@ export default function ProtectedDocumentViewer({ documentId, title, documentTit
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs shadow-md transition-all"
               >
-                <span>🔗</span> Open Study Material in Google Drive
+                Open Study Material in Google Drive
               </a>
             </div>
           ) : (
