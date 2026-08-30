@@ -2,6 +2,16 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.0.3] - 2026-08-30 (Resolution of Drive Folder Cache Reference Exception)
+
+### Fixed
+- **Drive Cache Reference Scope (`drive.service.js`)**:
+  - Declared `driveFolderCache` Map at module scope above `getDriveFolderFilesByPath` in `drive.service.js`.
+  - Resolved backend `ReferenceError: driveFolderCache is not defined` HTTP 500 exception.
+  - Endpoint `/api/student-library/drive-files` now returns `HTTP 200 OK` and renders real files across all folders (`Physics`, `Mathematics`, `Chemistry`, `Biology`).
+
+---
+
 ## [2.0.2] - 2026-08-30 (Automated Teacher Upload Cache Invalidation & Removal of Manual Student Sync Button)
 
 ### Fixed & Automated

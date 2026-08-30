@@ -301,6 +301,8 @@ async function listAllDriveFilesRecursive(folderId = null) {
 /**
  * Resolve folder ID by walking subfolder names: ['12th Science', 'Physics', 'PYQP']
  */
+const driveFolderCache = new Map();
+
 async function getDriveFolderFilesByPath(pathParts = [], forceRefresh = false) {
   const drive = getDriveClient();
   if (!drive) return [];

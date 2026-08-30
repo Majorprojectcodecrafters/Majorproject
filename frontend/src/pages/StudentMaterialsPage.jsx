@@ -186,8 +186,8 @@ export default function StudentMaterialsPage() {
 
         {filesLoading && <TableSkeleton rows={4} columns={3} />}
         {error && (
-          <div className="rounded-xl bg-red-50 p-4 border border-red-200 text-red-700 text-sm">
-            Unable to load study materials. Please check network connection.
+          <div className="rounded-xl bg-red-50 p-4 border border-red-200 text-red-700 text-sm font-medium">
+            Unable to load study materials. Please ensure backend server is running.
           </div>
         )}
 
