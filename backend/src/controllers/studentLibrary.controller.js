@@ -49,11 +49,23 @@ exports.uploadStudyMaterial = async (req, res) => {
     // Upload file to Google Drive folder
     const driveResult = await uploadFileToDrive(tempFilePath, fileName, file.mimetype);
 
+    const categoryLabels = {
+      TEXTBOOK: 'Textbooks',
+      TEACHER_NOTES: 'Notes',
+      CHAPTER_NOTES: 'Notes',
+      PREVIOUS_BOARD_PAPER: 'Previous Year Board Question Papers',
+      REFERENCE_MATERIAL: 'Question Banks & Reference',
+      SAMPLE_PAPER: 'Sample Papers'
+    };
+
+    const autoFolderPath = `${className} / ${subjectName} / ${categoryLabels[category] || category}`;
+    const finalDescription = description || autoFolderPath;
+
     const studyMaterial = await prisma.studyMaterial.create({
       data: {
         title: title || file.originalname,
         category,
-        description,
+        description: finalDescription,
         fileName: file.originalname,
         fileUrl: fs.existsSync(localFilePath) ? localFilePath : driveResult.webViewLink,
         driveFileId: driveResult.driveFileId,

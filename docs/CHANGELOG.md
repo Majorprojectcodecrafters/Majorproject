@@ -2,6 +2,21 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.9.0] - 2026-08-30 (Complete Academic Hierarchy Redesign & Stream-Scoped Document Management)
+
+### Added
+- **Hierarchical Document Management Architecture**:
+  - Implemented 4-level academic hierarchy: Stream/Class (`11th Arts`, `11th Commerce`, `11th Science`, `12th Arts`, `12th Commerce`, `12th Science`) $\rightarrow$ Stream-Scoped Subject $\rightarrow$ Study Material Category (`Notes`, `Textbooks`, `Previous Year Board Papers`, `Question Banks & Reference`) $\rightarrow$ Chapter/Document.
+- **Hierarchical Folder Explorer UI (`StudentMaterialsPage.jsx`)**:
+  - Redesigned Student Library UI with breadcrumb path navigation (`Root / 12th Science / Physics / Notes`).
+  - Added view mode switcher (Interactive Folder Explorer vs Flat Document Grid View).
+- **Stream-Scoped Subject Cascading (`curriculum.controller.js`, `StudentMaterialsPage.jsx`)**:
+  - Selecting a class (e.g. `12th Science`) automatically filters and displays ONLY relevant subjects (`Physics`, `Chemistry`, `Mathematics`, `Biology`, `English`), hiding all unrelated Arts/Commerce subjects.
+- **Automated Path Assignment (`studentLibrary.controller.js`)**:
+  - Teacher/Admin upload workflow automatically places documents into standardized path `{Class/Stream} / {Subject} / {Category}` without requiring manual searches.
+
+---
+
 ## [1.8.13] - 2026-08-30 (Multi-Page Academic PDF Generator & Local PDF File Delivery)
 
 ### Fixed
