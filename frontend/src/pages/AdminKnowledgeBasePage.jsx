@@ -20,7 +20,8 @@ export default function AdminKnowledgeBasePage() {
     category: 'TEACHER_NOTES', // "TEACHER_NOTES", "CHAPTER_NOTES", "TEXTBOOK", "PREVIOUS_BOARD_PAPER", "REFERENCE_MATERIAL"
     classId: '',
     subjectId: '',
-    description: ''
+    description: '',
+    indexToRag: false
   });
 
   // 1. Fetch Classes
@@ -135,6 +136,7 @@ export default function AdminKnowledgeBasePage() {
     if (formData.classId) data.append('classId', formData.classId);
     if (formData.subjectId) data.append('subjectId', formData.subjectId);
     if (formData.description) data.append('description', formData.description);
+    data.append('indexToRag', formData.indexToRag);
 
     setUploading(true);
     try {
@@ -265,6 +267,22 @@ export default function AdminKnowledgeBasePage() {
                   />
                   {file && <p className="mt-1 text-xs text-purple-700 font-semibold">Selected: {file.name}</p>}
                 </div>
+              </div>
+
+              {/* Optional RAG Indexing Checkbox */}
+              <div className="bg-purple-50/70 p-3.5 rounded-xl border border-purple-200">
+                <label className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-purple-950">
+                  <input
+                    type="checkbox"
+                    checked={formData.indexToRag}
+                    onChange={(e) => setFormData({ ...formData, indexToRag: e.target.checked })}
+                    className="h-4 w-4 rounded border-purple-300 text-purple-700 focus:ring-purple-500"
+                  />
+                  <span>⚡ Also index into ChromaDB Vector Store for AI Question Paper Generation</span>
+                </label>
+                <p className="text-[11px] text-purple-700 mt-1 pl-6 leading-tight">
+                  Unchecked (Default): Saves cleanly as a Student Library study material on Google Drive without chunking compute overhead.
+                </p>
               </div>
 
               <button

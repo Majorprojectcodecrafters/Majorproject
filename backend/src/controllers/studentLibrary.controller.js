@@ -20,7 +20,8 @@ exports.uploadStudyMaterial = async (req, res) => {
       classId,
       subjectId,
       chapterId,
-      description
+      description,
+      indexToRag = false
     } = req.body;
 
     if (!file) return res.status(400).json({ success: false, message: 'No PDF note or study material file uploaded' });
@@ -39,7 +40,7 @@ exports.uploadStudyMaterial = async (req, res) => {
 
     const fileName = `${className}_${subjectName}_${Date.now()}_${file.originalname}`;
 
-    // Upload file directly to Google Drive folder
+    // Upload file directly to Google Drive folder (Root Folder: 1lt8-tHT6wniWRLwPrsZizWmFCJQ423r3)
     const driveResult = await uploadFileToDrive(tempFilePath, fileName, file.mimetype);
 
     const studyMaterial = await prisma.studyMaterial.create({
@@ -67,10 +68,54 @@ exports.uploadStudyMaterial = async (req, res) => {
       }
     });
 
+    let ragMessage = 'Uploaded to Student Library (Google Drive). Not indexed to ChromaDB Vector Store.';
+
+    // If user explicitly selected "Index into RAG / ChromaDB Vector Store"
+    const shouldIndex = String(indexToRag) === 'true' || indexToRag === true;
+    if (shouldIndex) {
+      try {
+        const { ingestPDF } = require('../rag/ragPipeline');
+        const ingestResult = await ingestPDF(tempFilePath, {
+          title: title || file.originalname,
+          sourceType: category,
+          classId,
+          subjectId,
+          chapterId,
+          description,
+          priority: 5
+        });
+
+        await prisma.knowledgeSource.create({
+          data: {
+            title: title || file.originalname,
+            sourceType: category,
+            filePath: tempFilePath,
+            driveFileId: driveResult.driveFileId,
+            driveFolderId: driveResult.driveFolderId,
+            fileSize: file.size,
+            mimeType: file.mimetype,
+            priority: 5,
+            classId: classId || null,
+            subjectId: subjectId || null,
+            chapterId: chapterId || null,
+            uploadedBy: req.user.id
+          }
+        });
+
+        ragMessage = `Uploaded to Student Library AND indexed ${ingestResult?.chunkCount || 0} chunks into ChromaDB Vector Store!`;
+      } catch (ragErr) {
+        console.warn('RAG Ingestion Notice:', ragErr.message);
+        ragMessage = `Uploaded to Student Library, but ChromaDB RAG indexing failed: ${ragErr.message}`;
+      }
+    }
+
     res.status(201).json({
       success: true,
-      message: `Study material "${studyMaterial.title}" uploaded cleanly to Google Drive!`,
-      data: studyMaterial
+      message: `Study material "${studyMaterial.title}" uploaded! ${ragMessage}`,
+      data: {
+        ...studyMaterial,
+        indexedToRag: shouldIndex
+      }
     });
 
   } catch (error) {

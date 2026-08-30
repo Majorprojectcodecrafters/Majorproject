@@ -2,6 +2,17 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.8.0] - 2026-08-30 (Google Drive Root Folder Update & Selective RAG Vector Indexing)
+
+### Changed
+- **Google Drive Root Storage Folder (`backend/.env`)**: Updated system `GOOGLE_DRIVE_ROOT_FOLDER_ID` to target the designated shared Google Drive folder `1lt8-tHT6wniWRLwPrsZizWmFCJQ423r3`.
+- **Selective RAG Vector Indexing (`studentLibrary.controller.js`, `AdminKnowledgeBasePage.jsx`)**:
+  - Implemented an optional `indexToRag` toggle for uploaded study materials and notes.
+  - **Default (Unchecked)**: Saves files cleanly as `StudyMaterial` on Google Drive for student access without triggering ChromaDB vector chunking compute overhead.
+  - **Checked (`indexToRag = true`)**: Simultaneously ingests document chunks into the ChromaDB RAG vector store for AI Question Paper Generation.
+
+---
+
 ## [1.7.0] - 2026-08-30 (Admin User Management Module for Students & Teachers)
 
 ### Added
