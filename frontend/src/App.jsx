@@ -23,6 +23,7 @@ import StudentQuizPage from './pages/StudentQuizPage';
 import TeacherProfilePage from './pages/TeacherProfilePage';
 import StudentProfilePage from './pages/StudentProfilePage';
 import AdminAllocationsPage from './pages/AdminAllocationsPage';
+import AdminUserManagementPage from './pages/AdminUserManagementPage';
 import StudentPracticePage from './pages/StudentPracticePage';
 import StudentAnnouncementsPage from './pages/StudentAnnouncementsPage';
 import ManageAnnouncementsPage from './pages/ManageAnnouncementsPage';
@@ -196,6 +197,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['ADMIN']}>
             <AdminDashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <AdminUserManagementPage />
           </ProtectedRoute>
         }
       />

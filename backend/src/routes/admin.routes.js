@@ -9,8 +9,10 @@ const isAdmin = [protect, authorize('ADMIN')];
 router.get('/dashboard', ...isAdmin, admin.getDashboard);
 
 // Users
+router.post('/users',       ...isAdmin, admin.createUser);
 router.get('/users',        ...isAdmin, admin.getAllUsers);
 router.get('/users/:id',    ...isAdmin, admin.getUserById);
+router.put('/users/:id',    ...isAdmin, admin.updateUser);
 router.delete('/users/:id', ...isAdmin, admin.deleteUser);
 
 // Classes

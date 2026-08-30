@@ -2,6 +2,20 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.7.0] - 2026-08-30 (Admin User Management Module for Students & Teachers)
+
+### Added
+- **Admin User Management API Endpoints (`admin.controller.js`, `admin.routes.js`)**:
+  - `POST /api/admin/users`: Enables Admins to manually register new Teachers or Students with role-specific profile parameters (education, experience, assigned class, contact, student ID).
+  - `PUT /api/admin/users/:id`: Enables Admins to update user account details, role profiles, qualifications, and student class allocations.
+  - `DELETE /api/admin/users/:id`: Allows Admins to delete teacher or student user accounts safely.
+- **Admin User Management Frontend UI (`AdminUserManagementPage.jsx`)**:
+  - Interactive table displaying all Users, Teachers, and Students with role badge badges and search filtering.
+  - Modal workflows for **Adding New Users** and **Editing Existing Users**.
+  - Mounted route `/admin/users` and added **"Manage Users"** link in top navigation bar.
+
+---
+
 ## [1.6.1] - 2026-08-30 (Registration & Login Pipeline Retest & CORS Origin Sync)
 
 ### Fixed

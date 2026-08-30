@@ -59,6 +59,9 @@ export default function Navbar() {
                   <Link to="/admin/dashboard" className="text-gray-600 hover:text-gray-900">
                     Admin
                   </Link>
+                  <Link to="/admin/users" className="text-gray-600 hover:text-gray-900 font-bold text-purple-700">
+                    Manage Users
+                  </Link>
                   <Link to="/admin/allocations" className="text-gray-600 hover:text-gray-900">
                     Allocations
                   </Link>

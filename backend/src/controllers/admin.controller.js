@@ -129,6 +129,125 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
+// CREATE USER (ADMIN)
+exports.createUser = async (req, res) => {
+  try {
+    const { name, email, password, role, dob, classId, streamId, education, experienceYears, contact, uniqueId } = req.body;
+
+    if (!['ADMIN', 'TEACHER', 'STUDENT'].includes(role)) {
+      return res.status(400).json({ success: false, message: 'Invalid role' });
+    }
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'User email already exists' });
+    }
+
+    const bcrypt = require('bcrypt');
+    const hashedPassword = await bcrypt.hash(password || 'qpgen123', 10);
+
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role,
+        dob: dob ? new Date(dob) : new Date('2005-01-01'),
+
+        ...(role === 'TEACHER' && {
+          teacher: {
+            create: {
+              education: education || 'N/A',
+              experienceYears: Number(experienceYears || 0)
+            }
+          }
+        }),
+
+        ...(role === 'STUDENT' && {
+          student: {
+            create: {
+              uniqueId: uniqueId || `STU-${Math.floor(100000 + Math.random() * 900000)}`,
+              contact: contact || 'N/A',
+              classId: classId || null,
+              streamId: streamId || null
+            }
+          }
+        })
+      },
+      include: {
+        teacher: true,
+        student: { include: { class: true, stream: true } }
+      }
+    });
+
+    const { password: _, ...safeUser } = user;
+    res.status(201).json({ success: true, data: safeUser });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// UPDATE USER (ADMIN)
+exports.updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, dob, classId, streamId, education, experienceYears, contact, uniqueId } = req.body;
+
+    const existingUser = await prisma.user.findUnique({
+      where: { id },
+      include: { teacher: true, student: true }
+    });
+
+    if (!existingUser) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // Update User model
+    await prisma.user.update({
+      where: { id },
+      data: {
+        ...(name && { name }),
+        ...(email && { email }),
+        ...(dob && { dob: new Date(dob) })
+      }
+    });
+
+    // Update role profiles
+    if (existingUser.role === 'TEACHER' && existingUser.teacher) {
+      await prisma.teacher.update({
+        where: { id: existingUser.teacher.id },
+        data: {
+          ...(education !== undefined && { education }),
+          ...(experienceYears !== undefined && { experienceYears: Number(experienceYears) })
+        }
+      });
+    } else if (existingUser.role === 'STUDENT' && existingUser.student) {
+      await prisma.student.update({
+        where: { id: existingUser.student.id },
+        data: {
+          ...(classId !== undefined && { classId }),
+          ...(streamId !== undefined && { streamId }),
+          ...(contact !== undefined && { contact }),
+          ...(uniqueId !== undefined && { uniqueId })
+        }
+      });
+    }
+
+    const fullUser = await prisma.user.findUnique({
+      where: { id },
+      include: {
+        teacher: true,
+        student: { include: { class: true, stream: true } }
+      }
+    });
+
+    const { password: _, ...safeUser } = fullUser;
+    res.json({ success: true, data: safeUser });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 // ==================== CLASS MANAGEMENT ====================
 
 exports.createClass = async (req, res) => {
