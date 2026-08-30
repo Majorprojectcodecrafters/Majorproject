@@ -2,6 +2,14 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.8.8] - 2026-08-30 (Dynamic Event-Triggered Copy/Cut Warning Toast)
+
+### Fixed
+- **Dynamic Event Warning Toast (`ProtectedDocumentViewer.jsx`)**: Removed static access control warning banners. The warning toast now displays dynamically ONLY when a user attempts to copy (`Ctrl+C`, `Cmd+C`, right-click copy) or cut (`Ctrl+X`, `Cmd+X`) study material content.
+- **Header Cleanliness (`StudentMaterialsPage.jsx`)**: Cleaned up top header banner by removing static security warning blocks.
+
+---
+
 ## [1.8.7] - 2026-08-30 (Google Drive Official Embed URL Formatting & Fallback Action Card)
 
 ### Fixed

@@ -26,17 +26,12 @@ export default function StudentMaterialsPage() {
             <span className="badge badge-info bg-purple-800 text-purple-200 border-purple-600 font-bold text-xs">
               SECURE DRIVE STORAGE
             </span>
-            <span className="text-xs text-purple-300">Protected Library</span>
+            <span className="text-xs text-purple-300">Institutional Library</span>
           </div>
           <h1 className="text-3xl font-bold mt-1">Study Materials & Notes</h1>
           <p className="text-sm text-purple-300 mt-1">
             Textbooks, teacher notes, and MHT-CET reference materials uploaded by your institution.
           </p>
-        </div>
-
-        <div className="bg-purple-900/80 p-3 rounded-xl border border-purple-700/60 text-xs text-purple-200 space-y-1">
-          <div className="font-bold text-amber-300">🛡️ Access Control Notice:</div>
-          <p>Text copying and cutting are disabled for study materials.</p>
         </div>
       </div>
 

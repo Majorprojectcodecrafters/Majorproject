@@ -3,14 +3,20 @@ import { useEffect, useState } from 'react';
 export default function ProtectedDocumentViewer({ documentId, title, documentTitle, fileUrl, driveFileId, onClose }) {
   const displayTitle = title || documentTitle || 'Study Material Document';
   const [iframeError, setIframeError] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
 
-  // Enforce copy, cut, paste, and right-click context menu disabled
+  const triggerCopyCutWarning = () => {
+    setShowWarning(true);
+    setTimeout(() => setShowWarning(false), 3500);
+  };
+
+  // Intercept Copy/Cut keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && ['c', 'C', 'x', 'X', 'v', 'V', 'a', 'A'].includes(e.key)) {
+      if ((e.ctrlKey || e.metaKey) && ['c', 'C', 'x', 'X', 'v', 'V'].includes(e.key)) {
         e.preventDefault();
         e.stopPropagation();
-        alert('✂️ Copying, cutting, and pasting are disabled for study materials.');
+        triggerCopyCutWarning();
         return false;
       }
     };
@@ -49,9 +55,9 @@ export default function ProtectedDocumentViewer({ documentId, title, documentTit
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 select-none"
       onContextMenu={(e) => e.preventDefault()}
-      onCopy={(e) => e.preventDefault()}
-      onCut={(e) => e.preventDefault()}
-      onPaste={(e) => e.preventDefault()}
+      onCopy={(e) => { e.preventDefault(); triggerCopyCutWarning(); }}
+      onCut={(e) => { e.preventDefault(); triggerCopyCutWarning(); }}
+      onPaste={(e) => { e.preventDefault(); triggerCopyCutWarning(); }}
     >
       <div className="relative w-full max-w-5xl h-[88vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
         {/* Header Bar */}
@@ -81,13 +87,16 @@ export default function ProtectedDocumentViewer({ documentId, title, documentTit
           </div>
         </div>
 
-        {/* Notice Bar: Copy & Cut Disabled */}
-        <div className="bg-amber-50 border-b border-amber-200 px-6 py-2 flex items-center justify-between text-xs text-amber-800 font-medium">
-          <div className="flex items-center gap-2">
-            <span>🛡️</span>
-            <span><strong>Access Control:</strong> Text copying and cutting are disabled for institutional study materials.</span>
+        {/* Dynamic Toast Alert (Triggers ONLY when user attempts to copy or cut) */}
+        {showWarning && (
+          <div className="bg-amber-500 text-white px-6 py-2.5 flex items-center justify-between text-xs font-bold shadow-md animate-bounce">
+            <div className="flex items-center gap-2">
+              <span>✂️</span>
+              <span>Text copying and cutting are disabled for institutional study materials.</span>
+            </div>
+            <button onClick={() => setShowWarning(false)} className="text-white hover:text-amber-200">✕</button>
           </div>
-        </div>
+        )}
 
         {/* Main Document Frame */}
         <div className="relative flex-1 bg-slate-100 overflow-hidden flex flex-col items-center justify-center p-3">
