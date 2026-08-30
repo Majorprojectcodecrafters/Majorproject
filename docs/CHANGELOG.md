@@ -2,6 +2,17 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.8.1] - 2026-08-30 (Hierarchy Folder Synchronization & Class/Subject Scoping)
+
+### Fixed
+- **Multi-Level Google Drive Hierarchy Parser (`studentLibrary.controller.js`)**: Enhanced Google Drive sync crawler to parse multi-level folder structures:
+  - **Level 1 (Class & Stream)**: Maps `11th Science`/`Arts`/`Commerce` and `12th Science`/`Arts`/`Commerce` to target `classId` (`11th Standard` or `12th Standard`).
+  - **Level 2 (Subject)**: Maps `Biology`, `Chemistry`, `Mathematics`, `Physics`, `English` subfolders to corresponding `subjectId`.
+  - **Level 3 (Category)**: Classifies subfolders (`Textbook` $\rightarrow$ `TEXTBOOK`, `Notes` $\rightarrow$ `TEACHER_NOTES`, `Previous Year Board...` / `PYQ` $\rightarrow$ `PREVIOUS_BOARD_PAPER`, `Question Banks` $\rightarrow$ `REFERENCE_MATERIAL`).
+- **Role-Based Class Scoping (`getStudyMaterials`)**: Ensured students only see materials for their enrolled class/division (11th Grade students see 11th Grade materials; 12th Grade students see 12th Grade materials).
+
+---
+
 ## [1.8.0] - 2026-08-30 (Google Drive Root Folder Update & Selective RAG Vector Indexing)
 
 ### Changed

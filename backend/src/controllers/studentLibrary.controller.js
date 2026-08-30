@@ -254,54 +254,68 @@ exports.syncDriveMaterials = async (req, res) => {
           continue; // Skip generated test papers!
         }
 
+        // Infer class, subject, and category from full Google Drive folder path and file name
+        let targetClassId = null;
+        let targetSubjectId = null;
+        const searchPath = `${file.folderPath} ${file.name}`.toLowerCase();
+
+        // 1. Class / Grade Matching (11th or 12th)
+        if (searchPath.includes('11')) {
+          const cls = await prisma.class.findFirst({ where: { name: { contains: '11' } } });
+          if (cls) targetClassId = cls.id;
+        } else if (searchPath.includes('12')) {
+          const cls = await prisma.class.findFirst({ where: { name: { contains: '12' } } });
+          if (cls) targetClassId = cls.id;
+        }
+
+        // 2. Subject Matching (Physics, Chemistry, Mathematics, Biology, etc.)
+        if (searchPath.includes('physics')) {
+          const sub = await prisma.subject.findFirst({ where: { name: { contains: 'Physics', mode: 'insensitive' } } });
+          if (sub) targetSubjectId = sub.id;
+        } else if (searchPath.includes('chem')) {
+          const sub = await prisma.subject.findFirst({ where: { name: { contains: 'Chemistry', mode: 'insensitive' } } });
+          if (sub) targetSubjectId = sub.id;
+        } else if (searchPath.includes('math')) {
+          const sub = await prisma.subject.findFirst({ where: { name: { contains: 'Math', mode: 'insensitive' } } });
+          if (sub) targetSubjectId = sub.id;
+        } else if (searchPath.includes('bio')) {
+          const sub = await prisma.subject.findFirst({ where: { name: { contains: 'Biology', mode: 'insensitive' } } });
+          if (sub) targetSubjectId = sub.id;
+        } else if (searchPath.includes('english')) {
+          const sub = await prisma.subject.findFirst({ where: { name: { contains: 'English', mode: 'insensitive' } } });
+          if (sub) targetSubjectId = sub.id;
+        }
+
+        // 3. Category Subfolder Matching
+        let category = 'TEACHER_NOTES';
+        if (folderPathLower.includes('textbook') || fileNameLower.includes('textbook')) {
+          category = 'TEXTBOOK';
+        } else if (
+          folderPathLower.includes('previous') ||
+          folderPathLower.includes('pyq') ||
+          folderPathLower.includes('past') ||
+          folderPathLower.includes('board paper') ||
+          folderPathLower.includes('question paper') ||
+          fileNameLower.includes('pyq') ||
+          fileNameLower.includes('previous')
+        ) {
+          category = 'PREVIOUS_BOARD_PAPER';
+        } else if (
+          folderPathLower.includes('question bank') ||
+          folderPathLower.includes('question banks') ||
+          folderPathLower.includes('glossary') ||
+          fileNameLower.includes('question bank')
+        ) {
+          category = 'REFERENCE_MATERIAL';
+        } else if (folderPathLower.includes('notes') || fileNameLower.includes('notes')) {
+          category = 'TEACHER_NOTES';
+        }
+
         const existing = await prisma.studyMaterial.findFirst({
           where: { driveFileId: file.id }
         });
 
         if (!existing) {
-          // Infer grade level / subject from folderPath and fileName
-          let targetClassId = null;
-          let targetSubjectId = null;
-          const searchPath = `${file.folderPath} ${file.name}`.toLowerCase();
-
-          if (searchPath.includes('11')) {
-            const cls = await prisma.class.findFirst({ where: { name: { contains: '11' } } });
-            if (cls) targetClassId = cls.id;
-          } else if (searchPath.includes('12')) {
-            const cls = await prisma.class.findFirst({ where: { name: { contains: '12' } } });
-            if (cls) targetClassId = cls.id;
-          }
-
-          if (searchPath.includes('physics')) {
-            const sub = await prisma.subject.findFirst({ where: { name: { contains: 'Physics', mode: 'insensitive' } } });
-            if (sub) targetSubjectId = sub.id;
-          } else if (searchPath.includes('chem')) {
-            const sub = await prisma.subject.findFirst({ where: { name: { contains: 'Chemistry', mode: 'insensitive' } } });
-            if (sub) targetSubjectId = sub.id;
-          } else if (searchPath.includes('math')) {
-            const sub = await prisma.subject.findFirst({ where: { name: { contains: 'Math', mode: 'insensitive' } } });
-            if (sub) targetSubjectId = sub.id;
-          } else if (searchPath.includes('bio')) {
-            const sub = await prisma.subject.findFirst({ where: { name: { contains: 'Biology', mode: 'insensitive' } } });
-            if (sub) targetSubjectId = sub.id;
-          }
-
-          // 3. Categorize Textbooks, PYQs / Previous Board Papers, and Notes
-          let category = 'TEACHER_NOTES';
-          if (folderPathLower.includes('textbook') || fileNameLower.includes('textbook')) {
-            category = 'TEXTBOOK';
-          } else if (
-            folderPathLower.includes('previous') ||
-            folderPathLower.includes('pyq') ||
-            folderPathLower.includes('past') ||
-            folderPathLower.includes('board paper') ||
-            folderPathLower.includes('question paper') ||
-            fileNameLower.includes('pyq') ||
-            fileNameLower.includes('previous')
-          ) {
-            category = 'PREVIOUS_BOARD_PAPER';
-          }
-
           await prisma.studyMaterial.create({
             data: {
               title: file.name.replace(/\.pdf$/i, ''),
@@ -317,6 +331,18 @@ exports.syncDriveMaterials = async (req, res) => {
               authorRole: 'SYSTEM',
               classId: targetClassId,
               subjectId: targetSubjectId
+            }
+          });
+          syncedCount++;
+        } else {
+          // Re-classify existing file with updated class, subject, and category
+          await prisma.studyMaterial.update({
+            where: { id: existing.id },
+            data: {
+              category,
+              description: `Google Drive Folder: ${file.folderPath}`,
+              classId: targetClassId || existing.classId,
+              subjectId: targetSubjectId || existing.subjectId
             }
           });
           syncedCount++;
