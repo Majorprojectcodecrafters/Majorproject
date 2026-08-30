@@ -2,6 +2,14 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.8.12] - 2026-08-30 (Raw Google Drive PDF Document Stream Delivery)
+
+### Fixed
+- **Direct PDF File Content Streaming (`studentLibrary.controller.js`)**: Updated `streamStudyMaterialSecure` to fetch and stream raw PDF file contents directly from Google Drive API (`drive.files.get({ fileId, alt: 'media' })`) or local storage.
+- **Full File Rendering**: The in-window Document Viewer iframe renders full, multi-page original PDF documents (textbooks, notes, diagram summaries, past board papers, and question banks) with zero external redirects.
+
+---
+
 ## [1.8.11] - 2026-08-30 (In-Window Backend Document Streaming & Direct Scoping)
 
 ### Fixed
