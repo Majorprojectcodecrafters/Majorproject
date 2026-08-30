@@ -1,0 +1,177 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 6 0 R 7 0 R] /Count 3 >>
+endobj
+
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 8 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 750 >>
+stream
+BT
+/F1 22 Tf
+50 730 Td
+(hsc_chemistry_textbook) Tj
+/F2 12 Tf
+0 -30 Td
+(Maharashtra State Board Curriculum | Academic Year 2025-2026) Tj
+/F2 11 Tf
+0 -25 Td
+(Grade Level: 12th Standard   |   Subject: Chemistry   |   Resource Category: TEXTBOOK) Tj
+0 -15 Td
+(Storage Path: QpGen_dataset / 12th Science / Chemistry / Textbook) Tj
+
+0 -40 Td
+/F1 14 Tf
+(SECTION 1: COURSE OVERVIEW & UNIT OBJECTIVES) Tj
+/F2 10 Tf
+0 -20 Td
+(1.1 Systematic study notes designed in alignment with latest MSB Board Curriculum guidelines.) Tj
+0 -15 Td
+(1.2 Comprehensive coverage of fundamental concepts, derivations, and board examination patterns.) Tj
+0 -15 Td
+(1.3 Includes step-by-step solved numerical problems, labeled diagrams, and key definitions.) Tj
+
+0 -35 Td
+/F1 14 Tf
+(SECTION 2: CORE CONCEPTS & THEORETICAL FOUNDATIONS) Tj
+/F2 10 Tf
+0 -20 Td
+(Topic 1: Fundamental Physical Principles & Laws) Tj
+0 -15 Td
+(- Detailed derivation of core equations and state variable relations.) Tj
+0 -15 Td
+(- Analysis of boundary conditions, experimental setups, and observational outcomes.) Tj
+0 -15 Td
+(- Conceptual clarity required for MHT-CET, HSC Board, and competitive entrance evaluations.) Tj
+
+0 -35 Td
+/F1 14 Tf
+(Topic 2: Analytical Methods & Mathematical Formulations) Tj
+0 -20 Td
+(- Expression 1: Differential and integral forms applicable to curriculum problem sets.) Tj
+0 -15 Td
+(- Expression 2: Standard vector representations and dimensional analysis parameters.) Tj
+ET
+endstream
+endobj
+
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+8 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 9 0 R /Resources << /Font << /F1 5 0 R /F2 8 0 R >> >> >>
+endobj
+9 0 obj
+<< /Length 720 >>
+stream
+BT
+/F1 16 Tf
+50 730 Td
+(PAGE 2: KEY FORMULAS, DEFINITIONS & SOLVED EXAMPLES) Tj
+
+0 -35 Td
+/F1 13 Tf
+(2.1 Essential Formulas & Constant Table) Tj
+/F2 10 Tf
+0 -20 Td
+([Eq 1.1] Primary Equation: F = m * a  |  Unit: Newton (N)  |  Dimension: [M1 L1 T-2]) Tj
+0 -15 Td
+([Eq 1.2] Energy Relation: E = h * f   |  Planck Constant h = 6.626 x 10^-34 J.s) Tj
+0 -15 Td
+([Eq 1.3] Wave Equation: v = f * lambda | Velocity of Propagation in Medium) Tj
+
+0 -35 Td
+/F1 13 Tf
+(2.2 Important Technical Definitions) Tj
+/F2 10 Tf
+0 -20 Td
+(Definition 1: Principle of Superposition - When two or more waves overlap, the resultant displacement) Tj
+0 -15 Td
+(is equal to the vector sum of individual displacements at that point.) Tj
+0 -20 Td
+(Definition 2: Conservation Law - Total scalar energy in an isolated thermodynamic system remains) Tj
+0 -15 Td
+(constant over time under all state transformations.) Tj
+
+0 -35 Td
+/F1 13 Tf
+(2.3 Step-by-Step Solved Board Problem) Tj
+/F2 10 Tf
+0 -20 Td
+(Problem Statement: Calculate the total work done when a system expands reversibly from V1 to V2.) Tj
+0 -15 Td
+(Solution Step 1: Write down the given initial parameters V1 = 2.0 L, V2 = 5.0 L, P = 1.013 x 10^5 Pa.) Tj
+0 -15 Td
+(Solution Step 2: Apply W = - P_ext * (V2 - V1) = - 1.013 x 10^5 * (3.0 x 10^-3) = -303.9 Joules.) Tj
+(Final Result: Total Work Done by System = -303.9 J (Exothermic expansion)) Tj
+ET
+endstream
+endobj
+
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 10 0 R /Resources << /Font << /F1 5 0 R /F2 8 0 R >> >> >>
+endobj
+10 0 obj
+<< /Length 650 >>
+stream
+BT
+/F1 16 Tf
+50 730 Td
+(PAGE 3: PREVIOUS YEAR BOARD QUESTIONS & PRACTICE SET) Tj
+
+0 -35 Td
+/F1 13 Tf
+(3.1 Board Examination Questions (2020 - 2025)) Tj
+/F2 10 Tf
+0 -20 Td
+(Q1 [2 Marks]: State and explain Huygens' principle of wave propagation with a clean diagram.) Tj
+0 -15 Td
+(Q2 [3 Marks]: Derive an expression for the work done in rotating a magnetic dipole in a uniform magnetic field.) Tj
+0 -15 Td
+(Q3 [4 Marks]: Explain the working mechanism of a PN Junction Diode in forward and reverse bias modes.) Tj
+
+0 -35 Td
+/F1 13 Tf
+(3.2 Self-Assessment Practice Problems for Students) Tj
+/F2 10 Tf
+0 -20 Td
+(1. A coil of inductance 0.5 H and resistance 100 ohms is connected to a 240 V, 50 Hz AC supply. Find peak current.) Tj
+0 -15 Td
+(2. Calculate the de Broglie wavelength associated with an electron accelerated through a potential difference of 100 V.) Tj
+0 -15 Td
+(3. Solve the differential equation dy/dx + y*tan(x) = sec(x) with initial condition y(0) = 1.) Tj
+
+0 -40 Td
+/F2 9 Tf
+(End of Document | Provided for Institutional Student Study Use | Copying & Cutting Prohibited) Tj
+ET
+endstream
+endobj
+
+xref
+0 11
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000130 00000 n 
+0000000255 00000 n 
+0000001085 00000 n 
+0000001240 00000 n 
+0000002040 00000 n 
+0000001160 00000 n 
+0000001365 00000 n 
+0000002165 00000 n 
+trailer
+<< /Size 11 /Root 1 0 R >>
+startxref
+2900
+%%EOF

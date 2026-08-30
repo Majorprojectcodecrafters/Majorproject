@@ -6,7 +6,6 @@ const {
   deleteFileFromDrive,
   listAllDriveFilesRecursive
 } = require('../services/drive.service');
-const { createAcademicPdfBuffer, ensureLocalPdfFile } = require('../utils/pdfGenerator');
 
 // ==================== UPLOAD STUDY MATERIAL TO GOOGLE DRIVE ====================
 
@@ -587,27 +586,11 @@ exports.streamStudyMaterialSecure = async (req, res) => {
       }
     }
 
-    // 3. Auto-generate physical local PDF file for synced materials using ensureLocalPdfFile
-    const localPath = ensureLocalPdfFile(
-      `${material.id}.pdf`,
-      {
-        title: material.title,
-        subjectName: material.subject?.name,
-        className: material.class?.name,
-        category: material.category,
-        description: material.description
-      }
-    );
-
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'inline; filename="study_material.pdf"');
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-
-    const fileStream = fs.createReadStream(localPath);
-    return fileStream.pipe(res);
+    // 3. If exact physical file is not available on disk or Google Drive, return 404
+    return res.status(404).json({
+      success: false,
+      message: 'The exact physical PDF file has not been uploaded to storage yet.'
+    });
 
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

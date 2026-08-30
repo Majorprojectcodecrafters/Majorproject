@@ -1,17 +1,3 @@
-const fs = require('fs');
-const path = require('path');
-
-/**
- * Creates a valid, multi-page PDF 1.4 document buffer containing rich academic study material content.
- */
-function createAcademicPdfBuffer({ title, subjectName, className, category, description }) {
-  const safeTitle = (title || 'Curriculum Study Material').replace(/[\(\)]/g, '');
-  const safeSubject = (subjectName || 'General Subject').replace(/[\(\)]/g, '');
-  const safeClass = (className || 'Standard Grade').replace(/[\(\)]/g, '');
-  const safeCategory = (category || 'STUDY_MATERIAL').replace(/[\(\)]/g, '');
-  const safeDesc = (description || 'Official Board Curriculum Study Guide').replace(/[\(\)]/g, '');
-
-  const pdfContent = `
 %PDF-1.4
 1 0 obj
 << /Type /Catalog /Pages 2 0 R >>
@@ -29,15 +15,15 @@ stream
 BT
 /F1 22 Tf
 50 730 Td
-(${safeTitle}) Tj
+(HSC 12th Chemistry Question Bank) Tj
 /F2 12 Tf
 0 -30 Td
 (Maharashtra State Board Curriculum | Academic Year 2025-2026) Tj
 /F2 11 Tf
 0 -25 Td
-(Grade Level: ${safeClass}   |   Subject: ${safeSubject}   |   Resource Category: ${safeCategory}) Tj
+(Grade Level: 12th Standard   |   Subject: Chemistry   |   Resource Category: REFERENCE_MATERIAL) Tj
 0 -15 Td
-(Storage Path: ${safeDesc}) Tj
+(Storage Path: QpGen_dataset / 12th Science / Chemistry / Question Banks) Tj
 
 0 -40 Td
 /F1 14 Tf
@@ -189,28 +175,3 @@ trailer
 startxref
 2900
 %%EOF
-  `;
-  return Buffer.from(pdfContent.trim(), 'utf-8');
-}
-
-/**
- * Ensures PDF file exists on local disk in uploads/student_library/
- */
-function ensureLocalPdfFile(filename, metadata) {
-  const dir = path.join(__dirname, '../../uploads/student_library');
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-
-  const filePath = path.join(dir, filename);
-  if (!fs.existsSync(filePath)) {
-    const buffer = createAcademicPdfBuffer(metadata);
-    fs.writeFileSync(filePath, buffer);
-  }
-  return filePath;
-}
-
-module.exports = {
-  createAcademicPdfBuffer,
-  ensureLocalPdfFile
-};

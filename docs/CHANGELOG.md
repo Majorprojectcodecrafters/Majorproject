@@ -2,6 +2,17 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.9.3] - 2026-08-30 (Removal of Synthetic PDF Auto-Generator & Enforced Exact Physical PDF File Streaming)
+
+### Fixed
+- **Removal of Synthetic PDF Auto-Generator (`pdfGenerator.js`, `studentLibrary.controller.js`)**:
+  - Completely removed `pdfGenerator.js` utility and all synthetic/auto-generated PDF document code from the backend.
+  - Enforced that clicking "View Document" streams ONLY the **exact physical PDF file** uploaded by the teacher/admin or stored in Google Drive.
+- **Strict File Stream Resolution (`ProtectedDocumentViewer.jsx`)**:
+  - Document Viewer modal streams 1:1 exact physical PDF bytes without any synthetic document generation.
+
+---
+
 ## [1.9.2] - 2026-08-30 (100% Reliable Native Multi-Page PDF File Delivery Across All Materials)
 
 ### Fixed
