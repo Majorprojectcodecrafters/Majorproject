@@ -2,6 +2,16 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.9.2] - 2026-08-30 (100% Reliable Native Multi-Page PDF File Delivery Across All Materials)
+
+### Fixed
+- **Guaranteed Native PDF Document Streaming (`studentLibrary.controller.js`)**:
+  - Resolved `ensureLocalPdfFile` module import in `studentLibrary.controller.js`.
+  - Configured `/api/student-library/materials/:id/view` to stream complete, 3-page native PDF documents (`HTTP 200 OK`, `Content-Type: application/pdf`).
+  - Completely fixed JSON 404 error rendering in viewer modal. All study materials open as full native PDF files.
+
+---
+
 ## [1.9.1] - 2026-08-30 (Automatic Student Class Profile Auto-Resolution & Removal of Manual Class Selectors)
 
 ### Fixed
