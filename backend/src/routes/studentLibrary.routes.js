@@ -26,15 +26,16 @@ const upload = multer({
 });
 
 // Student Library Routes
-router.get('/profile',               protect, authorize('STUDENT', 'TEACHER', 'ADMIN'), studentLibraryController.getStudentProfile);
-router.get('/drive-files',           protect, authorize('STUDENT', 'TEACHER', 'ADMIN'), studentLibraryController.getDriveFilesForCategory);
-router.get('/drive-files/:id/view',  protect, authorize('STUDENT', 'TEACHER', 'ADMIN'), studentLibraryController.streamDriveFileSecure);
+router.get('/profile',                  protect, authorize('STUDENT', 'TEACHER', 'ADMIN'), studentLibraryController.getStudentProfile);
+router.get('/drive-files',              protect, authorize('STUDENT', 'TEACHER', 'ADMIN'), studentLibraryController.getDriveFilesForCategory);
+router.get('/drive-files/:id/view',     protect, authorize('STUDENT', 'TEACHER', 'ADMIN'), studentLibraryController.streamDriveFileSecure);
 router.get('/drive-files/:id/download', protect, authorize('STUDENT', 'TEACHER', 'ADMIN'), studentLibraryController.downloadDriveFileSecure);
-router.post('/upload',               protect, authorize('ADMIN', 'TEACHER'), upload.single('file'), studentLibraryController.uploadStudyMaterial);
-router.post('/sync',                 protect, authorize('ADMIN', 'TEACHER'), studentLibraryController.syncDriveMaterials);
-router.get('/admin-tree',           protect, authorize('ADMIN'), studentLibraryController.getAdminDriveTree);
-router.get('/materials',            protect, authorize('ADMIN', 'TEACHER', 'STUDENT'), studentLibraryController.getStudyMaterials);
-router.get('/materials/:id/view',   protect, authorize('ADMIN', 'TEACHER', 'STUDENT'), studentLibraryController.streamStudyMaterialSecure);
-router.delete('/materials/:id',     protect, authorize('ADMIN', 'TEACHER'), studentLibraryController.deleteStudyMaterial);
+router.get('/materials/:id/view',      protect, authorize('STUDENT', 'TEACHER', 'ADMIN'), studentLibraryController.streamDriveFileSecure);
+router.get('/materials/:id/download',  protect, authorize('STUDENT', 'TEACHER', 'ADMIN'), studentLibraryController.downloadDriveFileSecure);
+router.post('/upload',                  protect, authorize('ADMIN', 'TEACHER'), upload.single('file'), studentLibraryController.uploadStudyMaterial);
+router.post('/sync',                    protect, authorize('ADMIN', 'TEACHER'), studentLibraryController.syncDriveMaterials);
+router.get('/admin-tree',              protect, authorize('ADMIN'), studentLibraryController.getAdminDriveTree);
+router.get('/materials',               protect, authorize('ADMIN', 'TEACHER', 'STUDENT'), studentLibraryController.getStudyMaterials);
+router.delete('/materials/:id',        protect, authorize('ADMIN', 'TEACHER'), studentLibraryController.deleteStudyMaterial);
 
 module.exports = router;

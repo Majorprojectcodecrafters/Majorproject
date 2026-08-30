@@ -181,14 +181,32 @@ async function downloadFileFromDrive(driveFileId, destinationPath) {
 /**
  * Get readable stream for private file access
  */
+async function getFileMetadataFromDrive(driveFileId) {
+  const drive = getDriveClient();
+  if (!drive || !driveFileId || driveFileId.startsWith('local-sim-') || driveFileId.startsWith('drive-sync-')) {
+    return null;
+  }
+  try {
+    const res = await drive.files.get({
+      fileId: driveFileId,
+      fields: 'id, name, mimeType, size',
+      supportsAllDrives: true
+    });
+    return res.data;
+  } catch (err) {
+    console.warn(`⚠️ Failed to fetch Drive file metadata (${driveFileId}):`, err.message);
+    return null;
+  }
+}
+
 async function getFileStreamFromDrive(driveFileId) {
   const drive = getDriveClient();
-  if (!drive || driveFileId.startsWith('local-sim-')) {
+  if (!drive || !driveFileId || driveFileId.startsWith('local-sim-') || driveFileId.startsWith('drive-sync-')) {
     return null;
   }
 
   const res = await drive.files.get(
-    { fileId: driveFileId, alt: 'media' },
+    { fileId: driveFileId, alt: 'media', supportsAllDrives: true },
     { responseType: 'stream' }
   );
   return res.data;
@@ -425,6 +443,7 @@ module.exports = {
   uploadFileToDrive,
   downloadFileFromDrive,
   getFileStreamFromDrive,
+  getFileMetadataFromDrive,
   deleteFileFromDrive,
   listDriveFilesAndFolders,
   listAllDriveFilesRecursive,

@@ -2,6 +2,19 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.1.0] - 2026-08-30 (Backend Authenticated Private Google Drive File Byte Streaming Architecture)
+
+### Added & Rebuilt
+- **Private Backend File Byte Streaming (`studentLibrary.controller.js`, `drive.service.js`)**:
+  - Rebuilt `GET /api/student-library/materials/:id/view` and `GET /api/student-library/materials/:id/download` to stream actual Google Drive file bytes through backend authenticated Service Account / OAuth credentials.
+  - Eliminated all client-side browser redirects to `drive.google.com` or `docs.google.com`, resolving the Google 403 Access Denied error.
+  - Sets exact headers (`Content-Type: application/pdf`, `image/png`, `image/jpeg`, `Content-Disposition: inline`).
+- **Frontend PDF Viewer Endpoint Binding (`ProtectedDocumentViewer.jsx`, `StudentMaterialsPage.jsx`)**:
+  - Bound PDF viewer iframe `src` directly to `/api/student-library/materials/${documentId}/view`.
+  - Bound Download action directly to `/api/student-library/materials/${documentId}/download`.
+
+---
+
 ## [2.0.6] - 2026-08-30 (Google Drive Shared URL HTTP Stream Fallback in View & Download Endpoints)
 
 ### Fixed

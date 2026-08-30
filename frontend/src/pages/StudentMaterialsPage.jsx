@@ -80,7 +80,7 @@ export default function StudentMaterialsPage() {
   };
 
   const handleDownload = (file) => {
-    const downloadUrl = `/api/student-library/drive-files/${file.id}/download?fileName=${encodeURIComponent(file.name)}`;
+    const downloadUrl = `/api/student-library/materials/${file.id}/download?fileName=${encodeURIComponent(file.name)}`;
     window.open(downloadUrl, '_blank');
   };
 

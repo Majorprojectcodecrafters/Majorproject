@@ -599,72 +599,65 @@ exports.getDriveFilesForCategory = async (req, res) => {
 exports.streamDriveFileSecure = async (req, res) => {
   try {
     const { id } = req.params; // fileId or driveFileId
+    const { getFileStreamFromDrive, getFileMetadataFromDrive } = require('../services/drive.service');
 
-    // 1. Look up DB material record
+    // 1. Resolve target Google Drive file ID
+    let targetDriveId = id;
     const material = await prisma.studyMaterial.findFirst({
       where: { OR: [{ id }, { driveFileId: id }] }
     });
 
-    const realDriveId = (material?.driveFileId && !material.driveFileId.startsWith('drive-sync-'))
-      ? material.driveFileId
-      : (!id.startsWith('drive-sync-') ? id : null);
+    if (material?.driveFileId && !material.driveFileId.startsWith('drive-sync-')) {
+      targetDriveId = material.driveFileId;
+    }
 
-    // 2. Check DB record for local file path or Google Drive URL
-    if (material?.fileUrl) {
-      if (fs.existsSync(material.fileUrl)) {
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'inline; filename="study_material.pdf"');
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-        return fs.createReadStream(material.fileUrl).pipe(res);
-      }
-      if (material.fileUrl.startsWith('http')) {
-        return res.redirect(material.fileUrl);
+    // 2. Fetch File Metadata from Google Drive
+    const metadata = await getFileMetadataFromDrive(targetDriveId);
+    const fileName = metadata?.name || material?.fileName || material?.title || 'study_material.pdf';
+
+    let contentType = 'application/pdf';
+    if (metadata?.mimeType) {
+      if (metadata.mimeType.includes('pdf')) contentType = 'application/pdf';
+      else if (metadata.mimeType.includes('png')) contentType = 'image/png';
+      else if (metadata.mimeType.includes('jpeg') || metadata.mimeType.includes('jpg')) contentType = 'image/jpeg';
+      else contentType = metadata.mimeType;
+    }
+
+    // 3. Backend authenticated Google Drive file byte stream
+    if (targetDriveId && !targetDriveId.startsWith('drive-sync-')) {
+      try {
+        const driveStream = await getFileStreamFromDrive(targetDriveId);
+        if (driveStream) {
+          res.setHeader('Content-Type', contentType);
+          res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(fileName)}"`);
+          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+          return driveStream.pipe(res);
+        }
+      } catch (driveErr) {
+        console.warn(`⚠️ Google Drive API stream warning for (${targetDriveId}):`, driveErr.message);
       }
     }
 
+    // 4. Local disk storage stream fallback
     const uploadDir = path.join(__dirname, '../../uploads/student_library');
+    if (material?.fileUrl && fs.existsSync(material.fileUrl)) {
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(fileName)}"`);
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      return fs.createReadStream(material.fileUrl).pipe(res);
+    }
+
     if (fs.existsSync(uploadDir)) {
       const match = fs.readdirSync(uploadDir).find(f => f.includes(id) || (material && f.includes(material.id)));
       if (match) {
-        const localPath = path.join(uploadDir, match);
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'inline; filename="study_material.pdf"');
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(fileName)}"`);
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-        return fs.createReadStream(localPath).pipe(res);
+        return fs.createReadStream(path.join(uploadDir, match)).pipe(res);
       }
     }
 
-    // 3. Try streaming from Google Drive API
-    if (realDriveId) {
-      const { getFileStreamFromDrive } = require('../services/drive.service');
-      try {
-        const stream = await getFileStreamFromDrive(realDriveId);
-        if (stream) {
-          res.setHeader('Content-Type', 'application/pdf');
-          res.setHeader('Content-Disposition', 'inline; filename="study_material.pdf"');
-          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-          return stream.pipe(res);
-        }
-      } catch (driveErr) {
-        console.warn('⚠️ Google Drive API stream warning:', driveErr.message);
-      }
-
-      // 4. Redirect to Google Drive preview iframe if real drive file ID exists
-      return res.redirect(`https://drive.google.com/file/d/${realDriveId}/preview`);
-    }
-
-    // 5. If local sample PDF exists in uploads directory, stream first available PDF
-    if (fs.existsSync(uploadDir)) {
-      const firstPdf = fs.readdirSync(uploadDir).find(f => f.endsWith('.pdf'));
-      if (firstPdf) {
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'inline; filename="study_material.pdf"');
-        return fs.createReadStream(path.join(uploadDir, firstPdf)).pipe(res);
-      }
-    }
-
-    // 6. Render clean HTML status card inside viewer iframe
-    const documentName = material?.title || material?.fileName || 'Study Material';
+    // 5. Render clean HTML status card inside viewer modal
     res.setHeader('Content-Type', 'text/html');
     return res.send(`
       <!DOCTYPE html>
@@ -674,7 +667,7 @@ exports.streamDriveFileSecure = async (req, res) => {
           <style>
             body { font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 90vh; margin: 0; background: #f8fafc; color: #334155; }
             .card { background: white; padding: 2.5rem; border-radius: 1.25rem; border: 1px solid #e2e8f0; text-align: center; max-width: 420px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
-            .icon { width: 50px; h-height: 50px; background: #f1f5f9; color: #64748b; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto; font-weight: bold; font-size: 1.2rem; }
+            .icon { width: 50px; height: 50px; background: #f1f5f9; color: #64748b; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto; font-weight: bold; font-size: 1.2rem; }
             h3 { margin: 0 0 0.5rem 0; font-size: 1.1rem; color: #0f172a; }
             p { font-size: 0.85rem; color: #64748b; line-height: 1.5; margin: 0; }
           </style>
@@ -682,74 +675,59 @@ exports.streamDriveFileSecure = async (req, res) => {
         <body>
           <div class="card">
             <div class="icon">📄</div>
-            <h3>${documentName}</h3>
-            <p>The exact PDF file for this study material has not been uploaded to Google Drive storage yet.</p>
+            <h3>${fileName}</h3>
+            <p>File bytes stream not available. Backend authenticated Google Drive connection required.</p>
           </div>
         </body>
       </html>
     `);
 
   } catch (error) {
-    res.setHeader('Content-Type', 'text/html');
-    res.send(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <style>
-            body { font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 90vh; margin: 0; background: #f8fafc; color: #334155; }
-            .card { background: white; padding: 2rem; border-radius: 1rem; border: 1px solid #e2e8f0; text-align: center; max-width: 400px; }
-          </style>
-        </head>
-        <body>
-          <div class="card">
-            <h3>Document Stream Unavailable</h3>
-            <p>Unable to stream document content. Please verify file upload status.</p>
-          </div>
-        </body>
-      </html>
-    `);
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
 exports.downloadDriveFileSecure = async (req, res) => {
   try {
-    const { id } = req.params; // fileId
-    const fileName = req.query.fileName || 'document.pdf';
+    const { id } = req.params;
+    const { getFileStreamFromDrive, getFileMetadataFromDrive } = require('../services/drive.service');
 
-    // 1. Check DB material record
+    let targetDriveId = id;
     const material = await prisma.studyMaterial.findFirst({
       where: { OR: [{ id }, { driveFileId: id }] }
     });
 
-    if (material?.fileUrl) {
-      if (fs.existsSync(material.fileUrl)) {
-        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
-        res.setHeader('Content-Type', 'application/octet-stream');
-        return fs.createReadStream(material.fileUrl).pipe(res);
-      }
-      if (material.fileUrl.startsWith('http')) {
-        return res.redirect(material.fileUrl);
-      }
+    if (material?.driveFileId && !material.driveFileId.startsWith('drive-sync-')) {
+      targetDriveId = material.driveFileId;
     }
 
-    const realDriveId = (material?.driveFileId && !material.driveFileId.startsWith('drive-sync-'))
-      ? material.driveFileId
-      : (!id.startsWith('drive-sync-') ? id : null);
+    const metadata = await getFileMetadataFromDrive(targetDriveId);
+    const fileName = req.query.fileName || metadata?.name || material?.fileName || 'document.pdf';
 
-    if (realDriveId) {
-      const { getFileStreamFromDrive } = require('../services/drive.service');
+    if (targetDriveId && !targetDriveId.startsWith('drive-sync-')) {
       try {
-        const stream = await getFileStreamFromDrive(realDriveId);
-        if (stream) {
+        const driveStream = await getFileStreamFromDrive(targetDriveId);
+        if (driveStream) {
           res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
           res.setHeader('Content-Type', 'application/octet-stream');
-          return stream.pipe(res);
+          return driveStream.pipe(res);
         }
-      } catch (err) {}
-      return res.redirect(`https://drive.google.com/file/d/${realDriveId}/view`);
+      } catch (driveErr) {
+        console.warn(`⚠️ Google Drive API download error for (${targetDriveId}):`, driveErr.message);
+      }
     }
 
-    return res.redirect('https://drive.google.com/drive/folders/1lt8-tHT6wniWRLwPrsZizWmFCJQ423r3');
+    const uploadDir = path.join(__dirname, '../../uploads/student_library');
+    if (material?.fileUrl && fs.existsSync(material.fileUrl)) {
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+      res.setHeader('Content-Type', 'application/octet-stream');
+      return fs.createReadStream(material.fileUrl).pipe(res);
+    }
+
+    return res.status(404).json({
+      success: false,
+      message: `File download not available for ID: ${id}.`
+    });
 
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

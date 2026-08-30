@@ -27,8 +27,8 @@ export default function ProtectedDocumentViewer({ documentId, title, documentTit
   }, []);
 
   // Direct backend Google Drive stream endpoint (NO EXTERNAL REDIRECTS)
-  const streamUrl = `/api/student-library/drive-files/${documentId}/view#toolbar=0&navpanes=0&scrollbar=1`;
-  const downloadUrl = `/api/student-library/drive-files/${documentId}/download?fileName=${encodeURIComponent(displayTitle)}`;
+  const streamUrl = `/api/student-library/materials/${documentId}/view#toolbar=0&navpanes=0&scrollbar=1`;
+  const downloadUrl = `/api/student-library/materials/${documentId}/download?fileName=${encodeURIComponent(displayTitle)}`;
 
   return (
     <div
