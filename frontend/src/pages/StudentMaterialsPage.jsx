@@ -35,8 +35,8 @@ export default function StudentMaterialsPage() {
         </div>
 
         <div className="bg-purple-900/80 p-3 rounded-xl border border-purple-700/60 text-xs text-purple-200 space-y-1">
-          <div className="font-bold text-amber-300">🔒 Security Notice:</div>
-          <p>Documents are protected with dynamic watermarks. Downloads & screenshots are disabled.</p>
+          <div className="font-bold text-amber-300">🛡️ Access Control Notice:</div>
+          <p>Text copying and cutting are disabled for study materials.</p>
         </div>
       </div>
 
@@ -113,7 +113,7 @@ export default function StudentMaterialsPage() {
                   onClick={() => setActiveDocument(item)}
                   className="w-full btn-primary py-2.5 text-xs font-bold flex items-center justify-center gap-2"
                 >
-                  👁️ View Notes (Protected)
+                  👁️ View Document
                 </button>
               </div>
             ))}
@@ -121,11 +121,12 @@ export default function StudentMaterialsPage() {
         )}
       </div>
 
-      {/* Protected Document Viewer Modal */}
+      {/* Document Viewer Modal */}
       {activeDocument && (
         <ProtectedDocumentViewer
           documentId={activeDocument.id}
           title={`${activeDocument.title} (${activeDocument.subject?.name || 'Subject'})`}
+          fileUrl={activeDocument.fileUrl}
           onClose={() => setActiveDocument(null)}
         />
       )}

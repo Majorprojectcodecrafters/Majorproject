@@ -397,7 +397,7 @@ export default function AdminKnowledgeBasePage() {
                           onClick={() => setActiveDocument(item)}
                           className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white rounded-lg font-bold text-xs shadow-sm"
                         >
-                          👁️ View Protected PDF
+                          👁️ View Document
                         </button>
                         <button
                           onClick={() => {
@@ -431,7 +431,7 @@ export default function AdminKnowledgeBasePage() {
             <p className="text-sm text-slate-500">No subfolders detected in Google Drive root folder.</p>
           ) : (
             <div className="space-y-2 font-mono text-xs text-slate-700 bg-slate-900 text-slate-100 p-6 rounded-xl overflow-x-auto shadow-inner">
-              <div className="text-emerald-400 font-bold mb-3">ROOT: Google Drive [16_gh9hL3CHaHQ59KU7N2ejhIdKQ0rhJw]</div>
+              <div className="text-emerald-400 font-bold mb-3">ROOT: Google Drive [1lt8-tHT6wniWRLwPrsZizWmFCJQ423r3]</div>
               {driveTreeData.folderTree.map((folder) => (
                 <div key={folder.id} className="hover:text-emerald-300 transition-colors flex items-center gap-2 py-1">
                   <span className="text-slate-500">📁</span>
@@ -443,11 +443,12 @@ export default function AdminKnowledgeBasePage() {
         </div>
       )}
 
-      {/* Protected Document Viewer Modal */}
+      {/* Document Viewer Modal */}
       {activeDocument && (
         <ProtectedDocumentViewer
           documentId={activeDocument.id}
           documentTitle={activeDocument.title}
+          fileUrl={activeDocument.fileUrl}
           onClose={() => setActiveDocument(null)}
         />
       )}

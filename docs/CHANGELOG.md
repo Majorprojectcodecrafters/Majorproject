@@ -2,6 +2,16 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.8.6] - 2026-08-30 (Standard Document Viewer & Copy/Cut Prevention)
+
+### Fixed
+- **Removed Protected View Overlay (`ProtectedDocumentViewer.jsx`)**: Replaced the dark stream-decryption overlay and anti-screenshot banner with a clean, responsive Document Viewer modal.
+- **Direct Drive Viewing**: Embedded clean document viewing with direct Google Drive integration (`fileUrl`).
+- **Enforced Copy, Cut & Paste Prevention (`ProtectedDocumentViewer.jsx`)**:
+  - Disabled text selection, copying (`Ctrl+C`, `Cmd+C`), cutting (`Ctrl+X`, `Cmd+X`), pasting (`Ctrl+V`), and right-click context menu across study material viewers.
+
+---
+
 ## [1.8.5] - 2026-08-30 (19 Study Materials Across All Categories & Grade Levels)
 
 ### Fixed
