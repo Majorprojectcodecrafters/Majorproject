@@ -6,13 +6,25 @@ import ProtectedDocumentViewer from '../components/ProtectedDocumentViewer';
 
 export default function StudentMaterialsPage() {
   const [typeFilter, setTypeFilter] = useState('all');
+  const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [activeDocument, setActiveDocument] = useState(null);
 
-  // Fetch student study materials
-  const { data: materials = [], isLoading, error } = useQuery({
-    queryKey: ['studentStudyMaterials', typeFilter],
+  // Fetch available subjects
+  const { data: availableSubjects = [] } = useQuery({
+    queryKey: ['studentCurriculumSubjects'],
     queryFn: async () => {
-      const res = await apiClient.get(`/student-library/materials?category=${typeFilter}`);
+      const res = await apiClient.get('/curriculum/subjects');
+      return res.data.data || [];
+    }
+  });
+
+  // Fetch student study materials (Filtered strictly by category & subject)
+  const { data: materials = [], isLoading, error } = useQuery({
+    queryKey: ['studentStudyMaterials', typeFilter, selectedSubjectId],
+    queryFn: async () => {
+      const params = new URLSearchParams({ category: typeFilter });
+      if (selectedSubjectId) params.append('subjectId', selectedSubjectId);
+      const res = await apiClient.get(`/student-library/materials?${params.toString()}`);
       return res.data.data || [];
     }
   });
@@ -30,7 +42,7 @@ export default function StudentMaterialsPage() {
           </div>
           <h1 className="text-3xl font-bold mt-1">Study Materials & Notes</h1>
           <p className="text-sm text-purple-300 mt-1">
-            Textbooks, teacher notes, and MHT-CET reference materials uploaded by your institution.
+            Textbooks, teacher notes, and MHT-CET reference materials uploaded for your enrolled class.
           </p>
         </div>
       </div>
@@ -56,8 +68,24 @@ export default function StudentMaterialsPage() {
             ))}
           </div>
 
-          <div className="text-xs text-gray-500 font-bold">
-            Total Available: {materials.length} Documents
+          <div className="flex items-center gap-3">
+            {/* Subject Selection Filter */}
+            <select
+              value={selectedSubjectId}
+              onChange={(e) => setSelectedSubjectId(e.target.value)}
+              className="input-field py-1.5 px-3 text-xs font-semibold bg-white border-purple-300 rounded-lg shadow-sm text-purple-950 focus:ring-purple-500"
+            >
+              <option value="">-- All Subjects --</option>
+              {availableSubjects.map((sub) => (
+                <option key={sub.id} value={sub.id}>
+                  {sub.name}
+                </option>
+              ))}
+            </select>
+
+            <div className="text-xs text-gray-500 font-bold whitespace-nowrap">
+              Total Available: {materials.length} Documents
+            </div>
           </div>
         </div>
 
@@ -71,7 +99,7 @@ export default function StudentMaterialsPage() {
         {!isLoading && !error && materials.length === 0 && (
           <div className="text-center py-12 space-y-3 bg-gray-50/50 rounded-xl border border-dashed border-gray-300">
             <p className="text-base font-bold text-gray-700">No study materials available</p>
-            <p className="text-xs text-gray-500">Your teachers haven't uploaded notes for this category yet.</p>
+            <p className="text-xs text-gray-500">No materials match the selected subject or category filters.</p>
           </div>
         )}
 
@@ -120,6 +148,8 @@ export default function StudentMaterialsPage() {
         <ProtectedDocumentViewer
           documentId={activeDocument.id}
           title={`${activeDocument.title} (${activeDocument.subject?.name || 'Subject'})`}
+          subjectName={activeDocument.subject?.name}
+          className={activeDocument.class?.name}
           fileUrl={activeDocument.fileUrl}
           driveFileId={activeDocument.driveFileId}
           onClose={() => setActiveDocument(null)}

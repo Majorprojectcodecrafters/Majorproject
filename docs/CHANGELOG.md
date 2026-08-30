@@ -2,6 +2,14 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.8.10] - 2026-08-30 (Student Subject Filter & Strict Document Scoping)
+
+### Fixed
+- **Student Subject Filter Dropdown (`StudentMaterialsPage.jsx`)**: Added a subject selection filter dropdown (`-- Filter by Subject --`). When a student selects `Physics`, only Physics materials for their enrolled class are displayed.
+- **Strict Document Viewer Isolation (`ProtectedDocumentViewer.jsx`)**: Removed Google Drive root folder ID fallback. Prevented root directory listings from displaying in document viewers.
+
+---
+
 ## [1.8.9] - 2026-08-30 (Removal of Decorative Emojis for Minimal Web Design)
 
 ### Fixed
