@@ -1,50 +1,46 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../lib/api';
 import { TableSkeleton } from '../components/Skeleton';
 import ProtectedDocumentViewer from '../components/ProtectedDocumentViewer';
 
 export default function StudentMaterialsPage() {
-  const [selectedClassId, setSelectedClassId] = useState('');
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [activeDocument, setActiveDocument] = useState(null);
   const [viewMode, setViewMode] = useState('folder'); // 'folder' | 'grid'
 
-  // 1. Fetch All Classes (Academic Streams & Grades)
-  const { data: classes = [] } = useQuery({
-    queryKey: ['curriculumClasses'],
+  // 1. Automatically fetch Enrolled Student Profile & Auto-Class Resolution
+  const { data: profileData } = useQuery({
+    queryKey: ['studentEnrolledProfile'],
     queryFn: async () => {
-      const res = await apiClient.get('/curriculum/classes');
+      const res = await apiClient.get('/student-library/profile');
+      return res.data.data;
+    }
+  });
+
+  const enrolledClassId = profileData?.classId || '';
+  const enrolledClassName = profileData?.rawClassName || 'Enrolled Class';
+  const resolvedClassName = profileData?.resolvedClassName || '12th Science';
+  const studentStream = profileData?.stream || 'Science';
+
+  // 2. Fetch Stream-Scoped Subjects for Enrolled Class ONLY (Auto-Cascaded)
+  const { data: subjects = [], isLoading: subjectsLoading } = useQuery({
+    queryKey: ['curriculumSubjectsByClass', enrolledClassId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (enrolledClassId) params.append('classId', enrolledClassId);
+      const res = await apiClient.get(`/curriculum/subjects?${params.toString()}`);
       return res.data.data || [];
     }
   });
 
-  // Set default class once loaded if not set
-  const currentClass = useMemo(() => {
-    if (selectedClassId) return classes.find((c) => c.id === selectedClassId);
-    return classes.find((c) => c.name.includes('12th Science') || c.name.includes('12')) || classes[0];
-  }, [classes, selectedClassId]);
-
-  const activeClassId = selectedClassId || currentClass?.id || '';
-
-  // 2. Fetch Stream-Scoped Subjects for Selected Class ONLY
-  const { data: subjects = [], isLoading: subjectsLoading } = useQuery({
-    queryKey: ['curriculumSubjectsByClass', activeClassId],
-    queryFn: async () => {
-      if (!activeClassId) return [];
-      const res = await apiClient.get(`/curriculum/subjects?classId=${activeClassId}`);
-      return res.data.data || [];
-    },
-    enabled: !!activeClassId
-  });
-
-  // 3. Fetch Scoped Study Materials
+  // 3. Fetch Enrolled Class Study Materials ONLY
   const { data: materials = [], isLoading: materialsLoading, error } = useQuery({
-    queryKey: ['studentStudyMaterials', activeClassId, selectedSubjectId, typeFilter],
+    queryKey: ['studentStudyMaterials', enrolledClassId, selectedSubjectId, typeFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (activeClassId) params.append('classId', activeClassId);
+      if (enrolledClassId) params.append('classId', enrolledClassId);
       if (selectedSubjectId) params.append('subjectId', selectedSubjectId);
       if (typeFilter && typeFilter !== 'all') params.append('category', typeFilter);
 
@@ -62,13 +58,15 @@ export default function StudentMaterialsPage() {
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded bg-purple-600/30 border border-purple-400/40 text-purple-200 text-[10px] font-bold uppercase tracking-wider">
-              Institutional Library System
+              Enrolled Class Profile
             </span>
-            <span className="text-xs text-slate-400">Hierarchical Document Explorer</span>
+            <span className="text-xs text-purple-300 font-semibold">
+              {enrolledClassName} ({studentStream} Stream)
+            </span>
           </div>
-          <h1 className="text-3xl font-extrabold mt-1 text-slate-100">Academic Student Library</h1>
+          <h1 className="text-3xl font-extrabold mt-1 text-slate-100">Student Study Library</h1>
           <p className="text-sm text-slate-300 mt-1">
-            Structured curriculum textbooks, teacher notes, past board papers, and reference materials.
+            Official study materials automatically synchronized for your enrolled class {resolvedClassName}.
           </p>
         </div>
 
@@ -93,32 +91,6 @@ export default function StudentMaterialsPage() {
         </div>
       </div>
 
-      {/* Level 1: Stream / Class Selection Tabs */}
-      <div className="space-y-3">
-        <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Select Academic Class / Stream</h2>
-        <div className="flex flex-wrap gap-2">
-          {classes.map((cls) => {
-            const isSelected = activeClassId === cls.id;
-            return (
-              <button
-                key={cls.id}
-                onClick={() => {
-                  setSelectedClassId(cls.id);
-                  setSelectedSubjectId(''); // Reset subject when class changes
-                }}
-                className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all border ${
-                  isSelected
-                    ? 'bg-purple-700 text-white border-purple-600 shadow-md scale-[1.02]'
-                    : 'bg-white text-slate-700 border-slate-200 hover:border-purple-300 hover:bg-purple-50/50'
-                }`}
-              >
-                {cls.name}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Breadcrumb Path Bar */}
       <div className="flex items-center gap-2 text-xs text-slate-600 font-semibold bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
         <button
@@ -128,7 +100,7 @@ export default function StudentMaterialsPage() {
           }}
           className="hover:text-purple-700 font-bold"
         >
-          {currentClass?.name || 'Academic Root'}
+          {resolvedClassName}
         </button>
 
         {selectedSubject && (
@@ -148,14 +120,14 @@ export default function StudentMaterialsPage() {
         )}
       </div>
 
-      {/* Level 2: Stream-Scoped Subjects */}
+      {/* Stream-Scoped Subjects for Enrolled Class ONLY */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-            Available Subjects for {currentClass?.name || 'Selected Class'}
+            Subjects for {resolvedClassName}
           </h2>
           <span className="text-xs text-slate-400 font-medium">
-            Showing only subjects belonging to this stream
+            Showing only subjects belonging to your stream
           </span>
         </div>
 
@@ -188,7 +160,7 @@ export default function StudentMaterialsPage() {
                   }`}
                 >
                   <div className="text-xs font-bold truncate">{sub.name}</div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">Enrolled Course</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">Enrolled Subject</div>
                 </button>
               );
             })}
@@ -196,7 +168,7 @@ export default function StudentMaterialsPage() {
         )}
       </div>
 
-      {/* Level 3: Study Material Category Tabs */}
+      {/* Study Material Category Tabs */}
       <div className="card space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
           <div className="flex flex-wrap gap-2">
@@ -235,7 +207,7 @@ export default function StudentMaterialsPage() {
           <div className="text-center py-12 space-y-2 bg-slate-50/60 rounded-xl border border-dashed border-slate-300">
             <p className="text-base font-bold text-slate-700">No study materials in this folder</p>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              No documents match the selected class, subject, or category parameters.
+              No documents match the selected subject or category parameters for your enrolled class.
             </p>
           </div>
         )}
@@ -265,7 +237,7 @@ export default function StudentMaterialsPage() {
                     </p>
 
                     <div className="pt-2 text-xs text-slate-600 space-y-1 border-t border-slate-100">
-                      <div><strong>Stream / Class:</strong> {item.class?.name || currentClass?.name || 'General'}</div>
+                      <div><strong>Enrolled Class:</strong> {resolvedClassName}</div>
                       <div><strong>Subject:</strong> {item.subject?.name || 'General'}</div>
                       {item.chapter && <div><strong>Chapter:</strong> {item.chapter.name}</div>}
                     </div>
@@ -320,7 +292,7 @@ export default function StudentMaterialsPage() {
           documentId={activeDocument.id}
           title={`${activeDocument.title} (${activeDocument.subject?.name || 'Subject'})`}
           subjectName={activeDocument.subject?.name}
-          className={activeDocument.class?.name}
+          className={resolvedClassName}
           fileUrl={activeDocument.fileUrl}
           driveFileId={activeDocument.driveFileId}
           onClose={() => setActiveDocument(null)}

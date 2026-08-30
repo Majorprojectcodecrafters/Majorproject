@@ -2,6 +2,19 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.9.1] - 2026-08-30 (Automatic Student Class Profile Auto-Resolution & Removal of Manual Class Selectors)
+
+### Fixed
+- **Automatic Class & Stream Auto-Resolution (`studentLibrary.controller.js`)**:
+  - Added `/api/student-library/profile` endpoint to automatically resolve the student's enrolled class profile and division (e.g. `11th C` automatically maps to `11th Science`).
+- **Removed Student Class Selector (`StudentMaterialsPage.jsx`)**:
+  - Completely removed manual class selection buttons/selectors from the Student Library.
+  - The UI automatically locks to the student's enrolled class and populates ONLY subjects belonging to their enrolled stream/class.
+- **Direct File Streaming (`studentLibrary.controller.js`)**:
+  - Removed generated PDF cover text page fallback. The viewer streams actual uploaded PDF file content directly without hardcoded placeholders.
+
+---
+
 ## [1.9.0] - 2026-08-30 (Complete Academic Hierarchy Redesign & Stream-Scoped Document Management)
 
 ### Added

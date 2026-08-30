@@ -26,6 +26,7 @@ const upload = multer({
 });
 
 // Student Library Routes
+router.get('/profile',              protect, authorize('STUDENT', 'TEACHER', 'ADMIN'), studentLibraryController.getStudentProfile);
 router.post('/upload',               protect, authorize('ADMIN', 'TEACHER'), upload.single('file'), studentLibraryController.uploadStudyMaterial);
 router.post('/sync',                 protect, authorize('ADMIN', 'TEACHER'), studentLibraryController.syncDriveMaterials);
 router.get('/admin-tree',           protect, authorize('ADMIN'), studentLibraryController.getAdminDriveTree);

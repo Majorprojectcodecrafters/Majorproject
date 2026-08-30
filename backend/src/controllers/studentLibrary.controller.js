@@ -488,9 +488,61 @@ exports.getAdminDriveTree = async (req, res) => {
   }
 };
 
-// ==================== SECURE STREAM INLINE (NO EXTERNAL REDIRECTS) ====================
+// ==================== GET STUDENT PROFILE & AUTO CLASS RESOLVER ====================
 
-const { createAcademicPdfBuffer, ensureLocalPdfFile } = require('../utils/pdfGenerator');
+exports.getStudentProfile = async (req, res) => {
+  try {
+    let student = null;
+
+    if (req.user.role === 'STUDENT') {
+      student = await prisma.student.findFirst({
+        where: {
+          OR: [
+            ...(req.user.studentId ? [{ id: req.user.studentId }] : []),
+            { userId: req.user.id }
+          ]
+        },
+        include: { class: { include: { stream: true } } }
+      });
+    }
+
+    let rawClassName = student?.class?.name || '12th Science';
+    let streamName = student?.class?.stream?.name || 'Science';
+    let gradeStr = '12th';
+
+    if (rawClassName.includes('11')) gradeStr = '11th';
+    else if (rawClassName.includes('12')) gradeStr = '12th';
+
+    // Map Division C / D -> Science (e.g. "11th C" -> 11th Science)
+    const lower = rawClassName.toLowerCase();
+    if (lower.includes('art') || lower.includes(' a')) streamName = 'Arts';
+    else if (lower.includes('com') || lower.includes(' b')) streamName = 'Commerce';
+    else if (lower.includes('sci') || lower.includes(' c') || lower.includes(' d')) streamName = 'Science';
+
+    const resolvedClassName = `${gradeStr} ${streamName}`;
+
+    // Find actual matching class record in database
+    const dbClass = await prisma.class.findFirst({
+      where: { name: { contains: gradeStr } }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        studentName: req.user.name,
+        rawClassName,
+        resolvedClassName,
+        grade: gradeStr,
+        stream: streamName,
+        classId: dbClass?.id || student?.classId || null
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// ==================== SECURE STREAM INLINE (NO EXTERNAL REDIRECTS) ====================
 
 exports.streamStudyMaterialSecure = async (req, res) => {
   try {
@@ -502,15 +554,15 @@ exports.streamStudyMaterialSecure = async (req, res) => {
 
     if (!material) return res.status(404).json({ success: false, message: 'Study material not found' });
 
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'inline; filename="study_material.pdf"');
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-
     // 1. Check if local disk file exists
     if (material.fileUrl && fs.existsSync(material.fileUrl)) {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline; filename="study_material.pdf"');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+
       const fileStream = fs.createReadStream(material.fileUrl);
       return fileStream.pipe(res);
     }
@@ -520,6 +572,13 @@ exports.streamStudyMaterialSecure = async (req, res) => {
       try {
         const stream = await getFileStreamFromDrive(material.driveFileId);
         if (stream) {
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', 'inline; filename="study_material.pdf"');
+          res.setHeader('X-Content-Type-Options', 'nosniff');
+          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+
           return stream.pipe(res);
         }
       } catch (streamErr) {
@@ -527,15 +586,12 @@ exports.streamStudyMaterialSecure = async (req, res) => {
       }
     }
 
-    // 3. Generate and serve 3-page rich academic study material PDF document directly to response
-    const pdfBuffer = createAcademicPdfBuffer({
-      title: material.title,
-      subjectName: material.subject?.name,
-      className: material.class?.name,
-      category: material.category,
-      description: material.description
+    // 3. If file content stream is not uploaded on disk/Drive, return 404 so UI shows Folder Files Explorer
+    res.status(404).json({
+      success: false,
+      message: 'PDF File content not available yet for this material.',
+      material
     });
-    res.send(pdfBuffer);
 
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
