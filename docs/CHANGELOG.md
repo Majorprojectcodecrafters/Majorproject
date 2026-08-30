@@ -2,6 +2,14 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.8.3] - 2026-08-30 (Category Grouping Expansion & Tab Navigation Fix)
+
+### Fixed
+- **Category Grouping (`studentLibrary.controller.js`)**: Grouped related categories so filtering by `Teacher Notes` returns notes, chapter notes, teacher notes, and general study materials. Grouped `Previous Board Papers` to return PYQs, board papers, and model papers. Grouped `Reference Materials` to return question banks, reference books, and glossaries.
+- **Frontend Category Tabs (`StudentMaterialsPage.jsx`)**: Updated tab labels to reflect grouped categories (`📚 All Materials`, `📖 Textbooks`, `📝 Notes & Study Material`, `🏛️ Past Papers (PYQ)`, `📑 Question Banks & Reference`).
+
+---
+
 ## [1.8.2] - 2026-08-30 (Google Drive Crawler Pagination & Student Folder Scoping Fix)
 
 ### Fixed

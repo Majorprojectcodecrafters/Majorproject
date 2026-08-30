@@ -204,7 +204,17 @@ exports.getStudyMaterials = async (req, res) => {
 
     if (subjectId) where.subjectId = subjectId;
     if (chapterId) where.chapterId = chapterId;
-    if (category && category !== 'all') where.category = category;
+    if (category && category !== 'all') {
+      if (category === 'TEACHER_NOTES' || category === 'CHAPTER_NOTES') {
+        where.category = { in: ['TEACHER_NOTES', 'CHAPTER_NOTES', 'STUDY_MATERIAL', 'OTHER'] };
+      } else if (category === 'PREVIOUS_BOARD_PAPER') {
+        where.category = { in: ['PREVIOUS_BOARD_PAPER', 'PAST_PAPER', 'SAMPLE_PAPER'] };
+      } else if (category === 'REFERENCE_MATERIAL' || category === 'QUESTION_BANK') {
+        where.category = { in: ['REFERENCE_MATERIAL', 'QUESTION_BANK', 'QUESTION_GLOSSARY'] };
+      } else {
+        where.category = category;
+      }
+    }
 
     // Never return Generated Test Papers in Study Materials!
     where.NOT = [

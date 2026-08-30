@@ -47,9 +47,9 @@ export default function StudentMaterialsPage() {
             {[
               ['all', '📚 All Materials'],
               ['TEXTBOOK', '📖 Textbooks'],
-              ['TEACHER_NOTES', '📝 Teacher Notes'],
-              ['CHAPTER_NOTES', '📄 Chapter Notes'],
-              ['PREVIOUS_BOARD_PAPER', '🏛️ Past Papers']
+              ['TEACHER_NOTES', '📝 Notes & Study Material'],
+              ['PREVIOUS_BOARD_PAPER', '🏛️ Past Papers (PYQ)'],
+              ['REFERENCE_MATERIAL', '📑 Question Banks & Reference']
             ].map(([value, label]) => (
               <button
                 key={value}
