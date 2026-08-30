@@ -2,6 +2,17 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.0.2] - 2026-08-30 (Automated Teacher Upload Cache Invalidation & Removal of Manual Student Sync Button)
+
+### Fixed & Automated
+- **Removal of Student Sync Button (`StudentMaterialsPage.jsx`)**:
+  - Removed manual "Sync Files" button from the student UI for a clean, automated experience.
+- **Automatic Cache Invalidation (`studentLibrary.controller.js`)**:
+  - Configured `uploadStudyMaterial` to automatically invoke `clearDriveCache()` whenever a teacher or admin uploads a file.
+  - Newly uploaded study materials automatically synchronize and become visible to students instantly on page view.
+
+---
+
 ## [2.0.1] - 2026-08-30 (Shared Google Drive API Integration & UI Minimalist Cleanup)
 
 ### Fixed & Cleaned

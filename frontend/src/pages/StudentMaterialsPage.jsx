@@ -34,7 +34,6 @@ export default function StudentMaterialsPage() {
   const [selectedSubject, setSelectedSubject] = useState('Mathematics');
   const [selectedCategory, setSelectedCategory] = useState('Textbook');
   const [activeDocument, setActiveDocument] = useState(null);
-  const [forceRefresh, setForceRefresh] = useState(false);
 
   // 1. Fetch Student Profile for Context Auto-Resolution
   const { data: profile } = useQuery({
@@ -56,15 +55,14 @@ export default function StudentMaterialsPage() {
 
   const activeSubject = availableSubjects.includes(selectedSubject) ? selectedSubject : availableSubjects[0];
 
-  // 2. Fetch Actual Files directly from Google Drive Folder Tree
-  const { data: driveResponse, isLoading: filesLoading, error, refetch } = useQuery({
-    queryKey: ['googleDriveFiles', selectedStream, activeSubject, selectedCategory, forceRefresh],
+  // 2. Fetch Actual Files directly from Google Drive Folder Tree (Automated Sync)
+  const { data: driveResponse, isLoading: filesLoading, error } = useQuery({
+    queryKey: ['googleDriveFiles', selectedStream, activeSubject, selectedCategory],
     queryFn: async () => {
       const params = new URLSearchParams({
         stream: selectedStream,
         subject: activeSubject,
-        category: selectedCategory,
-        ...(forceRefresh ? { refresh: 'true' } : {})
+        category: selectedCategory
       });
       const res = await apiClient.get(`/student-library/drive-files?${params.toString()}`);
       return res.data;
@@ -86,38 +84,24 @@ export default function StudentMaterialsPage() {
     window.open(downloadUrl, '_blank');
   };
 
-  const handleManualSync = () => {
-    setForceRefresh(prev => !prev);
-    refetch();
-  };
-
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl space-y-8 select-none">
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-slate-900 text-white p-6 rounded-2xl shadow-xl border border-slate-800">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded bg-purple-600/30 border border-purple-400/40 text-purple-200 text-[10px] font-bold uppercase tracking-wider">
-              Institutional Library
+      {/* Clean Minimalist Header Banner */}
+      <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-xl border border-slate-800">
+        <div className="flex items-center gap-2">
+          <span className="px-2.5 py-0.5 rounded bg-purple-600/30 border border-purple-400/40 text-purple-200 text-[10px] font-bold uppercase tracking-wider">
+            Institutional Library
+          </span>
+          {profile?.rawClassName && (
+            <span className="text-xs text-purple-300 font-semibold">
+              Enrolled: {profile.rawClassName}
             </span>
-            {profile?.rawClassName && (
-              <span className="text-xs text-purple-300 font-semibold">
-                Enrolled: {profile.rawClassName}
-              </span>
-            )}
-          </div>
-          <h1 className="text-3xl font-extrabold mt-1 text-slate-100">Study Materials & Notes</h1>
-          <p className="text-sm text-slate-300 mt-1">
-            Access official curriculum textbooks, chapter notes, previous year board papers, and reference materials.
-          </p>
+          )}
         </div>
-
-        <button
-          onClick={handleManualSync}
-          className="px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center gap-2"
-        >
-          Sync Files
-        </button>
+        <h1 className="text-3xl font-extrabold mt-1 text-slate-100">Study Materials & Notes</h1>
+        <p className="text-sm text-slate-300 mt-1">
+          Access official curriculum textbooks, chapter notes, previous year board papers, and reference materials.
+        </p>
       </div>
 
       {/* Level 1: Stream / Class Context Selector */}
@@ -211,9 +195,6 @@ export default function StudentMaterialsPage() {
           <div className="text-center py-12 space-y-2 bg-slate-50/60 rounded-xl border border-dashed border-slate-300">
             <p className="text-base font-bold text-slate-700">
               No study material available in this folder.
-            </p>
-            <p className="text-xs text-slate-500">
-              Check back soon or click "Sync Files" to refresh latest uploads.
             </p>
           </div>
         )}

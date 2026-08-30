@@ -127,9 +127,12 @@ exports.uploadStudyMaterial = async (req, res) => {
       }
     }
 
+    const { clearDriveCache } = require('../services/drive.service');
+    clearDriveCache(); // Automatically sync newly uploaded file for all students instantly
+
     res.status(201).json({
       success: true,
-      message: `Study material "${studyMaterial.title}" uploaded! ${ragMessage}`,
+      message: `Study material "${studyMaterial.title}" uploaded and automatically synchronized for students! ${ragMessage}`,
       data: {
         ...studyMaterial,
         indexedToRag: shouldIndex
