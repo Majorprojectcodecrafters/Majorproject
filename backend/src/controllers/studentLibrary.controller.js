@@ -136,8 +136,13 @@ exports.getStudyMaterials = async (req, res) => {
 
     // 1. STUDENT SCOPING: Only materials matching Student's Grade Level (11th or 12th) across all divisions
     if (req.user.role === 'STUDENT') {
-      const student = await prisma.student.findUnique({
-        where: { id: req.user.studentId },
+      const student = await prisma.student.findFirst({
+        where: {
+          OR: [
+            ...(req.user.studentId ? [{ id: req.user.studentId }] : []),
+            { userId: req.user.id }
+          ]
+        },
         include: { class: true }
       });
 
@@ -166,6 +171,7 @@ exports.getStudyMaterials = async (req, res) => {
       if (gradeStr) {
         orConditions.push({ title: { contains: gradeStr, mode: 'insensitive' } });
         orConditions.push({ fileName: { contains: gradeStr, mode: 'insensitive' } });
+        orConditions.push({ description: { contains: gradeStr, mode: 'insensitive' } });
       }
       orConditions.push({ classId: null });
 

@@ -252,32 +252,39 @@ async function listAllDriveFilesRecursive(folderId = null) {
 
   async function crawlFolder(currentFolderId, folderPath = '') {
     try {
-      const query = `'${currentFolderId}' in parents and trashed=false`;
-      const res = await drive.files.list({
-        q: query,
-        fields: 'files(id, name, mimeType, webViewLink, size, createdTime, parents)',
-        pageSize: 100
-      });
+      let pageToken = null;
+      do {
+        const query = `'${currentFolderId}' in parents and trashed=false`;
+        const res = await drive.files.list({
+          q: query,
+          fields: 'nextPageToken, files(id, name, mimeType, webViewLink, size, createdTime, parents)',
+          pageSize: 1000,
+          pageToken: pageToken || undefined
+        });
 
-      const items = res.data.files || [];
+        const items = res.data.files || [];
 
-      for (const item of items) {
-        if (item.mimeType === 'application/vnd.google-apps.folder') {
-          const currentPath = folderPath ? `${folderPath} / ${item.name}` : item.name;
-          folderTree.push({
-            id: item.id,
-            name: item.name,
-            path: currentPath,
-            parentId: currentFolderId
-          });
-          await crawlFolder(item.id, currentPath);
-        } else {
-          allFiles.push({
-            ...item,
-            folderPath: folderPath || 'Root Folder'
-          });
+        for (const item of items) {
+          if (item.mimeType === 'application/vnd.google-apps.folder') {
+            const currentPath = folderPath ? `${folderPath} / ${item.name}` : item.name;
+            folderTree.push({
+              id: item.id,
+              name: item.name,
+              path: currentPath,
+              parentId: currentFolderId
+            });
+            await crawlFolder(item.id, currentPath);
+          } else {
+            allFiles.push({
+              ...item,
+              folderPath: folderPath || 'Root Folder'
+            });
+          }
         }
-      }
+
+        pageToken = res.data.nextPageToken;
+      } while (pageToken);
+
     } catch (err) {
       console.warn(`⚠️ Failed to crawl Drive folder (${currentFolderId}):`, err.message);
     }

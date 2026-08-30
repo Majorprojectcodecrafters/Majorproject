@@ -2,6 +2,16 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [1.8.2] - 2026-08-30 (Google Drive Crawler Pagination & Student Folder Scoping Fix)
+
+### Fixed
+- **Google Drive Crawler Pagination (`drive.service.js`)**: Added `pageToken` loop to `listAllDriveFilesRecursive` so that all nested subfolders and files are fetched cleanly without pagination limit truncation.
+- **Student Profile Scoping (`studentLibrary.controller.js`)**:
+  - Expanded student lookup in `getStudyMaterials` to match by `studentId` OR `userId`.
+  - Added folder path `description` matching to student OR query conditions. Ensures all materials inside `Notes`, `Previous Year Board Papers`, `Question Banks`, and `Textbooks` folders are matched and displayed on student profiles.
+
+---
+
 ## [1.8.1] - 2026-08-30 (Hierarchy Folder Synchronization & Class/Subject Scoping)
 
 ### Fixed
