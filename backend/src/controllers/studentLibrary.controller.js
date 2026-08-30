@@ -542,6 +542,97 @@ exports.getStudentProfile = async (req, res) => {
   }
 };
 
+// ==================== GET REAL GOOGLE DRIVE FILES BY CATEGORY ====================
+
+exports.getDriveFilesForCategory = async (req, res) => {
+  try {
+    const { stream = '12th Science', subject = 'Physics', category = 'PYQP' } = req.query;
+
+    const categoryMap = {
+      'Notes': 'Notes',
+      'TEACHER_NOTES': 'Notes',
+      'CHAPTER_NOTES': 'Notes',
+      'PYQP': 'PYQP',
+      'PREVIOUS_BOARD_PAPER': 'PYQP',
+      'Question Banks': 'Question Banks',
+      'REFERENCE_MATERIAL': 'Question Banks',
+      'Textbook': 'Textbook',
+      'TEXTBOOK': 'Textbook'
+    };
+
+    const targetCategory = categoryMap[category] || category;
+    const pathParts = [stream, subject, targetCategory];
+
+    const { getDriveFolderFilesByPath } = require('../services/drive.service');
+    const files = await getDriveFolderFilesByPath(pathParts);
+
+    const formattedFiles = files.map(file => ({
+      id: file.id,
+      name: file.name,
+      fileName: file.name,
+      mimeType: file.mimeType,
+      fileSize: file.size ? parseInt(file.size, 10) : null,
+      createdTime: file.createdTime,
+      driveFileId: file.id,
+      webViewLink: file.webViewLink,
+      stream,
+      subject,
+      category: targetCategory
+    }));
+
+    res.json({
+      success: true,
+      data: formattedFiles,
+      folderPath: pathParts.join(' / ')
+    });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// ==================== DIRECT DRIVE FILE STREAMING (VIEW & DOWNLOAD) ====================
+
+exports.streamDriveFileSecure = async (req, res) => {
+  try {
+    const { id } = req.params; // fileId
+    const { getFileStreamFromDrive } = require('../services/drive.service');
+
+    const stream = await getFileStreamFromDrive(id);
+    if (!stream) {
+      return res.status(404).json({ success: false, message: 'Google Drive file stream not available' });
+    }
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'inline; filename="study_material.pdf"');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    stream.pipe(res);
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.downloadDriveFileSecure = async (req, res) => {
+  try {
+    const { id } = req.params; // fileId
+    const fileName = req.query.fileName || 'document.pdf';
+    const { getFileStreamFromDrive } = require('../services/drive.service');
+
+    const stream = await getFileStreamFromDrive(id);
+    if (!stream) {
+      return res.status(404).json({ success: false, message: 'Google Drive file stream not available for download' });
+    }
+
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    stream.pipe(res);
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 // ==================== SECURE STREAM INLINE (NO EXTERNAL REDIRECTS) ====================
 
 exports.streamStudyMaterialSecure = async (req, res) => {

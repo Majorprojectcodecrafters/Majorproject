@@ -2,6 +2,24 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.0.0] - 2026-08-30 (Complete Google Drive-Backed Student Library Architecture)
+
+### Added & Rebuilt
+- **Authentic Google Drive File Retrieval System (`drive.service.js`, `studentLibrary.controller.js`)**:
+  - Rebuilt the Student Library retrieval pipeline directly around Google Drive folder structure (`QpGen_dataset` $\rightarrow$ `12th Science` $\rightarrow$ `Physics` / `Chemistry` / `Mathematics` / `Biology` $\rightarrow$ `Notes`, `PYQP`, `Question Banks`, `Textbook`).
+  - Implemented `getDriveFolderFilesByPath` with 5-minute background memory cache for instant load times.
+  - Added endpoints `/api/student-library/drive-files`, `/api/student-library/drive-files/:id/view`, and `/api/student-library/drive-files/:id/download`.
+- **Student Profile Context & Stream Navigation (`StudentMaterialsPage.jsx`)**:
+  - Defaults to student's enrolled context (`12th Science`), with manual stream selector tabs for switching between classes.
+  - Dynamically populates stream subjects (`Physics`, `Chemistry`, `Mathematics`, `Biology`) and exact category tabs.
+  - Displays real Google Drive file names (`physics_2020.pdf`, `physics_2021.pdf`) retrieved directly from Google Drive API.
+  - Clean empty state card: *"No study material available in this Google Drive folder."*
+- **Multi-Format Streaming & Secure Downloads (`ProtectedDocumentViewer.jsx`)**:
+  - Streams actual Google Drive file bytes securely inline via backend proxy without exposing Google credentials.
+  - Direct secure file download option provided for students.
+
+---
+
 ## [1.9.3] - 2026-08-30 (Removal of Synthetic PDF Auto-Generator & Enforced Exact Physical PDF File Streaming)
 
 ### Fixed

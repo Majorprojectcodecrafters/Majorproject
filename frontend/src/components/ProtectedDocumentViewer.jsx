@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 
-export default function ProtectedDocumentViewer({ documentId, title, documentTitle, subjectName, className, fileUrl, onClose }) {
+export default function ProtectedDocumentViewer({ documentId, title, documentTitle, subjectName, className, onClose }) {
   const displayTitle = title || documentTitle || 'Study Material Document';
   const [showWarning, setShowWarning] = useState(false);
-  const [hasFileError, setHasFileError] = useState(false);
 
   const triggerCopyCutWarning = () => {
     setShowWarning(true);
@@ -27,14 +26,9 @@ export default function ProtectedDocumentViewer({ documentId, title, documentTit
     };
   }, []);
 
-  // Check if file status endpoint returns available physical file stream
-  useEffect(() => {
-    if (!documentId) return;
-    setHasFileError(false);
-  }, [documentId]);
-
-  // Direct backend stream URL serving ONLY exact uploaded physical PDF files
-  const streamUrl = `/api/student-library/materials/${documentId}/view#toolbar=0&navpanes=0&scrollbar=1`;
+  // Direct backend Google Drive stream endpoint (NO EXTERNAL REDIRECTS)
+  const streamUrl = `/api/student-library/drive-files/${documentId}/view#toolbar=0&navpanes=0&scrollbar=1`;
+  const downloadUrl = `/api/student-library/drive-files/${documentId}/download?fileName=${encodeURIComponent(displayTitle)}`;
 
   return (
     <div
@@ -48,18 +42,28 @@ export default function ProtectedDocumentViewer({ documentId, title, documentTit
         {/* Header Bar */}
         <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white">
           <div className="flex items-center gap-3">
-            <span className="px-2.5 py-1 rounded bg-purple-600/30 border border-purple-400/40 text-purple-200 text-xs font-bold uppercase tracking-wide">
-              Document Viewer
+            <span className="px-2.5 py-1 rounded bg-emerald-600/30 border border-emerald-400/40 text-emerald-200 text-xs font-bold uppercase tracking-wide">
+              Google Drive Viewer
             </span>
-            <h3 className="font-bold text-base text-slate-100 truncate max-w-xl">{displayTitle}</h3>
+            <h3 className="font-bold text-base text-slate-100 truncate max-w-lg">{displayTitle}</h3>
           </div>
 
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-all"
-          >
-            Close
-          </button>
+          <div className="flex items-center gap-2">
+            <a
+              href={downloadUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3.5 py-1.5 rounded-lg bg-purple-700 hover:bg-purple-600 text-white font-bold text-xs transition-all flex items-center gap-1.5"
+            >
+              Download
+            </a>
+            <button
+              onClick={onClose}
+              className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-all"
+            >
+              Close
+            </button>
+          </div>
         </div>
 
         {/* Dynamic Toast Alert */}
@@ -70,31 +74,14 @@ export default function ProtectedDocumentViewer({ documentId, title, documentTit
           </div>
         )}
 
-        {/* Main Document Body — Streams ONLY Exact Physical Uploaded PDF File */}
+        {/* Main Document Body — Embedded Backend Stream Iframe */}
         <div className="relative flex-1 bg-slate-100 overflow-hidden flex flex-col items-center justify-center p-3">
-          {hasFileError ? (
-            <div className="text-center p-8 bg-white rounded-2xl shadow-md border border-slate-200 max-w-md w-full space-y-3">
-              <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center mx-auto font-bold text-xl">
-                PDF
-              </div>
-              <h4 className="font-bold text-base text-slate-800">{displayTitle}</h4>
-              <p className="text-xs text-slate-500">
-                The exact physical PDF file for this material has not been uploaded to storage yet.
-              </p>
-              <div className="text-[11px] text-slate-600 font-medium bg-slate-50 p-3 rounded-lg border text-left space-y-1">
-                {className && <div><strong>Class:</strong> {className}</div>}
-                {subjectName && <div><strong>Subject:</strong> {subjectName}</div>}
-              </div>
-            </div>
-          ) : (
-            <iframe
-              src={streamUrl}
-              title={displayTitle}
-              className="w-full h-full rounded-xl border border-slate-300 shadow-inner bg-white"
-              onContextMenu={(e) => e.preventDefault()}
-              onError={() => setHasFileError(true)}
-            />
-          )}
+          <iframe
+            src={streamUrl}
+            title={displayTitle}
+            className="w-full h-full rounded-xl border border-slate-300 shadow-inner bg-white"
+            onContextMenu={(e) => e.preventDefault()}
+          />
         </div>
       </div>
     </div>

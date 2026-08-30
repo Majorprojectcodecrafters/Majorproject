@@ -26,7 +26,10 @@ const upload = multer({
 });
 
 // Student Library Routes
-router.get('/profile',              protect, authorize('STUDENT', 'TEACHER', 'ADMIN'), studentLibraryController.getStudentProfile);
+router.get('/profile',               protect, authorize('STUDENT', 'TEACHER', 'ADMIN'), studentLibraryController.getStudentProfile);
+router.get('/drive-files',           protect, authorize('STUDENT', 'TEACHER', 'ADMIN'), studentLibraryController.getDriveFilesForCategory);
+router.get('/drive-files/:id/view',  protect, authorize('STUDENT', 'TEACHER', 'ADMIN'), studentLibraryController.streamDriveFileSecure);
+router.get('/drive-files/:id/download', protect, authorize('STUDENT', 'TEACHER', 'ADMIN'), studentLibraryController.downloadDriveFileSecure);
 router.post('/upload',               protect, authorize('ADMIN', 'TEACHER'), upload.single('file'), studentLibraryController.uploadStudyMaterial);
 router.post('/sync',                 protect, authorize('ADMIN', 'TEACHER'), studentLibraryController.syncDriveMaterials);
 router.get('/admin-tree',           protect, authorize('ADMIN'), studentLibraryController.getAdminDriveTree);

@@ -294,6 +294,75 @@ async function listAllDriveFilesRecursive(folderId = null) {
   return { files: allFiles, folderTree };
 }
 
+/**
+ * Resolve folder ID by walking subfolder names: ['12th Science', 'Physics', 'PYQP']
+ */
+const driveFolderCache = new Map();
+
+async function getDriveFolderFilesByPath(pathParts = []) {
+  const drive = getDriveClient();
+  if (!drive) return [];
+
+  const rootId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
+  if (!rootId) return [];
+
+  const cacheKey = pathParts.join('/');
+  const cached = driveFolderCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < 300000) { // 5 min cache
+    return cached.files;
+  }
+
+  try {
+    let currentFolderId = rootId;
+
+    for (const part of pathParts) {
+      if (!part) continue;
+      const query = `'${currentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+      const res = await drive.files.list({
+        q: query,
+        fields: 'files(id, name)',
+        pageSize: 100
+      });
+
+      const folders = res.data.files || [];
+      const matched = folders.find(f => f.name.toLowerCase().trim() === part.toLowerCase().trim());
+
+      if (!matched) {
+        // Try fallback partial match (e.g. "12th Science" vs "12th science")
+        const partialMatch = folders.find(f => f.name.toLowerCase().includes(part.toLowerCase().trim()));
+        if (!partialMatch) {
+          console.warn(`⚠️ Drive subfolder "${part}" not found under parent ${currentFolderId}`);
+          return [];
+        }
+        currentFolderId = partialMatch.id;
+      } else {
+        currentFolderId = matched.id;
+      }
+    }
+
+    // List all non-folder files inside leaf folder
+    const fileQuery = `'${currentFolderId}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed=false`;
+    const fileRes = await drive.files.list({
+      q: fileQuery,
+      fields: 'files(id, name, mimeType, webViewLink, size, createdTime)',
+      pageSize: 500,
+      orderBy: 'name asc'
+    });
+
+    const files = fileRes.data.files || [];
+    driveFolderCache.set(cacheKey, { timestamp: Date.now(), files });
+    return files;
+
+  } catch (error) {
+    console.error('❌ Failed to retrieve Google Drive files by path:', error.message);
+    return [];
+  }
+}
+
+function clearDriveCache() {
+  driveFolderCache.clear();
+}
+
 module.exports = {
   isDriveConfigured,
   ensureFolderStructure,
@@ -302,5 +371,7 @@ module.exports = {
   getFileStreamFromDrive,
   deleteFileFromDrive,
   listDriveFilesAndFolders,
-  listAllDriveFilesRecursive
+  listAllDriveFilesRecursive,
+  getDriveFolderFilesByPath,
+  clearDriveCache
 };
