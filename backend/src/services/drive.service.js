@@ -9,10 +9,11 @@ const path = require('path');
  */
 
 function isDriveConfigured() {
+  const saKeyFile = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE;
   const saEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_DRIVE_CLIENT_EMAIL;
   const saKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || process.env.GOOGLE_DRIVE_PRIVATE_KEY;
-  const hasServiceAccount = saEmail && saKey;
-  const hasOAuth = process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REFRESH_TOKEN;
+  const hasServiceAccount = Boolean((saEmail && saKey) || (saKeyFile && fs.existsSync(saKeyFile)));
+  const hasOAuth = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REFRESH_TOKEN);
   return Boolean(hasServiceAccount || hasOAuth);
 }
 
@@ -22,6 +23,15 @@ function getDriveClient() {
   }
 
   try {
+    const saKeyFile = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE;
+    if (saKeyFile && fs.existsSync(saKeyFile)) {
+      const auth = new google.auth.GoogleAuth({
+        keyFile: saKeyFile,
+        scopes: ['https://www.googleapis.com/auth/drive']
+      });
+      return google.drive({ version: 'v3', auth });
+    }
+
     const saEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_DRIVE_CLIENT_EMAIL;
     const saKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || process.env.GOOGLE_DRIVE_PRIVATE_KEY;
 

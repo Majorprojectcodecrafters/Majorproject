@@ -2,6 +2,15 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.1.2] - 2026-08-31 (Configuration of Service Account Email & JSON Key File Support)
+
+### Added
+- **Service Account Configuration & Key File Support (`drive.service.js`, `.env`)**:
+  - Configured `GOOGLE_SERVICE_ACCOUNT_EMAIL` (`qpgen-storage@project-30d64ea5-9a37-4ae8-91d.iam.gserviceaccount.com`).
+  - Added support for `GOOGLE_SERVICE_ACCOUNT_KEY_FILE` in `drive.service.js` to allow direct loading of Service Account JSON credentials without exposing secret strings in chat.
+
+---
+
 ## [2.1.1] - 2026-08-31 (Strict Enforcement of Google Drive as Sole Source of Truth for Student Library Retrieval)
 
 ### Fixed & Enforced
