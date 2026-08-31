@@ -143,6 +143,32 @@ exports.createUser = async (req, res) => {
       return res.status(400).json({ success: false, message: 'User email already exists' });
     }
 
+    let studentUniqueId = uniqueId || null;
+    if (role === 'STUDENT') {
+      let resolvedClassId = classId;
+      if (!resolvedClassId) {
+        const firstClass = await prisma.class.findFirst();
+        resolvedClassId = firstClass ? firstClass.id : null;
+      }
+
+      let resolvedStreamId = streamId;
+      if (!resolvedStreamId && resolvedClassId) {
+        const targetClass = await prisma.class.findUnique({ where: { id: resolvedClassId } });
+        if (targetClass?.streamId) resolvedStreamId = targetClass.streamId;
+      }
+      if (!resolvedStreamId) {
+        const firstStream = await prisma.stream.findFirst();
+        resolvedStreamId = firstStream ? firstStream.id : null;
+      }
+
+      const { generateStudentUniqueId } = require('../utils/studentUniqueIdGenerator');
+      studentUniqueId = await generateStudentUniqueId({ classId: resolvedClassId, streamId: resolvedStreamId });
+
+      // Update classId and streamId to resolved values
+      req.resolvedClassId = resolvedClassId;
+      req.resolvedStreamId = resolvedStreamId;
+    }
+
     const bcrypt = require('bcrypt');
     const hashedPassword = await bcrypt.hash(password || 'qpgen123', 10);
 
@@ -166,10 +192,10 @@ exports.createUser = async (req, res) => {
         ...(role === 'STUDENT' && {
           student: {
             create: {
-              uniqueId: uniqueId || `STU-${Math.floor(100000 + Math.random() * 900000)}`,
+              uniqueId: studentUniqueId,
               contact: contact || 'N/A',
-              classId: classId || null,
-              streamId: streamId || null
+              classId: req.resolvedClassId || classId || null,
+              streamId: req.resolvedStreamId || streamId || null
             }
           }
         })

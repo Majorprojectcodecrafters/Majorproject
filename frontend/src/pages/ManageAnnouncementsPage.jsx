@@ -3,10 +3,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function ManageAnnouncementsPage() {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
 
   const [title, setTitle] = useState('');
@@ -84,39 +86,39 @@ export default function ManageAnnouncementsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-5xl space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 select-none">
       {/* Header */}
-      <div className="border-b pb-4">
-        <h1 className="text-3xl font-bold text-gray-900">Manage Notices & Announcements</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Compose and publish announcements with optional image or PDF attachments.
+      <div className="border-b border-slate-200 pb-4">
+        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{t('manageNoticesTitle', 'Manage Notices & Announcements')}</h1>
+        <p className="mt-1 text-sm text-slate-500 font-medium">
+          {t('manageNoticesSubtitle', 'Compose and publish announcements with optional image or PDF attachments.')}
         </p>
       </div>
 
       {/* Composer Form */}
-      <form onSubmit={handleCreateNotice} className="card bg-blue-50/40 border border-blue-200 p-6 space-y-5">
-        <h2 className="text-base font-bold text-blue-950 uppercase tracking-wider">
-          Compose New Announcement
+      <form onSubmit={handleCreateNotice} className="card bg-slate-50/50 border border-slate-200 p-6 space-y-5">
+        <h2 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
+          {t('composeNewAnnouncement', 'Compose New Announcement')}
         </h2>
 
         <div>
-          <label className="input-label">Announcement Title <span className="text-red-500">*</span></label>
+          <label className="input-label font-bold text-xs text-slate-700">{t('announcementTitle', 'Announcement Title')} <span className="text-red-500">*</span></label>
           <input
             type="text"
             placeholder="e.g. Schedule for Mid-Term Examination 2026"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="input-field bg-white"
+            className="input-field bg-white mt-1"
             required
           />
         </div>
 
         <div>
-          <label className="input-label">Target Audience / Class</label>
+          <label className="input-label font-bold text-xs text-slate-700">{t('targetAudience', 'Target Audience / Class')}</label>
           <select
             value={classId}
             onChange={(e) => setClassId(e.target.value)}
-            className="input-field bg-white"
+            className="input-field bg-white mt-1"
             required={user?.role === 'TEACHER'}
           >
             <option value="">{user?.role === 'ADMIN' ? '-- Broadcast to All Classes --' : '-- Select Target Assigned Class --'}</option>
@@ -129,51 +131,51 @@ export default function ManageAnnouncementsPage() {
         </div>
 
         <div>
-          <label className="input-label">Notice Message / Content <span className="text-red-500">*</span></label>
+          <label className="input-label font-bold text-xs text-slate-700">{t('noticeMessage', 'Notice Message / Content')} <span className="text-red-500">*</span></label>
           <textarea
             rows="4"
             placeholder="Enter announcement text content here..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="input-field bg-white"
+            className="input-field bg-white mt-1 max-w-4xl"
             required
           ></textarea>
         </div>
 
         <div>
-          <label className="input-label">Attach File (Optional — PNG, JPG, PDF, Max 10MB)</label>
+          <label className="input-label font-bold text-xs text-slate-700">{t('attachFile', 'Attach File (Optional — PNG, JPG, PDF, Max 10MB)')}</label>
           <input
             type="file"
             accept="image/png, image/jpeg, image/jpg, application/pdf"
             onChange={(e) => setFile(e.target.files[0] || null)}
-            className="input-field bg-white text-xs file:mr-4 file:py-1.5 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-800 hover:file:bg-blue-200"
+            className="input-field bg-white text-xs file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mt-1"
           />
         </div>
 
         <div className="flex justify-end pt-2">
           <button type="submit" disabled={submitting} className="btn-primary min-w-44">
-            {submitting ? 'Publishing...' : 'Publish Notice'}
+            {submitting ? t('publishing', 'Publishing...') : t('publishNotice', 'Publish Notice')}
           </button>
         </div>
       </form>
 
       {/* Active Notices Table */}
       <div className="card space-y-4">
-        <h3 className="text-lg font-bold text-gray-900 border-b pb-2">Active Announcements ({announcements.length})</h3>
+        <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">{t('activeAnnouncements', 'Active Announcements')} ({announcements.length})</h3>
 
         {announcements.length === 0 ? (
-          <p className="py-6 text-center text-gray-500">No active announcements created yet.</p>
+          <p className="py-6 text-center text-slate-500 text-sm font-medium">{t('noAnnouncementsYet', 'No active announcements created yet.')}</p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="table-responsive-container">
             <table className="w-full text-left text-sm border-collapse">
               <thead>
-                <tr className="border-b bg-gray-50 text-xs font-semibold text-gray-700 uppercase">
-                  <th className="p-3">Title</th>
-                  <th className="p-3">Target Class</th>
-                  <th className="p-3">Author</th>
-                  <th className="p-3">Attachment</th>
-                  <th className="p-3">Created Date</th>
-                  <th className="p-3 text-right">Action</th>
+                <tr className="border-b border-slate-200 bg-slate-50 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <th className="p-3">{t('title', 'Title')}</th>
+                  <th className="p-3">{t('targetClass', 'Target Class')}</th>
+                  <th className="p-3">{t('author', 'Author')}</th>
+                  <th className="p-3">{t('attachment', 'Attachment')}</th>
+                  <th className="p-3">{t('createdDate', 'Created Date')}</th>
+                  <th className="p-3 text-right">{t('actions', 'Actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y text-sm">

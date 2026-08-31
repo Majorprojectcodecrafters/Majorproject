@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function TeacherQuizPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const { t } = useLanguage();
 
   const [activeTab, setActiveTab] = useState('builder'); // 'builder' | 'list'
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
@@ -112,13 +114,13 @@ export default function TeacherQuizPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 select-none">
       {/* Header */}
-      <div className="border-b pb-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="border-b border-slate-200 pb-4 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Quiz Management System</h1>
-          <p className="mt-1 text-sm text-gray-600">
-            Generate online objective quizzes using existing curriculum chunks & RAG syllabus mapping.
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{t('quizManagementTitle', 'Quiz Management System')}</h1>
+          <p className="mt-1 text-sm text-slate-500 font-medium">
+            {t('quizManagementSubtitle', 'Generate online objective quizzes using existing curriculum chunks & RAG syllabus mapping.')}
           </p>
         </div>
 
@@ -127,13 +129,13 @@ export default function TeacherQuizPage() {
             onClick={() => setActiveTab('builder')}
             className={`btn-sm ${activeTab === 'builder' ? 'btn-primary' : 'btn-secondary'}`}
           >
-            Generate Quiz
+            {t('generateQuizTab', 'Generate Quiz')}
           </button>
           <button
             onClick={() => setActiveTab('list')}
             className={`btn-sm ${activeTab === 'list' ? 'btn-primary' : 'btn-secondary'}`}
           >
-            Manage & Results ({quizzes.length})
+            {t('manageResultsTab', 'Manage & Results')} ({quizzes.length})
           </button>
         </div>
       </div>
@@ -142,29 +144,29 @@ export default function TeacherQuizPage() {
       {activeTab === 'builder' && (
         <div className="space-y-8">
           <form onSubmit={handleGenerateQuiz} className="card space-y-6">
-            <h2 className="text-lg font-bold text-gray-900 border-b pb-2">Generate New Online Quiz</h2>
+            <h2 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">{t('generateNewQuizTitle', 'Generate New Online Quiz')}</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="input-label">Quiz Title (Optional)</label>
+                <label className="input-label font-bold text-xs text-slate-700">{t('quizTitleOptional', 'Quiz Title (Optional)')}</label>
                 <input
                   type="text"
-                  placeholder="e.g. Physics Chapter 1 & 2 Online Assessment"
+                  placeholder={t('quizTitlePlaceholder', 'e.g. Physics Chapter 1 & 2 Online Assessment')}
                   value={quizTitle}
                   onChange={(e) => setQuizTitle(e.target.value)}
-                  className="input-field"
+                  className="input-field mt-1"
                 />
               </div>
 
               <div>
-                <label className="input-label">Target Class / Division</label>
+                <label className="input-label font-bold text-xs text-slate-700">{t('targetClassDivision', 'Target Class / Division')}</label>
                 <select
                   value={selectedClassId}
                   onChange={(e) => setSelectedClassId(e.target.value)}
-                  className="input-field"
+                  className="input-field mt-1"
                   required
                 >
-                  <option value="">Select Target Class</option>
+                  <option value="">{t('selectTargetClass', 'Select Target Class')}</option>
                   {assignedClasses.map(ac => (
                     <option key={ac.class?.id} value={ac.class?.id}>
                       {ac.class?.name} ({ac.subject?.name})
@@ -174,17 +176,17 @@ export default function TeacherQuizPage() {
               </div>
 
               <div>
-                <label className="input-label">Subject</label>
+                <label className="input-label font-bold text-xs text-slate-700">{t('subject', 'Subject')}</label>
                 <select
                   value={selectedSubjectId}
                   onChange={(e) => {
                     setSelectedSubjectId(e.target.value);
                     setSelectedChapterIds([]);
                   }}
-                  className="input-field"
+                  className="input-field mt-1"
                   required
                 >
-                  <option value="">Select Subject</option>
+                  <option value="">{t('selectSubjectOption', 'Select Subject')}</option>
                   {subjects.map(s => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
@@ -193,11 +195,11 @@ export default function TeacherQuizPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="input-label">Questions</label>
+                  <label className="input-label font-bold text-xs text-slate-700">{t('questionsLabel', 'Questions')}</label>
                   <select
                     value={questionCount}
                     onChange={(e) => setQuestionCount(e.target.value)}
-                    className="input-field"
+                    className="input-field mt-1"
                   >
                     <option value="5">5 MCQs (5 Marks)</option>
                     <option value="10">10 MCQs (10 Marks)</option>
@@ -207,15 +209,15 @@ export default function TeacherQuizPage() {
                 </div>
 
                 <div>
-                  <label className="input-label">Time Limit</label>
+                  <label className="input-label font-bold text-xs text-slate-700">{t('timeLimitLabel', 'Time Limit')}</label>
                   <select
                     value={durationMins}
                     onChange={(e) => setDurationMins(e.target.value)}
-                    className="input-field"
+                    className="input-field mt-1"
                   >
-                    <option value="10">10 Minutes</option>
-                    <option value="15">15 Minutes</option>
-                    <option value="30">30 Minutes</option>
+                    <option value="10">10 Mins</option>
+                    <option value="15">15 Mins</option>
+                    <option value="30">30 Mins</option>
                   </select>
                 </div>
               </div>
@@ -224,26 +226,26 @@ export default function TeacherQuizPage() {
             {/* Chapter Selection */}
             {selectedSubjectId && (
               <div>
-                <label className="input-label mb-2 block">
-                  Select Chapters to Include ({selectedChapterIds.length} selected)
+                <label className="input-label mb-2 block font-bold text-xs text-slate-700">
+                  {t('selectChaptersToInclude', 'Select Chapters to Include')} ({selectedChapterIds.length} selected)
                 </label>
 
                 {chapters.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-3 border rounded-lg bg-gray-50">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-3 border border-slate-200 rounded-xl bg-slate-50">
                     {chapters.map(c => (
-                      <label key={c.id} className="flex items-center gap-2 text-xs text-gray-800 cursor-pointer p-1 hover:bg-white rounded">
+                      <label key={c.id} className="flex items-center gap-2 text-xs text-slate-800 cursor-pointer p-1.5 hover:bg-white rounded-lg transition-colors">
                         <input
                           type="checkbox"
                           checked={selectedChapterIds.includes(c.id)}
                           onChange={() => toggleChapter(c.id)}
-                          className="rounded text-blue-600"
+                          className="rounded text-blue-600 focus:ring-blue-500"
                         />
                         <span><strong>Ch {c.chapterNo || ''}:</strong> {c.name}</span>
                       </label>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-gray-500 italic">No chapters found for selected subject.</p>
+                  <p className="text-xs text-slate-500 italic font-medium">{t('noChaptersFound', 'No chapters found for selected subject.')}</p>
                 )}
               </div>
             )}
@@ -253,7 +255,7 @@ export default function TeacherQuizPage() {
               disabled={generating || !selectedSubjectId || !selectedClassId || !selectedChapterIds.length}
               className="btn-primary min-w-48"
             >
-              {generating ? 'Generating Quiz...' : 'Generate Quiz'}
+              {generating ? t('generatingQuiz', 'Generating Quiz...') : t('generateQuizBtn', 'Generate Quiz')}
             </button>
           </form>
 

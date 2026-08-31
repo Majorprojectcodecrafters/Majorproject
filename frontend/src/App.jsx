@@ -2,8 +2,11 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
+
+import AdminProfilePage from './pages/AdminProfilePage';
 
 // Pages
 import LoginPage from './pages/LoginPage';
@@ -232,6 +235,14 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/admin/profile"
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <AdminProfilePage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Fallback — routes each role to its own home */}
       <Route path="/" element={<HomeRedirect />} />
@@ -245,10 +256,12 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         <AuthProvider>
-          <Router>
-            <Navbar />
-            <AppRoutes />
-          </Router>
+          <LanguageProvider>
+            <Router>
+              <Navbar />
+              <AppRoutes />
+            </Router>
+          </LanguageProvider>
         </AuthProvider>
       </ToastProvider>
     </QueryClientProvider>

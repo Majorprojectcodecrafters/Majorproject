@@ -4,10 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import apiClient from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function TeacherProfilePage() {
   const { showToast } = useToast();
   const { user, updateUser, logout } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const navigate = useNavigate();
   const [education, setEducation] = useState('');
   const [experienceYears, setExperienceYears] = useState(0);
@@ -103,10 +105,10 @@ export default function TeacherProfilePage() {
   const currentAvatar = user?.avatarUrl || profile?.user?.avatarUrl;
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl space-y-8 select-none">
-      <div className="border-b pb-4">
-        <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-        <p className="mt-1 text-sm text-gray-600">View and update your teacher account details.</p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 select-none">
+      <div className="border-b border-slate-200 pb-4">
+        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{t('myProfileTitle', 'My Profile')}</h1>
+        <p className="mt-1 text-sm text-slate-500 font-medium">{t('myProfileSubtitle', 'View and update your teacher account details.')}</p>
       </div>
 
       {profile && (
@@ -141,8 +143,7 @@ export default function TeacherProfilePage() {
                 disabled={uploadingPhoto}
                 className="btn-secondary py-1.5 px-4 text-xs font-bold w-full rounded-xl flex items-center justify-center gap-1.5"
               >
-                <span></span>
-                <span>{uploadingPhoto ? 'Uploading...' : currentAvatar ? 'Change Photo' : 'Upload Photo'}</span>
+                <span>{uploadingPhoto ? t('uploading', 'Uploading...') : currentAvatar ? t('changePhoto', 'Change Photo') : t('uploadPhoto', 'Upload Photo')}</span>
               </button>
 
               {currentAvatar && (
@@ -151,76 +152,118 @@ export default function TeacherProfilePage() {
                   onClick={handleDeletePhoto}
                   className="text-xs font-bold text-red-600 hover:text-red-700 hover:underline w-full text-center block pt-1"
                 >
-                  Remove Photo
+                  {t('removePhoto', 'Remove Photo')}
                 </button>
               )}
             </div>
 
             <div className="text-center pt-2">
-              <h2 className="text-lg font-bold text-gray-900">{profile.user?.name}</h2>
-              <p className="text-xs text-gray-500">{profile.user?.email}</p>
+              <h2 className="text-lg font-bold text-slate-900">{profile.user?.name}</h2>
+              <p className="text-xs text-slate-500 font-medium">{profile.user?.email}</p>
               <span className="badge badge-info mt-2">TEACHER</span>
             </div>
 
-            <div className="border-t pt-3 text-xs space-y-2 text-gray-600 text-left">
-              <div><strong>Joined:</strong> {new Date(profile.createdAt).toLocaleDateString()}</div>
-              <div><strong>Created QPs:</strong> {profile.questionPapers?.length || 0} Papers</div>
-              <div><strong>Students:</strong> {profile.students?.length || 0} Assigned</div>
+            <div className="border-t border-slate-100 pt-3 text-xs space-y-2 text-slate-600 text-left">
+              <div><strong>{t('joinedLabel', 'Joined')}:</strong> {new Date(profile.createdAt).toLocaleDateString()}</div>
+              <div><strong>{t('createdQPsLabel', 'Created QPs')}:</strong> {profile.questionPapers?.length || 0} {t('papersWord', 'Papers')}</div>
+              <div><strong>{t('studentsLabel', 'Students')}:</strong> {profile.students?.length || 0} {t('assignedWord', 'Assigned')}</div>
             </div>
 
             {/* Logout Action inside Profile Section */}
-            <div className="border-t pt-3">
+            <div className="border-t border-slate-100 pt-3">
               <button
                 type="button"
                 onClick={handleLogout}
                 className="w-full py-2 px-4 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 hover:text-red-700 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors shadow-xs"
               >
-                <span></span>
-                <span>Logout from Account</span>
+                <span>{t('logoutFromAccount', 'Logout from Account')}</span>
               </button>
             </div>
           </div>
 
-          {/* Form Card */}
-          <form onSubmit={handleUpdate} className="card space-y-6 md:col-span-2">
-            <h3 className="text-lg font-bold text-gray-900 border-b pb-2">Profile Details</h3>
+          {/* Form Card & Language Settings */}
+          <div className="space-y-6 md:col-span-2">
+            <form onSubmit={handleUpdate} className="card space-y-6">
+              <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">{t('profileDetails', 'Profile Details')}</h3>
 
-            <div>
-              <label className="input-label">Full Name</label>
-              <input type="text" value={profile.user?.name || ''} disabled className="input-field bg-gray-100 cursor-not-allowed" />
+              <div>
+                <label className="input-label font-bold text-xs text-slate-700">{t('fullName', 'Full Name')}</label>
+                <input type="text" value={profile.user?.name || ''} disabled className="input-field bg-slate-100 cursor-not-allowed mt-1" />
+              </div>
+
+              <div>
+                <label className="input-label font-bold text-xs text-slate-700">{t('emailAddress', 'Email Address')}</label>
+                <input type="email" value={profile.user?.email || ''} disabled className="input-field bg-slate-100 cursor-not-allowed mt-1" />
+              </div>
+
+              <div>
+                <label className="input-label font-bold text-xs text-slate-700">{t('educationQualifications', 'Education Qualifications')}</label>
+                <input
+                  type="text"
+                  value={education}
+                  onChange={(e) => setEducation(e.target.value)}
+                  placeholder="e.g. M.Sc Physics, B.Ed"
+                  className="input-field mt-1"
+                />
+              </div>
+
+              <div>
+                <label className="input-label font-bold text-xs text-slate-700">{t('teachingExperience', 'Teaching Experience (Years)')}</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={experienceYears}
+                  onChange={(e) => setExperienceYears(e.target.value)}
+                  className="input-field mt-1"
+                />
+              </div>
+
+              <button type="submit" disabled={saving} className="btn-primary">
+                {saving ? 'Saving...' : t('updateProfile', 'Update Profile')}
+              </button>
+            </form>
+
+            {/* Language Settings Card */}
+            <div className="card space-y-4">
+              <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">{t('languageSettings', 'Language Settings')}</h3>
+              <p className="text-xs text-slate-500 font-medium">{t('selectLanguage', 'Select your preferred language for the QPGen interface:')}</p>
+              
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLanguage('en');
+                    showToast(t('languageSavedToast', 'UI Language updated successfully!'), 'success');
+                  }}
+                  className={`py-3 px-4 rounded-xl border text-xs font-extrabold text-center transition-all ${language === 'en' ? 'bg-blue-50 border-blue-600 text-blue-700 shadow-sm' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+                >
+                  English
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLanguage('hi');
+                    showToast(t('languageSavedToast', 'UI Language updated successfully!'), 'success');
+                  }}
+                  className={`py-3 px-4 rounded-xl border text-xs font-extrabold text-center transition-all ${language === 'hi' ? 'bg-blue-50 border-blue-600 text-blue-700 shadow-sm' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+                >
+                  हिंदी (Hindi)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLanguage('mr');
+                    showToast(t('languageSavedToast', 'UI Language updated successfully!'), 'success');
+                  }}
+                  className={`py-3 px-4 rounded-xl border text-xs font-extrabold text-center transition-all ${language === 'mr' ? 'bg-blue-50 border-blue-600 text-blue-700 shadow-sm' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+                >
+                  मराठी (Marathi)
+                </button>
+              </div>
             </div>
-
-            <div>
-              <label className="input-label">Email Address</label>
-              <input type="email" value={profile.user?.email || ''} disabled className="input-field bg-gray-100 cursor-not-allowed" />
-            </div>
-
-            <div>
-              <label className="input-label">Education Qualifications</label>
-              <input
-                type="text"
-                value={education}
-                onChange={(e) => setEducation(e.target.value)}
-                placeholder="e.g. M.Sc Physics, B.Ed"
-                className="input-field"
-              />
-            </div>
-
-            <div>
-              <label className="input-label">Teaching Experience (Years)</label>
-              <input
-                type="number"
-                min="0"
-                value={experienceYears}
-                onChange={(e) => setExperienceYears(e.target.value)}
-                className="input-field"
-              />
-            </div>
-
-            <button type="submit" disabled={saving} className="btn-primary">
-              {saving ? 'Saving...' : 'Update Profile'}
-            </button>
-          </form>
+          </div>
         </div>
       )}
     </div>

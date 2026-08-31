@@ -4,11 +4,13 @@ import { Link } from 'react-router-dom';
 import apiClient from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { TableSkeleton } from '../components/Skeleton';
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
 
   const [paperToDelete, setPaperToDelete] = useState(null);
@@ -74,25 +76,25 @@ export default function TeacherDashboard() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 select-none">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="mt-2 text-gray-600">Welcome, {user?.name}!</p>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{t('teacherDashboardTitle', 'Teacher Dashboard')}</h1>
+          <p className="mt-1 text-sm text-slate-500 font-medium">{t('teacherDashboardSubtitle', 'Welcome back, {{name}}. Manage exam papers, students, and curriculum analytics.', { name: user?.name })}</p>
         </div>
-        <Link to="/generator" className="btn-primary">
-          + Generate New Paper
+        <Link to="/generator" className="btn-primary shadow-sm">
+          {t('generateNewPaper', '+ Generate New Paper')}
         </Link>
       </div>
 
-      <div className="card mb-8">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Recent Question Papers</h2>
+      <div className="card space-y-6">
+        <h2 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">{t('recentQuestionPapers', 'Recent Question Papers')}</h2>
 
-        <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
           <input
             value={filters.search}
             onChange={(event) => updateFilter('search', event.target.value)}
-            placeholder="Search title"
+            placeholder={t('searchTitle', 'Search title')}
             className="input-field"
           />
           <select
@@ -100,7 +102,7 @@ export default function TeacherDashboard() {
             onChange={(event) => updateFilter('subject', event.target.value)}
             className="input-field"
           >
-            <option value="">All subjects</option>
+            <option value="">{t('allSubjects', 'All subjects')}</option>
             {subjects.map((subject) => <option key={subject} value={subject}>{subject}</option>)}
           </select>
           <select
@@ -108,22 +110,22 @@ export default function TeacherDashboard() {
             onChange={(event) => updateFilter('status', event.target.value)}
             className="input-field"
           >
-            <option value="">All statuses</option>
-            <option value="DRAFT">Draft</option>
-            <option value="PUBLISHED">Published</option>
+            <option value="">{t('allStatuses', 'All statuses')}</option>
+            <option value="DRAFT">{t('draft', 'Draft')}</option>
+            <option value="PUBLISHED">{t('published', 'Published')}</option>
           </select>
           <input
             type="date"
             value={filters.from}
             onChange={(event) => updateFilter('from', event.target.value)}
-            className="input-field"
+            className="input-field text-xs"
             aria-label="Created from"
           />
           <input
             type="date"
             value={filters.to}
             onChange={(event) => updateFilter('to', event.target.value)}
-            className="input-field"
+            className="input-field text-xs"
             aria-label="Created to"
           />
         </div>
@@ -133,30 +135,30 @@ export default function TeacherDashboard() {
         )}
 
         {error && (
-          <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
+          <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700 font-medium">
             Failed to load question papers. {error.message}
           </div>
         )}
 
         {!isLoading && papers.length === 0 && (
-          <p className="text-gray-600">No question papers yet. Create one to get started!</p>
+          <p className="text-slate-500 py-6 text-center text-sm font-medium">{t('noPapersYet', 'No question papers created yet. Generate one to get started!')}</p>
         )}
 
         {!isLoading && papers.length > 0 && filteredPapers.length === 0 && (
-          <p className="text-gray-600">No papers match the current filters.</p>
+          <p className="text-slate-500 py-6 text-center text-sm font-medium">{t('noMatchingPapers', 'No papers match the current search filters.')}</p>
         )}
 
         {!isLoading && filteredPapers.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b border-gray-200 bg-gray-50">
+          <div className="table-responsive-container">
+            <table className="w-full text-left text-sm border-collapse">
+              <thead className="border-b border-slate-200 bg-slate-50 text-slate-700 text-xs font-bold uppercase tracking-wider">
                 <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Title</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Subject</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Marks</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Created</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
+                  <th className="px-5 py-3.5">{t('title', 'Title')}</th>
+                  <th className="px-5 py-3.5">{t('subject', 'Subject')}</th>
+                  <th className="px-5 py-3.5">{t('status', 'Status')}</th>
+                  <th className="px-5 py-3.5">{t('marks', 'Marks')}</th>
+                  <th className="px-5 py-3.5">{t('created', 'Created')}</th>
+                  <th className="px-5 py-3.5 text-right">{t('actions', 'Actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">

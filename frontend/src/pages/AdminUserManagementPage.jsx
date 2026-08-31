@@ -166,7 +166,7 @@ export default function AdminUserManagementPage() {
 
         <button
           onClick={() => { resetForm(); setShowAddModal(true); }}
-          className="btn-primary flex items-center gap-2 text-sm font-bold py-2.5 px-5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl shadow-md"
+          className="btn-primary flex items-center gap-2 text-xs font-bold py-2.5 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm"
         >
           + Add New User (Teacher / Student)
         </button>
@@ -178,7 +178,7 @@ export default function AdminUserManagementPage() {
           <button
             onClick={() => setRoleFilter('')}
             className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors ${
-              roleFilter === '' ? 'bg-purple-700 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-100 border'
+              roleFilter === '' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
             }`}
           >
             All Users ({usersData?.length || 0})
@@ -186,15 +186,15 @@ export default function AdminUserManagementPage() {
           <button
             onClick={() => setRoleFilter('TEACHER')}
             className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors ${
-              roleFilter === 'TEACHER' ? 'bg-purple-700 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-100 border'
+              roleFilter === 'TEACHER' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
             }`}
           >
-            👨‍Teachers ({usersData?.filter(u => u.role === 'TEACHER').length || 0})
+            Teachers ({usersData?.filter(u => u.role === 'TEACHER').length || 0})
           </button>
           <button
             onClick={() => setRoleFilter('STUDENT')}
             className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors ${
-              roleFilter === 'STUDENT' ? 'bg-purple-700 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-100 border'
+              roleFilter === 'STUDENT' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
             }`}
           >
             Students ({usersData?.filter(u => u.role === 'STUDENT').length || 0})
@@ -282,14 +282,18 @@ export default function AdminUserManagementPage() {
                         Edit
                       </button>
                       <button
+                        type="button"
                         onClick={() => {
                           if (window.confirm(`Delete user account "${user.name}" (${user.email})?`)) {
                             deleteMutation.mutate(user.id);
                           }
                         }}
-                        className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg font-bold text-xs"
+                        className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 border border-red-200 rounded-lg transition-colors inline-flex items-center justify-center shadow-xs"
+                        title="Delete User"
                       >
-                        
+                        <svg className="w-4 h-4 text-red-600 fill-current" viewBox="0 0 24 24">
+                          <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                        </svg>
                       </button>
                     </td>
                   </tr>
@@ -452,7 +456,7 @@ export default function AdminUserManagementPage() {
                 <button
                   type="submit"
                   disabled={createMutation.isPending || updateMutation.isPending}
-                  className="btn-primary w-2/3 py-2.5 font-bold text-xs bg-purple-700 hover:bg-purple-800"
+                  className="btn-primary w-2/3 py-2.5 font-bold text-xs bg-blue-600 hover:bg-blue-700"
                 >
                   {createMutation.isPending || updateMutation.isPending ? 'Saving User...' : editingUser ? 'Save User Changes' : 'Create User'}
                 </button>

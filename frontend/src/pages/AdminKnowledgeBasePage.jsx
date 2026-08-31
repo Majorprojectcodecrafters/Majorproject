@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Skeleton } from '../components/Skeleton';
 import ProtectedDocumentViewer from '../components/ProtectedDocumentViewer';
 
 export default function AdminKnowledgeBasePage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const { t } = useLanguage();
 
   const [activeTab, setActiveTab] = useState('materials'); // 'materials' | 'tree'
   const [uploading, setUploading] = useState(false);
@@ -96,7 +98,8 @@ export default function AdminKnowledgeBasePage() {
         category: 'TEACHER_NOTES',
         classId: formData.classId,
         subjectId: formData.subjectId,
-        description: ''
+        description: '',
+        indexToRag: false
       });
       refetchMaterials();
       refetchDriveTree();
@@ -118,25 +121,25 @@ export default function AdminKnowledgeBasePage() {
       refetchDriveTree();
     },
     onError: (err) => {
-      showToast(`Delete failed: ${err.response?.data?.message || err.message}`, 'error');
+      showToast(err.response?.data?.message || 'Failed to delete material', 'error');
     }
   });
 
   const handleUpload = async (e) => {
     e.preventDefault();
     if (!file) {
-      showToast('Please select a PDF document file', 'error');
+      showToast('Please select a PDF document', 'error');
       return;
     }
 
     const data = new FormData();
     data.append('file', file);
-    data.append('title', formData.title || file.name);
+    if (formData.title) data.append('title', formData.title);
     data.append('category', formData.category);
     if (formData.classId) data.append('classId', formData.classId);
     if (formData.subjectId) data.append('subjectId', formData.subjectId);
     if (formData.description) data.append('description', formData.description);
-    data.append('indexToRag', formData.indexToRag);
+    data.append('indexToRag', formData.indexToRag.toString());
 
     setUploading(true);
     try {
@@ -147,22 +150,22 @@ export default function AdminKnowledgeBasePage() {
   };
 
   return (
-    <div className="container max-w-6xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 select-none">
       {/* Top Header */}
-      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
+      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Student Library & Google Drive Explorer</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Manage textbooks, notes, and previous year question papers stored on Google Drive for students.
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{t('adminKnowledgeBaseTitle', 'Student Library & Google Drive Explorer')}</h1>
+          <p className="text-sm text-slate-500 font-medium mt-1">
+            {t('adminKnowledgeBaseSubtitle', 'Manage textbooks, notes, and previous year question papers stored on Google Drive for students.')}
           </p>
         </div>
 
         <button
           onClick={handleDriveSync}
           disabled={syncing}
-          className="btn-primary flex items-center gap-2 text-sm font-bold py-2.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md"
+          className="btn-primary flex items-center gap-2 text-xs font-bold py-2.5 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm"
         >
-          {syncing ? <><span className="spinner mr-2"></span>Syncing Drive...</> : 'Sync Connected Google Drive'}
+          {syncing ? <><span className="spinner mr-2"></span>{t('syncingDrive', 'Syncing Drive...')}</> : t('syncConnectedDrive', 'Sync Connected Google Drive')}
         </button>
       </div>
 
@@ -170,37 +173,37 @@ export default function AdminKnowledgeBasePage() {
         {/* Upload Form */}
         <div className="md:col-span-2">
           <div className="card space-y-4 shadow-sm border border-slate-200">
-            <h2 className="text-lg font-bold text-gray-900 border-b pb-2">
-              Upload Study Material to Google Drive
+            <h2 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">
+              {t('uploadStudyMaterialTitle', 'Upload Study Material to Google Drive')}
             </h2>
 
             <form onSubmit={handleUpload} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Resource Category */}
                 <div>
-                  <label className="label font-semibold">Resource Category *</label>
+                  <label className="label font-bold text-xs text-slate-700">{t('resourceCategoryLabel', 'Resource Category')} *</label>
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="input-field"
+                    className="input-field mt-1"
                   >
-                    <option value="TEXTBOOK">Official Textbook</option>
-                    <option value="TEACHER_NOTES">Teacher / Chapter Notes</option>
-                    <option value="PREVIOUS_BOARD_PAPER">Previous Board Paper (PYQ)</option>
-                    <option value="SAMPLE_PAPER">Sample / Model Paper</option>
-                    <option value="REFERENCE_MATERIAL">Reference Material</option>
+                    <option value="TEXTBOOK">{t('officialTextbook', 'Official Textbook')}</option>
+                    <option value="TEACHER_NOTES">{t('teacherNotes', 'Teacher / Chapter Notes')}</option>
+                    <option value="PREVIOUS_BOARD_PAPER">{t('pyqPaper', 'Previous Board Paper (PYQ)')}</option>
+                    <option value="SAMPLE_PAPER">{t('samplePaper', 'Sample / Model Paper')}</option>
+                    <option value="REFERENCE_MATERIAL">{t('referenceMaterial', 'Reference Material')}</option>
                   </select>
                 </div>
 
                 {/* Document Title */}
                 <div>
-                  <label className="label font-semibold">Resource Title</label>
+                  <label className="label font-bold text-xs text-slate-700">{t('resourceTitleLabel', 'Resource Title')}</label>
                   <input
                     type="text"
                     placeholder="e.g. HSC 12th Physics Textbook 2026"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="input-field"
+                    className="input-field mt-1"
                   />
                 </div>
               </div>
@@ -208,13 +211,13 @@ export default function AdminKnowledgeBasePage() {
               {/* Class & Subject Selection */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="label font-semibold">Class / Grade Target</label>
+                  <label className="label font-bold text-xs text-slate-700">{t('classGradeTargetLabel', 'Class / Grade Target')}</label>
                   <select
                     value={formData.classId}
                     onChange={(e) => setFormData({ ...formData, classId: e.target.value, subjectId: '' })}
-                    className="input-field"
+                    className="input-field mt-1"
                   >
-                    <option value="">-- All Classes / General --</option>
+                    <option value="">{t('allClassesGeneral', '-- All Classes / General --')}</option>
                     {classes.map((cls) => (
                       <option key={cls.id} value={cls.id}>
                         {cls.name} ({cls.academicYear})
@@ -224,14 +227,14 @@ export default function AdminKnowledgeBasePage() {
                 </div>
 
                 <div>
-                  <label className="label font-semibold">Subject Target</label>
+                  <label className="label font-bold text-xs text-slate-700">{t('subjectTargetLabel', 'Subject Target')}</label>
                   <select
                     value={formData.subjectId}
                     onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
-                    className="input-field"
+                    className="input-field mt-1"
                     disabled={!formData.classId}
                   >
-                    <option value="">-- All Subjects --</option>
+                    <option value="">{t('allSubjects', '-- All Subjects --')}</option>
                     {subjects.map((sub) => (
                       <option key={sub.id} value={sub.id}>
                         {sub.name}
@@ -244,48 +247,48 @@ export default function AdminKnowledgeBasePage() {
               {/* Description & File Input */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="label font-semibold">Description / Notes</label>
+                  <label className="label font-bold text-xs text-slate-700">{t('descriptionNotesLabel', 'Description / Notes')}</label>
                   <input
                     type="text"
                     placeholder="Optional description"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="input-field"
+                    className="input-field mt-1"
                   />
                 </div>
 
                 <div>
-                  <label className="label font-semibold">PDF Document *</label>
+                  <label className="label font-bold text-xs text-slate-700">{t('pdfDocumentLabel', 'PDF Document')} *</label>
                   <input
                     type="file"
                     accept=".pdf"
                     onChange={(e) => setFile(e.target.files?.[0] || null)}
-                    className="input-field"
+                    className="input-field mt-1 text-xs"
                   />
-                  {file && <p className="mt-1 text-xs text-purple-700 font-semibold">Selected: {file.name}</p>}
+                  {file && <p className="mt-1 text-xs text-blue-700 font-semibold">Selected: {file.name}</p>}
                 </div>
               </div>
 
               {/* Optional RAG Indexing Checkbox */}
-              <div className="bg-purple-50/70 p-3.5 rounded-xl border border-purple-200">
-                <label className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-purple-950">
+              <div className="bg-blue-50/60 p-3.5 rounded-xl border border-blue-200/80">
+                <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-blue-950">
                   <input
                     type="checkbox"
                     checked={formData.indexToRag}
                     onChange={(e) => setFormData({ ...formData, indexToRag: e.target.checked })}
-                    className="h-4 w-4 rounded border-purple-300 text-purple-700 focus:ring-purple-500"
+                    className="h-4 w-4 rounded border-blue-300 text-blue-700 focus:ring-blue-500"
                   />
-                  <span>Also index into ChromaDB Vector Store for AI Question Paper Generation</span>
+                  <span>{t('indexToRagLabel', 'Also index into ChromaDB Vector Store for AI Question Paper Generation')}</span>
                 </label>
-                <p className="text-[11px] text-purple-700 mt-1 pl-6 leading-tight">
-                  Unchecked (Default): Saves cleanly as a Student Library study material on Google Drive without chunking compute overhead.
+                <p className="text-[11px] text-blue-700 mt-1 pl-6 leading-tight font-medium">
+                  {t('indexToRagHelp', 'Unchecked (Default): Saves cleanly as a Student Library study material on Google Drive without chunking compute overhead.')}
                 </p>
               </div>
 
               <button
                 type="submit"
                 disabled={uploading || !file}
-                className="btn-primary w-full py-3 font-bold text-sm bg-purple-700 hover:bg-purple-800"
+                className="btn-primary w-full py-3 font-bold text-xs"
               >
                 {uploading ? <><span className="spinner mr-2"></span>Uploading to Google Drive...</> : 'Upload to Google Drive'}
               </button>
@@ -296,17 +299,17 @@ export default function AdminKnowledgeBasePage() {
         {/* Stats Column */}
         <div className="md:col-span-1 space-y-4">
           <div className="card shadow-sm border border-slate-200">
-            <h2 className="text-base font-bold text-gray-900 mb-3 border-b pb-2">
-              Google Drive Storage Overview
+            <h2 className="text-base font-bold text-slate-900 mb-3 border-b border-slate-100 pb-2">
+              {t('googleDriveOverviewTitle', 'Google Drive Storage Overview')}
             </h2>
-            <div className="space-y-3 text-xs">
-              <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
-                <span className="text-purple-700 font-semibold block">Synced Study Materials</span>
-                <span className="text-3xl font-extrabold text-purple-900">{materials.length}</span>
+            <div className="space-y-3">
+              <div className="p-3 bg-purple-50 rounded-xl border border-purple-100">
+                <div className="text-xs text-purple-700 font-bold">{t('syncedStudyMaterials', 'Synced Study Materials')}</div>
+                <div className="text-2xl font-black text-purple-900 mt-0.5">{materials.length}</div>
               </div>
-              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                <span className="text-blue-700 font-semibold block">Drive Subfolders Explored</span>
-                <span className="text-3xl font-extrabold text-blue-900">{driveTreeData?.folderTree?.length || 0}</span>
+              <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
+                <div className="text-xs text-blue-700 font-bold">{t('driveSubfoldersExplored', 'Drive Subfolders Explored')}</div>
+                <div className="text-2xl font-black text-blue-900 mt-0.5">{driveTreeData?.folderTree?.length || 0}</div>
               </div>
             </div>
           </div>

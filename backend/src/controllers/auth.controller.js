@@ -29,6 +29,7 @@ exports.register = async (req, res) => {
     // Pre-resolve student class/stream if student role
     let studentClassId = req.body.classId;
     let studentStreamId = req.body.streamId;
+    let generatedUniqueId = req.body.uniqueId || null;
 
     if (role === 'STUDENT') {
       if (!studentClassId) {
@@ -48,6 +49,9 @@ exports.register = async (req, res) => {
       if (!studentStreamId) {
         return res.status(400).json({ success: false, message: 'No valid stream found for class allocation' });
       }
+
+      const { generateStudentUniqueId } = require('../utils/studentUniqueIdGenerator');
+      generatedUniqueId = await generateStudentUniqueId({ classId: studentClassId, streamId: studentStreamId });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -73,7 +77,7 @@ exports.register = async (req, res) => {
         ...(role === 'STUDENT' && {
           student: {
             create: {
-              uniqueId: req.body.uniqueId || `STU-${Math.floor(100000 + Math.random() * 900000)}`,
+              uniqueId: generatedUniqueId,
               contact: req.body.contact || 'N/A',
               classId: studentClassId,
               streamId: studentStreamId

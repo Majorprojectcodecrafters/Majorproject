@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function CreateResultPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const { t } = useLanguage();
 
   const [selectedQPId, setSelectedQPId] = useState('');
   const [studentMarksMap, setStudentMarksMap] = useState({});
@@ -145,35 +147,35 @@ export default function CreateResultPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 select-none">
       {/* Header */}
-      <div className="border-b pb-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="border-b border-slate-200 pb-4 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Create & Publish Test Results</h1>
-          <p className="mt-1 text-sm text-gray-600">
-            Select a generated question paper, manually enter student marks, and export result sheets to Excel or PDF.
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{t('createPublishResultsTitle', 'Create & Publish Test Results')}</h1>
+          <p className="mt-1 text-sm text-slate-500 font-medium">
+            {t('createPublishResultsSubtitle', 'Select a generated question paper, manually enter student marks, and export result sheets to Excel or PDF.')}
           </p>
         </div>
       </div>
 
       {/* Test Selection Bar */}
       <div className="card bg-blue-50/50 border border-blue-200 p-6 space-y-4">
-        <label className="block text-sm font-bold text-blue-950 uppercase tracking-wider">
-          Step 1: Select Question Paper / Test
+        <label className="block text-xs font-bold text-blue-950 uppercase tracking-wider">
+          {t('step1SelectQP', 'STEP 1: SELECT QUESTION PAPER / TEST')}
         </label>
 
         {qpLoading ? (
-          <p className="text-sm text-gray-500">Loading tests...</p>
+          <p className="text-xs text-slate-500 font-medium">Loading tests...</p>
         ) : (
           <select
             value={selectedQPId}
             onChange={(e) => setSelectedQPId(e.target.value)}
-            className="input-field text-base font-semibold w-full max-w-2xl bg-white"
+            className="input-field text-sm font-semibold w-full max-w-2xl bg-white"
           >
-            <option value="">-- Choose Test / Question Paper --</option>
+            <option value="">{t('chooseTestQP', '-- Choose Test / Question Paper --')}</option>
             {qps.map(q => (
               <option key={q.id} value={q.id}>
-                {q.title} ({q.subject?.name || 'Subject'}) — {q.totalMarks} Marks
+                {q.title} ({q.subject?.name || 'Subject'}) — {q.totalMarks} {t('marksWord', 'Marks')}
               </option>
             ))}
           </select>
@@ -182,20 +184,20 @@ export default function CreateResultPage() {
         {selectedQP && (
           <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-blue-200 text-xs text-blue-900">
             <div>
-              <strong>Subject:</strong> {selectedQP.subject?.name} | <strong>Total Marks:</strong> {selectedQP.totalMarks} | <strong>Duration:</strong> {selectedQP.durationMins} Mins
+              <strong>{t('subject', 'Subject')}:</strong> {selectedQP.subject?.name} | <strong>{t('totalMarksLabel', 'Total Marks')}:</strong> {selectedQP.totalMarks} | <strong>{t('durationLabel', 'Duration')}:</strong> {selectedQP.durationMins} {t('mins', 'Mins')}
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={downloadExcel}
-                className="btn-secondary py-1 text-xs bg-white text-green-700 hover:bg-green-50 border-green-300"
+                className="btn-secondary py-1 text-xs bg-white text-emerald-700 hover:bg-emerald-50 border-emerald-300 font-bold"
               >
-                Download Excel Sheet
+                {t('downloadExcelSheet', 'Download Excel Sheet')}
               </button>
               <button
                 onClick={downloadPDF}
-                className="btn-secondary py-1 text-xs bg-white text-red-700 hover:bg-red-50 border-red-300"
+                className="btn-secondary py-1 text-xs bg-white text-red-700 hover:bg-red-50 border-red-300 font-bold"
               >
-                Download Result PDF
+                {t('downloadResultPdf', 'Download Result PDF')}
               </button>
             </div>
           </div>
@@ -204,43 +206,43 @@ export default function CreateResultPage() {
 
       {/* Manual Marks Entry Section */}
       {selectedQPId && (
-        <div className="card space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
+        <div className="card space-y-6 shadow-sm border border-slate-200">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Step 2: Enter Student Marks</h2>
-              <p className="text-xs text-gray-500">
-                Pass mark threshold: <strong className="text-gray-900">{(0.35 * selectedQP.totalMarks).toFixed(1)}</strong> marks (35%)
+              <h2 className="text-lg font-bold text-slate-900">{t('step2EnterMarks', 'Step 2: Enter Student Marks')}</h2>
+              <p className="text-xs text-slate-500 font-medium">
+                {t('passMarkThreshold', 'Pass mark threshold:')} <strong className="text-slate-900">{(0.35 * selectedQP.totalMarks).toFixed(1)}</strong> {t('marksWord', 'marks')} (35%)
               </p>
             </div>
 
             <button
               onClick={handleSaveAllResults}
               disabled={isSubmitting || !students.length}
-              className="btn-primary"
+              className="btn-primary min-w-44 text-xs font-bold"
             >
-              {isSubmitting ? 'Publishing...' : 'Save & Publish All Results'}
+              {isSubmitting ? t('publishingState', 'Publishing...') : t('savePublishAllResults', 'Save & Publish All Results')}
             </button>
           </div>
 
           {studentsLoading ? (
-            <p className="py-8 text-center text-gray-500">Loading assigned students...</p>
+            <p className="py-8 text-center text-xs text-slate-500 font-medium">{t('loadingAssignedStudents', 'Loading assigned students...')}</p>
           ) : students.length === 0 ? (
-            <p className="py-8 text-center text-gray-500">No assigned students found for your classes.</p>
+            <p className="py-8 text-center text-xs text-slate-500 font-medium">{t('noAssignedStudents', 'No assigned students found for your classes.')}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b bg-gray-50 text-xs font-semibold text-gray-700 uppercase">
-                    <th className="p-3">Sr.</th>
-                    <th className="p-3">Student Name</th>
-                    <th className="p-3">Student ID</th>
-                    <th className="p-3">Class / Division</th>
-                    <th className="p-3">Obtained Marks (out of {selectedQP.totalMarks})</th>
-                    <th className="p-3 text-center">Status</th>
-                    <th className="p-3 text-right">Action</th>
+                  <tr className="border-b border-slate-200 bg-slate-50 text-xs font-bold text-slate-700 uppercase">
+                    <th className="p-3">{t('srNoCol', 'Sr.')}</th>
+                    <th className="p-3">{t('studentNameCol', 'Student Name')}</th>
+                    <th className="p-3">{t('studentId', 'Student ID')}</th>
+                    <th className="p-3">{t('classDivisionCol', 'Class / Division')}</th>
+                    <th className="p-3">{t('obtainedMarksCol', 'Obtained Marks')} ({t('outOf', 'out of')} {selectedQP.totalMarks})</th>
+                    <th className="p-3 text-center">{t('status', 'Status')}</th>
+                    <th className="p-3 text-right">{t('actions', 'Action')}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 text-sm">
+                <tbody className="divide-y divide-slate-100 text-xs font-medium">
                   {students.map((student, idx) => {
                     const currentVal = studentMarksMap[student.id] ?? '';
                     const numericVal = Number(currentVal);
@@ -248,11 +250,11 @@ export default function CreateResultPage() {
                     const isPassed = hasVal ? numericVal >= (0.35 * selectedQP.totalMarks) : null;
 
                     return (
-                      <tr key={student.id} className="hover:bg-gray-50/80">
-                        <td className="p-3 text-xs text-gray-500">{idx + 1}</td>
-                        <td className="p-3 font-semibold text-gray-900">{student.user?.name}</td>
-                        <td className="p-3 text-xs font-mono text-gray-600">{student.uniqueId || 'N/A'}</td>
-                        <td className="p-3 text-xs">{student.class?.name || '12th Standard'}</td>
+                      <tr key={student.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="p-3 text-xs text-slate-500">{idx + 1}</td>
+                        <td className="p-3 font-bold text-slate-900">{student.user?.name}</td>
+                        <td className="p-3 text-xs font-mono text-slate-600">{student.uniqueId || 'N/A'}</td>
+                        <td className="p-3 text-xs text-slate-600">{student.class?.name || '12th Standard'}</td>
                         <td className="p-3">
                           <input
                             type="number"
@@ -262,26 +264,26 @@ export default function CreateResultPage() {
                             placeholder={`0 - ${selectedQP.totalMarks}`}
                             value={currentVal}
                             onChange={(e) => handleMarkChange(student.id, e.target.value)}
-                            className="input-field w-32 py-1 text-base font-bold text-gray-900"
+                            className="input-field w-32 py-1 text-sm font-bold text-slate-900"
                           />
                         </td>
                         <td className="p-3 text-center">
                           {isPassed === true && (
-                            <span className="badge badge-success px-3 py-1 font-bold">PASS</span>
+                            <span className="badge badge-success px-3 py-1 font-bold text-xs">{t('passBadge', 'PASS')}</span>
                           )}
                           {isPassed === false && (
-                            <span className="badge badge-error px-3 py-1 font-bold">FAIL</span>
+                            <span className="badge badge-error px-3 py-1 font-bold text-xs">{t('failBadge', 'FAIL')}</span>
                           )}
                           {isPassed === null && (
-                            <span className="text-xs text-gray-400">Pending</span>
+                            <span className="text-xs text-slate-400 font-medium">{t('pendingStatus', 'Pending')}</span>
                           )}
                         </td>
                         <td className="p-3 text-right">
                           <button
                             onClick={() => handleSaveResult(student.id)}
-                            className="btn-secondary py-1 text-xs"
+                            className="btn-secondary py-1 px-3 text-xs font-bold"
                           >
-                            Save Mark
+                            {t('saveMarkBtn', 'Save Mark')}
                           </button>
                         </td>
                       </tr>

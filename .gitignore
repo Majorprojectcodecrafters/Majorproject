@@ -7,3 +7,4 @@ build/
 .chroma-venv/
 chroma_db/
 backend/pdfs/
+backend/scratch/

@@ -2,6 +2,151 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.5.0] - 2026-08-31 (Institutional Student Unique ID System & Database Re-allocation)
+
+### Institutional Student Universal Unique ID Feature
+- **Standardized Student `uniqueId` Format**:
+  - Implemented 12-digit institutional format: `{academicYearShort}{classCode}{streamCode}{sequenceNumber}`.
+  - Structure breakdown:
+    - **Academic Year**: `2526` for 2025-2026, `2627` for 2026-2027.
+    - **Class Code**: `11` for 11th Standard, `12` for 12th Standard.
+    - **Stream Code**: `01` = Science, `02` = Commerce, `03` = Arts / General.
+    - **Sequence Number**: 4-digit zero-padded index (`0001`, `0002`, `0003`...).
+    - Example: **`252611010001`** (11th Standard Science, 1st Student).
+- **Auto-Generation Module (`studentUniqueIdGenerator.js`)**:
+  - Integrated automatic unique ID computation into student registration (`auth.controller.js`) and admin user creation (`admin.controller.js`).
+- **Database Re-Allocation Migration Executed (`reallocateStudentUniqueIds.js`)**:
+  - Executed migration script against PostgreSQL database to backfill and reallocate unique IDs for **all 19 existing student accounts** in the system.
+
+---
+
+## [2.4.2] - 2026-08-31 (Red Trash/Dustbin Icon Button in User Management Table)
+
+### Action Icon Cleanup
+- **Replaced Empty Red Ellipse with Red Trash Can / Dustbin SVG (`AdminUserManagementPage.jsx`)**:
+  - Replaced the empty button container next to the Edit button in the **User Management** table with a clean red trash/dustbin SVG icon button (`p-1.5 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 rounded-lg`).
+
+---
+
+## [2.4.1] - 2026-08-31 (Icon Removal & Clean Minimal Theme Alignment in User Management Tab)
+
+### Tab UI Cleanup & Theme Color Alignment
+- **Removed Emoji Icon & Matched Minimal Theme (`AdminUserManagementPage.jsx`)**:
+  - Removed the `👨‍` emoji icon from the **Teachers** filter tab button.
+  - Replaced bright purple button styles (`bg-purple-700`) with clean, minimal institutional blue and slate theme styling (`bg-blue-600` / `btn-primary`) matching the rest of the web application.
+
+---
+
+## [2.4.0] - 2026-08-31 (Universal Profile & Language Settings Navigation across Teacher, Student, and Admin Roles)
+
+### Universal Profile Navigation & Admin Profile Page
+- **Enabled Profile Navigation for All Roles (`Navbar.jsx` & `App.jsx`)**:
+  - Updated `getProfileRoute()` to seamlessly route every user role to their dedicated Profile & Language Settings page:
+    - **TEACHER** $\rightarrow$ `/teacher/profile`
+    - **STUDENT** $\rightarrow$ `/student/profile`
+    - **ADMIN** $\rightarrow$ `/admin/profile`
+- **Created Dedicated Administrator Profile Page (`AdminProfilePage.jsx`)**:
+  - Built `AdminProfilePage.jsx` equipped with avatar photo upload/removal, account details display, **Language Preferences & Settings** card (English, Hindi, Marathi), and account logout button.
+
+---
+
+## [2.3.9] - 2026-08-31 (Minimal Navbar Profile Avatar Navigation Button)
+
+### Header Navigation Refinement
+- **Simplified Profile Button (`Navbar.jsx`)**:
+  - Removed the outer pill container border and background, as well as the name and role text ("h TEACHER").
+  - Replaced it with a minimal, elegant circular profile photo avatar button (`w-10 h-10 rounded-full`) that functions directly as a clean navigation link to the Profile & Language Settings page (`/teacher/profile` or `/student/profile`).
+
+---
+
+## [2.3.8] - 2026-08-31 (Create & Publish Results Page Full Multilingual Translation Coverage)
+
+### Results Pages Multilingual Completion
+- **Added Translation Hooks to `CreateResultPage.jsx` & `StudentResultsPage.jsx`**:
+  - **Teacher Create Results**: Integrated `useLanguage()` and `t()` wrappers across page title ("Create & Publish Test Results"), subtitle, step header ("STEP 1: SELECT QUESTION PAPER / TEST"), test selection dropdown placeholder ("-- Choose Test / Question Paper --"), export buttons ("Download Excel Sheet", "Download Result PDF"), step 2 headers, pass threshold notice, table column headers ("Sr.", "Student Name", "Student ID", "Class / Division", "Obtained Marks", "Status", "Action"), status badges ("PASS", "FAIL", "Pending"), and single/batch publish buttons across English, Hindi (हिंदी), and Marathi (मराठी).
+  - **Student Results**: Integrated `t()` wrappers across CGPA summary cards, semester performance tables, and exam result tables.
+
+---
+
+## [2.3.7] - 2026-08-31 (Question Paper Generator Wizard Full Multilingual Translation Coverage)
+
+### Question Paper Generator Multilingual Completion
+- **Added Translation Hooks across QP Generator Steps 2, 3, and 4 (`QPGeneratorPage.jsx`)**:
+  - **Board Pattern Overview Card**: Translated board title ("Maharashtra State Board" / "महाराष्ट्र राज्य बोर्ड" / "महाराष्ट्र राज्य मंडळ"), marks label, and duration units.
+  - **Step 3 (Syllabus Coverage & Weightage)**: Translated step header ("Step 3: Syllabus Coverage & Weightage"), "Select Syllabus Chapters", "Select All", "Deselect All", "Authoritative Board Chapter Weightages" table headers ("Chapter / Unit", "Marks (Without Option)", "Marks (With Option)"), and step navigation buttons.
+  - **Step 4 (Preview Configuration & Generate)**: Translated step header ("Step 4: Preview Configuration & Generate"), summary card labels ("Class & Subject", "Pattern Mode", "Marks & Duration"), difficulty level labels ("Easy", "Medium", "Hard"), custom exam instructions input labels & placeholders, and action buttons across English, Hindi (हिंदी), and Marathi (मराठी).
+
+---
+
+## [2.3.6] - 2026-08-31 (Technical Jargon Removal & Clean User Phrasing)
+
+### User Experience & Phrasing Refinement
+- **Removed Technical Terminology Across Frontend UI (`translations.js`)**:
+  - Replaced internal technical terms ("ChromaDB", "Vector Store", "RAG Engine", "chunking compute overhead") with clean, user-friendly institutional phrasing across English, Hindi (हिंदी), and Marathi (मराठी).
+  - Updated RAG indexing option label to: `"Enable Automatic AI Question Paper Generation for this Document"`
+  - Updated helper notice to: `"Unchecked (Default): Saves as a Student Library study material for student access."`
+
+---
+
+## [2.3.5] - 2026-08-31 (Knowledge Base Translation & QPGen Brand Logo Preservation)
+
+### Brand Logo Preservation & Knowledge Base Translation
+- **QPGen Brand Logo Lock (`translations.js`)**:
+  - Enforced that `brandName` remains strictly `"QPGen"` in English, Hindi (हिंदी), and Marathi (मराठी) to preserve brand identity.
+- **Added Translation Hooks to `AdminKnowledgeBasePage.jsx`**:
+  - Integrated `useLanguage()` and `t()` wrappers across all text elements in the **Knowledge Base & Google Drive Explorer** page: main title, subtitle, sync drive button, study material upload form, category options ("Official Textbook", "Teacher Notes", "PYQ", "Sample Paper"), grade targets, subject targets, RAG vector indexing options, and Google Drive storage overview stats across all languages.
+
+---
+
+## [2.3.4] - 2026-08-31 (Quiz Management Page Full Multilingual Translation Coverage)
+
+### Quiz Page Translation Completion
+- **Added Translation Hooks to `TeacherQuizPage.jsx`**:
+  - Integrated `useLanguage()` and `t()` wrappers across all text elements in the **Quiz Management System** page: main title, subtitle, tab switch buttons ("Generate Quiz", "Manage & Results"), form section headers ("Generate New Online Quiz"), field labels ("Quiz Title (Optional)", "Target Class / Division", "Subject", "Questions", "Time Limit"), select options ("Select Target Class", "Select Subject"), chapter selection headers, generate quiz button states, and draft preview cards across English, Hindi (हिंदी), and Marathi (मराठी).
+
+---
+
+## [2.3.3] - 2026-08-31 (Profile Pages Full Multilingual Translation Coverage)
+
+### Profile Page Translation Completion
+- **Added Translation Hooks to Profile Pages (`TeacherProfilePage.jsx` & `StudentProfilePage.jsx`)**:
+  - Integrated `t()` translation wrappers across all text elements in the **My Profile** section: main headers ("My Profile" / "मेरी प्रोफाइल" / "माझी प्रोफाइल"), sub-headers, profile avatar buttons ("Change Photo", "Remove Photo"), metadata side cards ("Joined", "Created QPs", "Students"), form field titles ("Full Name", "Email Address", "Education Qualifications", "Teaching Experience", "Contact Phone Number"), submit buttons, and logout action buttons across English, Hindi (हिंदी), and Marathi (मराठी).
+
+---
+
+## [2.3.2] - 2026-08-31 (Your Students Page Full Translation Coverage)
+
+### Page Translation Completion
+- **Added Translation Hooks to `TeacherStudentsPage.jsx`**:
+  - Integrated `useLanguage()` and `t()` wrappers across all text elements in the **Your Students** page: main title, subtitle, assigned class cards, admin allocation warning notice, search input placeholder, class filter dropdown, total student count label, empty state messages, table headers, and view performance action buttons across English, Hindi (हिंदी), and Marathi (मराठी).
+
+---
+
+## [2.3.1] - 2026-08-31 (Full-Page Multilingual Translation & Profile Language Settings Relocation)
+
+### Page-Wide Translation & Relocation
+- **Expanded Translation Dictionaries (`translations.js`)**:
+  - Expanded static translation keys covering entire page contents: headings, sub-headers, card labels, form field titles, input placeholders, table headers, action buttons, and notice messages across English, Hindi (हिंदी), and Marathi (मराठी).
+- **Relocated Language Selection to Profile Settings**:
+  - Removed language dropdown from Navbar header.
+  - Placed dedicated **Language Preferences & Settings** card inside Teacher and Student Profile/Settings pages (`TeacherProfilePage.jsx` & `StudentProfilePage.jsx`).
+
+---
+
+## [2.3.0] - 2026-08-31 (Multilingual UI Support — English, Hindi, Marathi)
+
+### Multilingual & Internationalization (i18n) Engine
+- **Static Translation Framework (`LanguageContext.jsx`, `translations.js`)**:
+  - Implemented high-performance, zero-dependency translation context supporting **English**, **Hindi (हिंदी)**, and **Marathi (मराठी)**.
+  - Auto-persists user language choices in `localStorage` (`qpgen_language`).
+- **Language Controls in Navbar & Settings**:
+  - Added compact language switcher dropdown (`EN` | `हिंदी` | `मराठी`) in Navbar header and Mobile Drawer Menu.
+  - Added dedicated **Language Settings** card inside Teacher & Student Profile pages.
+- **Zero Business Logic Disruption**:
+  - Translation operates strictly on frontend display labels, navigation links, and settings. All APIs and database models remain 100% functional.
+
+---
+
 ## [2.2.2] - 2026-08-31 (Frontend Emoji Sticker Removal & Minimal UI Cleanup)
 
 ### UI Minimalism Refinement

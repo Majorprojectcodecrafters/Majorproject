@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { generateQPSchema } from '../lib/schemas';
 import apiClient from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import CustomPatternBuilder from '../components/CustomPatternBuilder';
 import CustomTopicWeightage from '../components/CustomTopicWeightage';
 import { formatScientificText } from '../utils/formatScientific';
@@ -14,6 +15,7 @@ export default function QPGeneratorPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const { t } = useLanguage();
 
   const [step, setStep] = useState(1); // 1: Class & Subject, 2: Pattern & Scope, 3: Weightage, 4: Preview/Generate, 5: Review
   const [selectedClassId, setSelectedClassId] = useState('');
@@ -236,32 +238,32 @@ export default function QPGeneratorPage() {
   return (
     <div className="container max-w-6xl mx-auto py-8 px-4">
       {/* Header */}
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b pb-4">
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Question Paper Generator</h1>
-          <p className="text-sm text-gray-600">Curriculum-Aware RAG Engine for Board & Custom Paper Patterns</p>
+          <h1 className="text-2xl font-extrabold text-slate-900">{t('qpGeneratorTitle', 'Question Paper Generator')}</h1>
+          <p className="text-sm text-slate-500 font-medium">{t('qpGeneratorSubtitle', 'Curriculum-Aware RAG Engine for Board & Custom Paper Patterns')}</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-gray-500">Step {step} of 5</span>
+          <span className="text-xs font-semibold text-slate-500">Step {step} of 5</span>
         </div>
       </div>
 
       {/* Workflow Progress Steps */}
-      <div className="mb-8 grid grid-cols-5 gap-2">
-        <div className={`p-2 rounded text-center text-xs font-semibold ${step === 1 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
-          1. Class & Subject
+      <div className="mb-8 grid grid-cols-2 sm:grid-cols-5 gap-2 select-none">
+        <div className={`p-2.5 rounded-xl text-center text-xs font-bold transition-all ${step === 1 ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600'}`}>
+          {t('step1Scope', '1. Scope')}
         </div>
-        <div className={`p-2 rounded text-center text-xs font-semibold ${step === 2 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
-          2. Paper Pattern
+        <div className={`p-2.5 rounded-xl text-center text-xs font-bold transition-all ${step === 2 ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600'}`}>
+          {t('step2Pattern', '2. Pattern')}
         </div>
-        <div className={`p-2 rounded text-center text-xs font-semibold ${step === 3 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
-          3. Syllabus & Weightage
+        <div className={`p-2.5 rounded-xl text-center text-xs font-bold transition-all ${step === 3 ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600'}`}>
+          {t('step3Syllabus', '3. Syllabus')}
         </div>
-        <div className={`p-2 rounded text-center text-xs font-semibold ${step === 4 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
-          4. Preview Config
+        <div className={`p-2.5 rounded-xl text-center text-xs font-bold transition-all ${step === 4 ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600'}`}>
+          {t('step4Preview', '4. Preview')}
         </div>
-        <div className={`p-2 rounded text-center text-xs font-semibold ${step === 5 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
-          5. Review Questions
+        <div className={`p-2.5 rounded-xl text-center text-xs font-bold transition-all ${step === 5 ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600'}`}>
+          {t('step5Review', '5. Review')}
         </div>
       </div>
 
@@ -269,21 +271,21 @@ export default function QPGeneratorPage() {
         {/* ================= STEP 1: CLASS & SUBJECT SELECTION ================= */}
         {step === 1 && (
           <div className="card space-y-6">
-            <h2 className="text-lg font-bold text-gray-900 border-b pb-2">Step 1: Select Academic Scope</h2>
+            <h2 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">{t('step1Header', 'Step 1: Select Academic Scope')}</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Class Dropdown */}
               <div>
-                <label className="label">Academic Class / Standard *</label>
+                <label className="label font-bold text-xs text-slate-700">{t('academicClass', 'Academic Class / Standard')} *</label>
                 <select
                   value={selectedClassId}
                   onChange={(e) => {
                     setSelectedClassId(e.target.value);
                     setValue('subjectId', '');
                   }}
-                  className="input-field"
+                  className="input-field mt-1"
                 >
-                  <option value="">-- Select Class --</option>
+                  <option value="">{t('selectClass', '-- Select Class --')}</option>
                   {classes.map((cls) => {
                     const streamName = cls.stream?.name || '';
                     const displayName = streamName && !cls.name.toLowerCase().includes(streamName.toLowerCase())
@@ -296,18 +298,17 @@ export default function QPGeneratorPage() {
                     );
                   })}
                 </select>
-                <p className="text-xs text-gray-500 mt-1">Selecting class scopes all subjects, chapters, topics, and textbooks.</p>
               </div>
 
               {/* Subject Dropdown */}
               <div>
-                <label className="label">Subject *</label>
+                <label className="label font-bold text-xs text-slate-700">{t('subject', 'Subject')} *</label>
                 <select
                   {...register('subjectId')}
-                  className="input-field"
+                  className="input-field mt-1"
                   disabled={!selectedClassId}
                 >
-                  <option value="">-- Select Subject --</option>
+                  <option value="">{t('selectSubject', '-- Select Subject --')}</option>
                   {subjects.map((sub) => (
                     <option key={sub.id} value={sub.id}>
                       {sub.name}
@@ -320,25 +321,22 @@ export default function QPGeneratorPage() {
 
             {/* Paper Title */}
             <div>
-              <label className="label">Question Paper Title *</label>
+              <label className="label font-bold text-xs text-slate-700">{t('qpTitleLabel', 'Question Paper Title')} *</label>
               <input
                 type="text"
                 {...register('title')}
                 placeholder="e.g. HSC 12th Physics Board Practice Examination 2026"
-                className="input-field"
+                className="input-field mt-1"
               />
             </div>
 
             <div>
-              <label className="input-label">Date of Examination (Customizable)</label>
+              <label className="input-label font-bold text-xs text-slate-700">{t('examDateLabel', 'Date of Examination (Customizable)')}</label>
               <input
                 type="date"
                 {...register('examDate')}
-                className="input-field"
+                className="input-field mt-1"
               />
-              <p className="mt-1 text-xs text-gray-500">
-                Optional. If specified, this date will be printed on the paper header and PDF export.
-              </p>
             </div>
 
             <div className="flex justify-end pt-4">
@@ -346,9 +344,9 @@ export default function QPGeneratorPage() {
                 type="button"
                 onClick={() => setStep(2)}
                 disabled={!selectedClassId || !selectedSubjectId}
-                className="btn-primary"
+                className="btn-primary shadow-sm"
               >
-                Next: Select Paper Pattern →
+                {t('nextPattern', 'Next: Select Paper Pattern →')}
               </button>
             </div>
           </div>
@@ -357,21 +355,21 @@ export default function QPGeneratorPage() {
         {/* ================= STEP 2: PATTERN SELECTION ================= */}
         {step === 2 && (
           <div className="card space-y-6">
-            <h2 className="text-lg font-bold text-gray-900 border-b pb-2">Step 2: Paper Pattern Mode</h2>
+            <h2 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">{t('step2Header', 'Step 2: Paper Pattern Mode')}</h2>
 
             {/* Pattern Mode Selector */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <button
                 type="button"
                 onClick={() => {
                   setPatternMode('BOARD');
                   setValue('patternMode', 'BOARD');
                 }}
-                className={`p-4 rounded-lg border-2 text-left transition-all ${patternMode === 'BOARD' ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${patternMode === 'BOARD' ? 'border-blue-600 bg-blue-50/60 shadow-sm' : 'border-slate-200 hover:border-slate-300'}`}
               >
-                <div className="font-bold text-gray-900">Official Board Pattern</div>
-                <div className="text-xs text-gray-600 mt-1">
-                  Automated Maharashtra State Board pattern (Sections A, B, C, D) with prescribed question types and total marks.
+                <div className="font-bold text-slate-900">{t('officialBoardPattern', 'Official Board Pattern')}</div>
+                <div className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  {t('officialBoardDesc', 'Automated Maharashtra State Board pattern (Sections A, B, C, D) with prescribed question types and total marks.')}
                 </div>
               </button>
 
@@ -381,11 +379,11 @@ export default function QPGeneratorPage() {
                   setPatternMode('CUSTOM');
                   setValue('patternMode', 'CUSTOM');
                 }}
-                className={`p-4 rounded-lg border-2 text-left transition-all ${patternMode === 'CUSTOM' ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${patternMode === 'CUSTOM' ? 'border-blue-600 bg-blue-50/60 shadow-sm' : 'border-slate-200 hover:border-slate-300'}`}
               >
-                <div className="font-bold text-gray-900">Customized Pattern Builder</div>
-                <div className="text-xs text-gray-600 mt-1">
-                  Build custom sections, custom total marks, custom question types, or MCQ-only examination papers.
+                <div className="font-bold text-slate-900">{t('customizedPatternBuilder', 'Customized Pattern Builder')}</div>
+                <div className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  {t('customPatternDesc', 'Build custom sections, custom total marks, custom question types, or MCQ-only examination papers.')}
                 </div>
               </button>
             </div>
@@ -402,8 +400,8 @@ export default function QPGeneratorPage() {
                 {selectedBoardPattern && (
                   <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 space-y-3">
                     <div className="flex items-center justify-between border-b pb-2">
-                      <span className="font-bold text-blue-900">{selectedBoardPattern.board}</span>
-                      <span className="text-xs font-semibold text-blue-700">{selectedBoardPattern.totalMarks} Marks | {selectedBoardPattern.durationMins} Minutes</span>
+                      <span className="font-bold text-blue-900">{t('maharashtraStateBoard', selectedBoardPattern.board || 'Maharashtra State Board')}</span>
+                      <span className="text-xs font-semibold text-blue-700">{selectedBoardPattern.totalMarks} {t('marksWord', 'Marks')} | {selectedBoardPattern.durationMins} {t('mins', 'Mins')}</span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
@@ -423,7 +421,7 @@ export default function QPGeneratorPage() {
             {patternMode === 'CUSTOM' && savedCustomPatterns.length > 0 && (
               <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-blue-900">Load from Saved Custom Patterns Library:</label>
+                  <label className="text-xs font-bold text-blue-900">{t('loadSavedPatterns', 'Load from Saved Custom Patterns Library:')}</label>
                   <span className="text-xs font-semibold text-blue-700">{savedCustomPatterns.length} Saved Pattern(s)</span>
                 </div>
                 <select
@@ -443,10 +441,10 @@ export default function QPGeneratorPage() {
                   }}
                   className="input-field text-xs bg-white font-medium text-gray-800"
                 >
-                  <option value="">-- Select Saved Custom Pattern --</option>
+                  <option value="">{t('selectSavedPattern', '-- Select Saved Custom Pattern --')}</option>
                   {savedCustomPatterns.map((pat) => (
                     <option key={pat.id} value={pat.id}>
-                      {pat.name} ({pat.totalMarks} Marks | {pat.durationMins} Mins)
+                      {pat.name} ({pat.totalMarks} {t('marksWord', 'Marks')} | {pat.durationMins} Mins)
                     </option>
                   ))}
                 </select>
@@ -474,7 +472,7 @@ export default function QPGeneratorPage() {
 
             <div className="flex justify-between pt-4 border-t">
               <button type="button" onClick={() => setStep(1)} className="btn-secondary">
-                ← Back to Scope
+                {t('backToScope', '← Back to Scope')}
               </button>
               <button
                 type="button"
@@ -482,7 +480,7 @@ export default function QPGeneratorPage() {
                 disabled={patternMode === 'BOARD' && !selectedBoardPattern}
                 className="btn-primary"
               >
-                Next: Syllabus & Weightage →
+                {t('nextSyllabus', 'Next: Syllabus & Weightage →')}
               </button>
             </div>
           </div>
@@ -491,19 +489,19 @@ export default function QPGeneratorPage() {
         {/* ================= STEP 3: SYLLABUS & WEIGHTAGE ================= */}
         {step === 3 && (
           <div className="card space-y-6">
-            <h2 className="text-lg font-bold text-gray-900 border-b pb-2">Step 3: Syllabus Coverage & Weightage</h2>
+            <h2 className="text-lg font-bold text-gray-900 border-b pb-2">{t('step3Header', 'Step 3: Syllabus Coverage & Weightage')}</h2>
 
             {/* Chapter Checkboxes with Persistent User Choice */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="label">Select Syllabus Chapters</label>
+                <label className="label">{t('selectSyllabusChapters', 'Select Syllabus Chapters')}</label>
                 <div className="flex gap-2 text-xs">
                   <button
                     type="button"
                     onClick={() => setValue('chapterIds', chapters.map(c => c.id))}
                     className="text-blue-600 font-semibold hover:underline"
                   >
-                    Select All
+                    {t('selectAll', 'Select All')}
                   </button>
                   <span className="text-gray-300">|</span>
                   <button
@@ -511,7 +509,7 @@ export default function QPGeneratorPage() {
                     onClick={() => setValue('chapterIds', [])}
                     className="text-gray-500 hover:underline"
                   >
-                    Deselect All
+                    {t('deselectAll', 'Deselect All')}
                   </button>
                 </div>
               </div>
@@ -533,14 +531,14 @@ export default function QPGeneratorPage() {
             {/* Board Weightage vs Custom Topic Weightage Display */}
             {patternMode === 'BOARD' ? (
               <div className="space-y-3 border-t pt-4">
-                <h3 className="font-bold text-sm text-gray-900">Authoritative Board Chapter Weightages</h3>
+                <h3 className="font-bold text-sm text-gray-900">{t('boardChapterWeightages', 'Authoritative Board Chapter Weightages')}</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs text-left border">
                     <thead className="bg-gray-100 font-bold border-b">
                       <tr>
-                        <th className="p-2">Chapter / Unit</th>
-                        <th className="p-2 text-center">Marks (Without Option)</th>
-                        <th className="p-2 text-center">Marks (With Option)</th>
+                        <th className="p-2">{t('chapterUnit', 'Chapter / Unit')}</th>
+                        <th className="p-2 text-center">{t('marksWithoutOption', 'Marks (Without Option)')}</th>
+                        <th className="p-2 text-center">{t('marksWithOption', 'Marks (With Option)')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -565,10 +563,10 @@ export default function QPGeneratorPage() {
 
             <div className="flex justify-between pt-4 border-t">
               <button type="button" onClick={() => setStep(2)} className="btn-secondary">
-                ← Back to Pattern
+                {t('backToPattern', '← Back to Pattern')}
               </button>
               <button type="button" onClick={() => setStep(4)} className="btn-primary">
-                Next: Preview Config →
+                {t('nextPreviewConfig', 'Next: Preview Config →')}
               </button>
             </div>
           </div>
@@ -577,40 +575,40 @@ export default function QPGeneratorPage() {
         {/* ================= STEP 4: PREVIEW CONFIG & GENERATE ================= */}
         {step === 4 && (
           <div className="card space-y-6">
-            <h2 className="text-lg font-bold text-gray-900 border-b pb-2">Step 4: Preview Configuration & Generate</h2>
+            <h2 className="text-lg font-bold text-gray-900 border-b pb-2">{t('step4Header', 'Step 4: Preview Configuration & Generate')}</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
               <div className="bg-gray-50 p-3 rounded border">
-                <span className="text-gray-500 block">Class & Subject</span>
+                <span className="text-gray-500 block">{t('classAndSubject', 'Class & Subject')}</span>
                 <span className="font-bold text-gray-900">{selectedSubjectObj?.name}</span>
               </div>
               <div className="bg-gray-50 p-3 rounded border">
-                <span className="text-gray-500 block">Pattern Mode</span>
-                <span className="font-bold text-blue-700">{patternMode === 'BOARD' ? 'Official Board Pattern' : 'Custom Pattern'}</span>
+                <span className="text-gray-500 block">{t('patternModeLabel', 'Pattern Mode')}</span>
+                <span className="font-bold text-blue-700">{patternMode === 'BOARD' ? t('officialBoardPattern', 'Official Board Pattern') : t('customizedPatternBuilder', 'Custom Pattern')}</span>
               </div>
               <div className="bg-gray-50 p-3 rounded border">
-                <span className="text-gray-500 block">Marks & Duration</span>
-                <span className="font-bold text-gray-900">{targetTotalMarks} Marks / {durationMins} Mins</span>
+                <span className="text-gray-500 block">{t('marksAndDuration', 'Marks & Duration')}</span>
+                <span className="font-bold text-gray-900">{targetTotalMarks} {t('marksWord', 'Marks')} / {durationMins} {t('mins', 'Mins')}</span>
               </div>
             </div>
 
             {/* Difficulty & Instructions */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="label">Difficulty Level</label>
+                <label className="label">{t('difficultyLevelLabel', 'Difficulty Level')}</label>
                 <select {...register('difficulty')} className="input-field">
-                  <option value="EASY">Easy</option>
-                  <option value="MEDIUM">Medium</option>
-                  <option value="HARD">Hard</option>
+                  <option value="EASY">{t('easy', 'Easy')}</option>
+                  <option value="MEDIUM">{t('medium', 'Medium')}</option>
+                  <option value="HARD">{t('hard', 'Hard')}</option>
                 </select>
               </div>
 
               <div>
-                <label className="label">Custom Exam Instructions (Optional)</label>
+                <label className="label">{t('customInstructionsLabel', 'Custom Exam Instructions (Optional)')}</label>
                 <input
                   type="text"
                   {...register('instructions')}
-                  placeholder="e.g. Use of log tables is allowed. Calculators not permitted."
+                  placeholder={t('customInstructionsPlaceholder', 'e.g. Use of log tables is allowed. Calculators not permitted.')}
                   className="input-field"
                 />
               </div>
@@ -618,14 +616,14 @@ export default function QPGeneratorPage() {
 
             <div className="flex justify-between pt-4 border-t">
               <button type="button" onClick={() => setStep(3)} className="btn-secondary">
-                ← Back to Syllabus
+                {t('backToSyllabus', '← Back to Syllabus')}
               </button>
               <button
                 type="submit"
                 disabled={generating}
                 className="btn-primary bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-6 rounded-lg shadow"
               >
-                {generating ? 'Generating Question Paper...' : 'Generate Question Paper'}
+                {generating ? t('generatingPaper', 'Generating Question Paper...') : t('generateQuestionPaper', 'Generate Question Paper')}
               </button>
             </div>
           </div>

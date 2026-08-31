@@ -42,105 +42,94 @@ export default function StudentDashboard() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Welcome, {user?.name}!</h1>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 select-none">
+      <div className="border-b border-slate-200 pb-5">
+        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Student Dashboard</h1>
         {!profileLoading && profile && (
-          <p className="mt-2 text-gray-600">
-            {profile.class?.name} &middot; {profile.stream?.name}
+          <p className="mt-1 text-sm text-slate-500 font-medium">
+            Welcome back, {user?.name}. Class: {profile.class?.name || 'N/A'} &middot; Stream: {profile.stream?.name || 'N/A'}
           </p>
         )}
       </div>
 
       {/* Profile Summary */}
-      <div className="card mb-8">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Your Details</h2>
+      <div className="card space-y-4">
+        <h2 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">Your Account Details</h2>
         {profileLoading ? (
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
             <Skeleton className="h-12" />
             <Skeleton className="h-12" />
             <Skeleton className="h-12" />
           </div>
         ) : profile ? (
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <p className="text-sm text-gray-600">Student ID</p>
-              <p className="font-semibold text-gray-900">{profile.uniqueId}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
+              <p className="text-xs text-slate-500 font-semibold">Student ID</p>
+              <p className="font-bold text-sm text-slate-900 mt-0.5">{profile.uniqueId}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Class</p>
-              <p className="font-semibold text-gray-900">{profile.class?.name || 'N/A'}</p>
+            <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
+              <p className="text-xs text-slate-500 font-semibold">Class</p>
+              <p className="font-bold text-sm text-slate-900 mt-0.5">{profile.class?.name || 'N/A'}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Stream</p>
-              <p className="font-semibold text-gray-900">{profile.stream?.name || 'N/A'}</p>
+            <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
+              <p className="text-xs text-slate-500 font-semibold">Stream</p>
+              <p className="font-bold text-sm text-slate-900 mt-0.5">{profile.stream?.name || 'N/A'}</p>
             </div>
           </div>
         ) : (
-          <p className="text-gray-600">Unable to load profile.</p>
+          <p className="text-slate-500 text-sm">Unable to load profile.</p>
         )}
       </div>
 
-
-      <div className="card mb-8">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Textbooks & Past Question Papers</h2>
-        {materialsLoading ? <TableSkeleton rows={3} columns={4} /> : materials.length === 0 ? (
-          <p className="text-gray-600">No study materials are available for your class and subjects yet.</p>
-        ) : (
-          <div className="overflow-x-auto"><table className="w-full"><thead className="border-b border-gray-200 bg-gray-50"><tr>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Document</th><th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Type</th><th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Subject</th><th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Action</th>
-          </tr></thead><tbody className="divide-y divide-gray-200">{materials.map((material) => <tr key={`${material.type}-${material.fileName}`}>
-            <td className="px-4 py-3 text-sm text-gray-900">{material.name}</td><td className="px-4 py-3 text-sm text-gray-600">{material.type === 'pyq' ? 'Past Question Paper' : 'Textbook'}</td><td className="px-4 py-3 text-sm text-gray-600">{material.subject}</td><td className="px-4 py-3"><button onClick={() => openMaterial(material)} className="text-sm text-blue-600 hover:text-blue-900">Open / Download</button></td>
-          </tr>)}</tbody></table></div>
-        )}
-      </div>
       {/* Published Question Papers */}
-      <div className="card">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Available Question Papers</h2>
+      <div className="card space-y-4">
+        <h2 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">Available Question Papers</h2>
 
         {papersLoading && (
           <TableSkeleton rows={5} columns={6} />
         )}
 
         {papersError && (
-          <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
+          <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700 font-medium">
             Failed to load question papers. {papersError.message}
           </div>
         )}
 
         {!papersLoading && papers.length === 0 && (
-          <p className="text-gray-600">
-            No published question papers yet. Check back once your teacher publishes one.
+          <p className="text-slate-500 py-6 text-center text-sm font-medium">
+            No published question papers available yet. Check back once your teacher publishes one.
           </p>
         )}
 
         {!papersLoading && papers.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b border-gray-200 bg-gray-50">
+          <div className="table-responsive-container">
+            <table className="w-full text-left text-sm border-collapse">
+              <thead className="border-b border-slate-200 bg-slate-50 text-slate-700 text-xs font-bold uppercase tracking-wider">
                 <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Title</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Subject</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Marks</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Duration</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Difficulty</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
+                  <th className="px-5 py-3.5">Title</th>
+                  <th className="px-5 py-3.5">Subject</th>
+                  <th className="px-5 py-3.5">Marks</th>
+                  <th className="px-5 py-3.5">Duration</th>
+                  <th className="px-5 py-3.5">Difficulty</th>
+                  <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-slate-200">
                 {papers.map((paper) => (
-                  <tr key={paper.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm text-gray-900">{paper.title}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{paper.subject?.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{paper.totalMarks}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{paper.durationMins} mins</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{paper.difficulty}</td>
-                    <td className="px-6 py-4">
+                  <tr key={paper.id} className="hover:bg-slate-50">
+                    <td className="px-5 py-4 font-semibold text-slate-900">{paper.title}</td>
+                    <td className="px-5 py-4 text-slate-600">{paper.subject?.name}</td>
+                    <td className="px-5 py-4 text-slate-600">{paper.totalMarks}</td>
+                    <td className="px-5 py-4 text-slate-600">{paper.durationMins} mins</td>
+                    <td className="px-5 py-4">
+                      <span className="badge badge-info">{paper.difficulty}</span>
+                    </td>
+                    <td className="px-5 py-4 text-right">
                       <Link
                         to={`/paper/${paper.id}`}
-                        className="text-sm text-blue-600 hover:text-blue-900"
+                        className="btn-secondary py-1 px-3 text-xs"
                       >
-                        View
+                        View Paper
                       </Link>
                     </td>
                   </tr>

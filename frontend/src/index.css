@@ -21,25 +21,30 @@ body {
 
 /* Card */
 .card {
-  @apply rounded-lg border border-gray-200 bg-white p-6 shadow-sm;
+  @apply rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-sm transition-all;
 }
 
 /* Button variants */
 .btn-primary {
-  @apply inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:bg-gray-400;
+  @apply inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 active:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 transition-colors shadow-sm;
 }
 
 .btn-secondary {
-  @apply inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 hover:bg-gray-50;
+  @apply inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 active:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 transition-colors shadow-sm;
 }
 
 .btn-danger {
-  @apply inline-flex items-center justify-center rounded-lg bg-red-600 px-4 py-2 font-medium text-white hover:bg-red-700;
+  @apply inline-flex items-center justify-center rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 active:bg-red-800 transition-colors shadow-sm;
 }
 
 /* Form inputs */
 .input-field {
-  @apply rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 shadow-sm placeholder-slate-400 transition focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100;
+  @apply w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm placeholder-slate-400 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100;
+}
+
+/* Table wrapper for horizontal scroll containment */
+.table-responsive-container {
+  @apply w-full overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm;
 }
 
 .auth-shell {
