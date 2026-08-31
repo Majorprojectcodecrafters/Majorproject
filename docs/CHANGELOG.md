@@ -2,6 +2,18 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.7.4] - 2026-08-31 (Fixed HTTP 500 Upload Error & Failsafe Local Staging Fallback)
+
+### Upload Error Resolution & Google Drive Storage Routing
+- **Fixed Prisma Schema Mismatch in Upload Controller (`studentLibrary.controller.js`)**:
+  - Resolved `KnowledgeSource` Prisma create error by mapping `fileName`, `mappedSourceType`, and `sourcePriority`.
+- **Failsafe Local Staging Fallback (`drive.service.js`)**:
+  - Added fallback handling to `uploadFileToDrive`. If Google Drive API throws `invalid_grant` or network errors, files stage locally in `uploads/student_library/` without throwing HTTP 500 errors.
+- **Hierarchical Google Drive Target Folder Routing (`drive.service.js`, `studentLibrary.controller.js`)**:
+  - Connected `ensureFolderStructure` to automatically create and route uploaded files into `QPGen / Board / Stream / Class / Subject / Category` folders.
+
+---
+
 ## [2.7.3] - 2026-08-31 (Knowledge Base Ingestion & Automatic Fallback Engine)
 
 ### Knowledge Base Ingestion & Vector Indexing Enhancements

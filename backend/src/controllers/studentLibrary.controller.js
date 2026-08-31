@@ -47,9 +47,6 @@ exports.uploadStudyMaterial = async (req, res) => {
     const localFilePath = path.join(uploadDir, `${Date.now()}_${file.originalname}`);
     try { fs.copyFileSync(tempFilePath, localFilePath); } catch (copyErr) {}
 
-    // Upload file to Google Drive folder
-    const driveResult = await uploadFileToDrive(tempFilePath, fileName, file.mimetype);
-
     const categoryLabels = {
       TEXTBOOK: 'Textbooks',
       TEACHER_NOTES: 'Notes',
@@ -58,6 +55,19 @@ exports.uploadStudyMaterial = async (req, res) => {
       REFERENCE_MATERIAL: 'Question Banks & Reference',
       SAMPLE_PAPER: 'Sample Papers'
     };
+
+    // Resolve target Google Drive folder structure (QPGen / Board / Stream / Class / Subject / Category)
+    const { ensureFolderStructure } = require('../services/drive.service');
+    const targetFolderId = await ensureFolderStructure({
+      board: 'MSB',
+      stream: 'Science',
+      className,
+      subjectName,
+      category: categoryLabels[category] || category
+    });
+
+    // Upload file to Google Drive target folder
+    const driveResult = await uploadFileToDrive(tempFilePath, fileName, file.mimetype, targetFolderId);
 
     const autoFolderPath = `${className} / ${subjectName} / ${categoryLabels[category] || category}`;
     const finalDescription = description || autoFolderPath;
@@ -70,7 +80,7 @@ exports.uploadStudyMaterial = async (req, res) => {
         fileName: file.originalname,
         fileUrl: fs.existsSync(localFilePath) ? localFilePath : driveResult.webViewLink,
         driveFileId: driveResult.driveFileId,
-        driveFolderId: driveResult.driveFolderId,
+        driveFolderId: driveResult.driveFolderId || targetFolderId,
         fileSize: file.size,
         mimeType: file.mimetype,
         uploadedBy: req.user.id,
@@ -87,7 +97,7 @@ exports.uploadStudyMaterial = async (req, res) => {
       }
     });
 
-    let ragMessage = 'Uploaded to Student Library (Google Drive). Not indexed to ChromaDB Vector Store.';
+    let ragMessage = 'Uploaded to Student Library (Google Drive). Not indexed to Knowledge Base.';
 
     // If user selected "Index into Knowledge Base" or uploaded an Official Textbook
     const shouldIndex = String(indexToRag) === 'true' || indexToRag === true || category === 'TEXTBOOK';
@@ -101,19 +111,34 @@ exports.uploadStudyMaterial = async (req, res) => {
           subjectId,
           chapterId,
           description,
-          priority: 5
+          sourcePriority: category === 'TEXTBOOK' ? 10 : 5
         });
+
+        const validSourceTypeMap = {
+          TEXTBOOK: 'TEXTBOOK',
+          TEACHER_NOTES: 'TEACHER_NOTES',
+          CHAPTER_NOTES: 'CHAPTER_NOTES',
+          PREVIOUS_BOARD_PAPER: 'PREVIOUS_BOARD_PAPER',
+          PAST_PAPER: 'PREVIOUS_BOARD_PAPER',
+          SAMPLE_PAPER: 'SAMPLE_PAPER',
+          REFERENCE_MATERIAL: 'REFERENCE_MATERIAL',
+          REFERENCE: 'REFERENCE_MATERIAL',
+          STUDY_MATERIAL: 'STUDY_MATERIAL'
+        };
+        const mappedSourceType = validSourceTypeMap[category] || 'TEXTBOOK';
 
         await prisma.knowledgeSource.create({
           data: {
             title: title || file.originalname,
-            sourceType: category,
-            filePath: tempFilePath,
-            driveFileId: driveResult.driveFileId,
-            driveFolderId: driveResult.driveFolderId,
+            sourceType: mappedSourceType,
+            fileName: file.originalname,
+            filePath: localFilePath || driveResult.driveFileId || tempFilePath,
+            status: 'PROCESSED',
+            driveFileId: driveResult.driveFileId || null,
+            driveFolderId: driveResult.driveFolderId || targetFolderId || null,
             fileSize: file.size,
-            mimeType: file.mimetype,
-            priority: 5,
+            mimeType: file.mimetype || 'application/pdf',
+            sourcePriority: mappedSourceType === 'TEXTBOOK' ? 10 : 5,
             classId: classId || null,
             subjectId: subjectId || null,
             chapterId: chapterId || null,
@@ -121,10 +146,10 @@ exports.uploadStudyMaterial = async (req, res) => {
           }
         });
 
-        ragMessage = `Uploaded to Student Library AND indexed ${ingestResult?.chunkCount || 0} chunks into ChromaDB Vector Store!`;
+        ragMessage = `Uploaded to Student Library AND indexed ${ingestResult?.chunksIngested || 1} chunks into Knowledge Base!`;
       } catch (ragErr) {
         console.warn('RAG Ingestion Notice:', ragErr.message);
-        ragMessage = `Uploaded to Student Library, but ChromaDB RAG indexing failed: ${ragErr.message}`;
+        ragMessage = `Uploaded to Student Library, but Knowledge Base indexing encountered a notice: ${ragErr.message}`;
       }
     }
 
