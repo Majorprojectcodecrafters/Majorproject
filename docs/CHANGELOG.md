@@ -2,6 +2,17 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.1.3] - 2026-08-31 (Deduplication of Academic Classes & Option Label Formatting)
+
+### Fixed & Cleaned
+- **Database Class Deduplication**:
+  - Safely merged relations for duplicate seed classes (`11th C`, `11th Standard`, `12th Standard`) into clean standard class records (`11th Science` and `12th Science`).
+  - Cleaned database `Class` records down to 6 distinct academic classes (`11th Science`, `11th Arts`, `11th Commerce`, `12th Science`, `12th Arts`, `12th Commerce`).
+- **Frontend Dropdown Label Formatting (`QPGeneratorPage.jsx`)**:
+  - Updated class dropdown renderer to check if the stream name is already included in the class name before appending parenthesized stream tags, preventing duplicate labels like `11th Science (Science)`.
+
+---
+
 ## [2.1.2] - 2026-08-31 (Configuration of Service Account Email & JSON Key File Support)
 
 ### Added

@@ -284,11 +284,17 @@ export default function QPGeneratorPage() {
                   className="input-field"
                 >
                   <option value="">-- Select Class --</option>
-                  {classes.map((cls) => (
-                    <option key={cls.id} value={cls.id}>
-                      {cls.name} ({cls.stream?.name || 'Science'})
-                    </option>
-                  ))}
+                  {classes.map((cls) => {
+                    const streamName = cls.stream?.name || '';
+                    const displayName = streamName && !cls.name.toLowerCase().includes(streamName.toLowerCase())
+                      ? `${cls.name} (${streamName})`
+                      : cls.name;
+                    return (
+                      <option key={cls.id} value={cls.id}>
+                        {displayName}
+                      </option>
+                    );
+                  })}
                 </select>
                 <p className="text-xs text-gray-500 mt-1">Selecting class scopes all subjects, chapters, topics, and textbooks.</p>
               </div>
