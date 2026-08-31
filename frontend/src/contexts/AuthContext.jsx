@@ -8,17 +8,37 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Load user and token from localStorage on mount
+  // Load user and token from localStorage on mount & refresh from backend
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
     
-    if (savedToken && savedUser) {
+    if (savedToken) {
       setToken(savedToken);
-      setUser(JSON.parse(savedUser));
+      if (savedUser) {
+        try {
+          setUser(JSON.parse(savedUser));
+        } catch (e) {
+          console.warn('Failed to parse saved user:', e.message);
+        }
+      }
+
+      // Fetch fresh user details (including avatarUrl) from server
+      apiClient.get('/auth/me')
+        .then(res => {
+          if (res.data?.data) {
+            const freshUser = res.data.data;
+            setUser(freshUser);
+            localStorage.setItem('user', JSON.stringify(freshUser));
+          }
+        })
+        .catch(err => {
+          console.warn('Backend user refresh notice:', err.message);
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
     }
-    
-    setLoading(false);
   }, []);
 
   const login = async (email, password) => {

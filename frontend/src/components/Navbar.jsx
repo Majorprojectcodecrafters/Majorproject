@@ -110,26 +110,44 @@ export default function Navbar() {
             </div>
 
             {/* Merged User Profile Section & Integrated Logout */}
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 p-1.5 rounded-2xl shadow-xs">
+            <div className="flex items-center gap-3 bg-white border border-slate-200/90 pl-2 pr-3 py-1.5 rounded-full shadow-xs hover:shadow-sm transition-all">
               <Link
                 to={profileRoute}
-                className="flex items-center gap-2.5 px-2.5 py-1 rounded-xl hover:bg-white hover:shadow-xs transition-all"
-                title="View Profile"
+                className="flex items-center gap-2.5 group"
+                title="View & Edit Profile"
               >
-                <div className="w-7 h-7 rounded-lg bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-xs uppercase">
-                  {user.name ? user.name[0] : 'U'}
+                {/* Circular Avatar Icon with Blue Ring */}
+                <div className="w-10 h-10 rounded-full border-2 border-blue-500 p-0.5 overflow-hidden flex-shrink-0 bg-slate-100 flex items-center justify-center transition-transform group-hover:scale-105">
+                  {user.avatarUrl ? (
+                    <img 
+                      src={user.avatarUrl} 
+                      alt={user.name} 
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-black text-sm">
+                      {/* Default User Silhouette Icon */}
+                      <svg className="w-6 h-6 text-blue-600 fill-current" viewBox="0 0 24 24">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                      </svg>
+                    </div>
+                  )}
                 </div>
                 <div className="text-left">
-                  <p className="font-bold text-xs text-slate-900 leading-tight truncate max-w-[120px]">{user.name}</p>
-                  <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">{user.role}</p>
+                  <p className="font-extrabold text-sm text-slate-900 leading-tight group-hover:text-blue-600 transition-colors truncate max-w-[130px]">
+                    {user.name}
+                  </p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    {user.role}
+                  </p>
                 </div>
               </Link>
 
-              <div className="h-5 w-px bg-slate-200"></div>
+              <div className="h-6 w-px bg-slate-200"></div>
 
               <button
                 onClick={handleLogout}
-                className="px-2.5 py-1 text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                className="px-3.5 py-1.5 text-xs font-bold text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-full transition-colors"
                 title="Logout"
               >
                 Logout

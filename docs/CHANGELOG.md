@@ -2,6 +2,17 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.1.9] - 2026-08-31 (Automated User Avatar Fetch & Silhouette Icon Fallback)
+
+### Added & Upgraded
+- **Automated Profile Fetch on App Mount (`AuthContext.jsx`)**:
+  - Configured `AuthContext` to automatically call `/api/auth/me` on app mount to ensure the latest `avatarUrl` is instantly fetched from the backend database.
+- **Navbar Avatar Icon Component (`Navbar.jsx`)**:
+  - Ensured the profile picture renders as a circular icon inside the blue ring.
+  - Added a clean vector silhouette user icon fallback whenever `avatarUrl` is empty.
+
+---
+
 ## [2.1.8] - 2026-08-31 (Customizable Profile Avatar Image & Blue Ring Navbar Styling)
 
 ### Added & Styling Upgraded
