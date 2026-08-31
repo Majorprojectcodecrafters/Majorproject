@@ -18,8 +18,9 @@ router.get('/results/semester',     ...isStudent, student.getSemesterResults);
 router.get('/results/semester/:id', ...isStudent, student.getSemesterResultById);
 
 // Question Papers
-router.get('/qp',     ...isStudent, student.getPublishedQPs);
-router.get('/qp/:id', ...isStudent, student.getQPById);
+router.get('/qp',            ...isStudent, student.getPublishedQPs);
+router.get('/qp/:id',        ...isStudent, student.getQPById);
+router.get('/qp/:id/export', ...isStudent, student.exportStudentQP);
 
 // Assigned Teachers
 router.get('/teachers', ...isStudent, student.getMyTeachers);

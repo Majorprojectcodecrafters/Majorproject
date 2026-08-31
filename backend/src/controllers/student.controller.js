@@ -177,6 +177,21 @@ exports.getSemesterResultById = async (req, res) => {
 
 // ==================== QUESTION PAPERS ====================
 
+/**
+ * Helper function to determine if a question paper test schedule is completed (over)
+ */
+function isTestOver(qp) {
+  if (!qp) return false;
+  if (qp.status !== 'PUBLISHED') return false;
+
+  const now = new Date();
+  const startTime = qp.examDate ? new Date(qp.examDate) : new Date(qp.createdAt);
+  const durationMins = qp.durationMins || 60;
+  const endTime = new Date(startTime.getTime() + durationMins * 60 * 1000);
+
+  return now > endTime;
+}
+
 exports.getPublishedQPs = async (req, res) => {
   try {
     const { subjectId, difficulty, page = 1, limit = 10 } = req.query;
@@ -187,7 +202,11 @@ exports.getPublishedQPs = async (req, res) => {
       select: { streamId: true }
     });
 
-    // Only QPs from subjects in student's stream
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student profile not found' });
+    }
+
+    // Fetch published QPs from student's stream
     const where = {
       isDeleted: false,
       status: 'PUBLISHED',
@@ -196,30 +215,31 @@ exports.getPublishedQPs = async (req, res) => {
       ...(difficulty && { difficulty })
     };
 
-    const [qps, total] = await Promise.all([
-      prisma.questionPaper.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: Number(limit),
-        include: {
-          subject: { include: { stream: true } },
-          teacher: { include: { user: { select: { name: true } } } },
-          template: true,
-          questions: { include: { question: true } }
-        },
-        orderBy: { createdAt: 'desc' }
-      }),
-      prisma.questionPaper.count({ where })
-    ]);
+    const allQps = await prisma.questionPaper.findMany({
+      where,
+      include: {
+        subject: { include: { stream: true } },
+        teacher: { include: { user: { select: { name: true } } } },
+        template: true,
+        questions: { include: { question: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Strictly filter out papers whose test schedule is NOT over yet
+    const completedQps = allQps.filter(qp => isTestOver(qp));
+
+    const total = completedQps.length;
+    const paginated = completedQps.slice((page - 1) * limit, page * limit);
 
     res.json({
       success: true,
-      data: qps,
+      data: paginated,
       pagination: {
         total,
         page: Number(page),
         limit: Number(limit),
-        totalPages: Math.ceil(total / limit)
+        totalPages: Math.ceil(total / limit) || 1
       }
     });
 
@@ -252,7 +272,57 @@ exports.getQPById = async (req, res) => {
 
     if (!qp) return res.status(404).json({ success: false, message: 'Question paper not found' });
 
+    // Enforce test completion check
+    if (!isTestOver(qp)) {
+      return res.status(403).json({
+        success: false,
+        message: 'This question paper is for an upcoming or ongoing exam. It will become available for viewing and download once the test duration is completed.'
+      });
+    }
+
     res.json({ success: true, data: qp });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.exportStudentQP = async (req, res) => {
+  try {
+    const { exportQPToPDF } = require('../utils/pdfExporter');
+
+    const student = await prisma.student.findUnique({
+      where: { id: req.user.studentId },
+      select: { streamId: true }
+    });
+
+    const qp = await prisma.questionPaper.findFirst({
+      where: {
+        id: req.params.id,
+        isDeleted: false,
+        status: 'PUBLISHED',
+        subject: { streamId: student.streamId }
+      },
+      include: {
+        subject: true,
+        questions: { include: { question: true } }
+      }
+    });
+
+    if (!qp) return res.status(404).json({ success: false, message: 'Question paper not found' });
+
+    if (!isTestOver(qp)) {
+      return res.status(403).json({
+        success: false,
+        message: 'This question paper is for an upcoming or ongoing exam. It will become available for download once the test duration is completed.'
+      });
+    }
+
+    const pdfBuffer = await exportQPToPDF(qp, false);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${qp.title}-student.pdf"`);
+    res.send(pdfBuffer);
 
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

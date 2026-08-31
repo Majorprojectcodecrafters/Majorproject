@@ -30,12 +30,14 @@ export default function PaperViewerPage() {
 
   const isTeacher = user?.role === 'TEACHER';
   const isAdmin = user?.role === 'ADMIN';
+  const isStudent = user?.role === 'STUDENT';
   const canEditOrManage = isTeacher || isAdmin;
 
   const { data: paper, isLoading, error } = useQuery({
     queryKey: ['paper', paperId],
     queryFn: async () => {
-      const response = await apiClient.get(`/question-papers/${paperId}`);
+      const endpoint = isStudent ? `/student/qp/${paperId}` : `/question-papers/${paperId}`;
+      const response = await apiClient.get(endpoint);
       return response.data.data;
     },
   });
@@ -43,34 +45,37 @@ export default function PaperViewerPage() {
   // Download PDF
   const downloadPDF = async (type) => {
     try {
-      const response = await apiClient.get(
-        `/teacher/qp/${paperId}/export/${type === 'student' ? 'student' : 'teacher'}`,
-        { responseType: 'blob' }
-      );
+      const endpoint = isStudent
+        ? `/student/qp/${paperId}/export`
+        : `/teacher/qp/${paperId}/export/${type === 'student' ? 'student' : 'teacher'}`;
+
+      const response = await apiClient.get(endpoint, { responseType: 'blob' });
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `${paper.title}-${type}.pdf`);
+      link.setAttribute('download', `${paper?.title || 'QuestionPaper'}-${type}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (err) {
-      showToast(`Download failed: ${err.message}`, 'error');
+      showToast(`Download failed: ${err.response?.data?.message || err.message}`, 'error');
     }
   };
 
   const previewPDF = async () => {
     setPreviewing(true);
     try {
-      const response = await apiClient.get(
-        `/teacher/qp/${paperId}/export/student`,
-        { responseType: 'blob' }
-      );
+      const endpoint = isStudent
+        ? `/student/qp/${paperId}/export`
+        : `/teacher/qp/${paperId}/export/student`;
+
+      const response = await apiClient.get(endpoint, { responseType: 'blob' });
       if (previewUrl) window.URL.revokeObjectURL(previewUrl);
       setPreviewUrl(window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' })));
     } catch (err) {
-      showToast(`PDF preview failed: ${err.message}`, 'error');
+      showToast(`PDF preview failed: ${err.response?.data?.message || err.message}`, 'error');
     } finally {
       setPreviewing(false);
     }
@@ -173,10 +178,24 @@ export default function PaperViewerPage() {
   }
 
   if (error || !paper) {
+    const is403 = error?.response?.status === 403;
+    const msg = error?.response?.data?.message || 'Failed to load question paper.';
+
     return (
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
-        <div className="rounded-lg bg-red-50 p-4 text-red-700">
-          Failed to load question paper.
+      <div className="container mx-auto px-4 py-12 max-w-2xl text-center space-y-6">
+        <div className={`card p-8 space-y-4 border-2 ${is403 ? 'bg-amber-50/60 border-amber-300' : 'bg-red-50/60 border-red-300'}`}>
+          <div className="text-4xl">{is403 ? '🔒' : '⚠️'}</div>
+          <h2 className="text-2xl font-black text-slate-900">
+            {is403 ? 'Test Schedule In Progress' : 'Unable to Access Question Paper'}
+          </h2>
+          <p className="text-sm text-slate-600 leading-relaxed font-medium">
+            {msg}
+          </p>
+          <div className="pt-2">
+            <button onClick={() => navigate(backPath)} className="btn-primary py-2 px-6 font-bold text-sm">
+              ← Return to Dashboard
+            </button>
+          </div>
         </div>
       </div>
     );
