@@ -1,14 +1,8 @@
 import { useAuth } from '../contexts/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 export default function Navbar() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const { user } = useAuth();
 
   const getDashboardRoute = () => {
     if (!user) return '/';
@@ -43,7 +37,7 @@ export default function Navbar() {
 
         {user && (
           <div className="flex items-center gap-6">
-            {/* Center Navigation Links (Without Dashboard or Standalone Profile) */}
+            {/* Center Navigation Links (Without Dashboard, Logout, or Standalone Profile) */}
             <div className="flex flex-wrap items-center gap-5 text-sm font-semibold">
               {user.role === 'TEACHER' && (
                 <>
@@ -109,50 +103,38 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* Merged User Profile Section & Integrated Logout */}
-            <div className="flex items-center gap-3 bg-white border border-slate-200/90 pl-2 pr-3 py-1.5 rounded-full shadow-xs hover:shadow-sm transition-all">
-              <Link
-                to={profileRoute}
-                className="flex items-center gap-2.5 group"
-                title="View & Edit Profile"
-              >
-                {/* Circular Avatar Icon with Blue Ring */}
-                <div className="w-10 h-10 rounded-full border-2 border-blue-500 p-0.5 overflow-hidden flex-shrink-0 bg-slate-100 flex items-center justify-center transition-transform group-hover:scale-105">
-                  {user.avatarUrl ? (
-                    <img 
-                      src={user.avatarUrl} 
-                      alt={user.name} 
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-black text-sm">
-                      {/* Default User Silhouette Icon */}
-                      <svg className="w-6 h-6 text-blue-600 fill-current" viewBox="0 0 24 24">
-                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-                <div className="text-left">
-                  <p className="font-extrabold text-sm text-slate-900 leading-tight group-hover:text-blue-600 transition-colors truncate max-w-[130px]">
-                    {user.name}
-                  </p>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    {user.role}
-                  </p>
-                </div>
-              </Link>
-
-              <div className="h-6 w-px bg-slate-200"></div>
-
-              <button
-                onClick={handleLogout}
-                className="px-3.5 py-1.5 text-xs font-bold text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-full transition-colors"
-                title="Logout"
-              >
-                Logout
-              </button>
-            </div>
+            {/* User Profile Button (Routes directly to Profile) */}
+            <Link
+              to={profileRoute}
+              className="flex items-center gap-2.5 bg-white border border-slate-200/90 pl-2 pr-3.5 py-1.5 rounded-full shadow-xs hover:shadow-sm hover:border-blue-300 transition-all group"
+              title="View Profile & Account Options"
+            >
+              {/* Circular Avatar Icon with Blue Ring */}
+              <div className="w-10 h-10 rounded-full border-2 border-blue-500 p-0.5 overflow-hidden flex-shrink-0 bg-slate-100 flex items-center justify-center transition-transform group-hover:scale-105">
+                {user.avatarUrl ? (
+                  <img 
+                    src={user.avatarUrl} 
+                    alt={user.name} 
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-black text-sm">
+                    {/* Default User Silhouette Icon */}
+                    <svg className="w-6 h-6 text-blue-600 fill-current" viewBox="0 0 24 24">
+                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+              <div className="text-left">
+                <p className="font-extrabold text-sm text-slate-900 leading-tight group-hover:text-blue-600 transition-colors truncate max-w-[130px]">
+                  {user.name}
+                </p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  {user.role}
+                </p>
+              </div>
+            </Link>
           </div>
         )}
       </div>

@@ -2,6 +2,16 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.2.0] - 2026-08-31 (Navbar Logout Removal & Profile Section Logout Option)
+
+### Simplified & Relocated
+- **Navbar Clean-Up (`Navbar.jsx`)**:
+  - Removed the standalone `Logout` button from the main header navigation bar.
+- **Profile Section Logout Action (`TeacherProfilePage.jsx`, `StudentProfilePage.jsx`)**:
+  - Positioned a dedicated **Logout from Account** option button inside the user's Profile Page card.
+
+---
+
 ## [2.1.9] - 2026-08-31 (Automated User Avatar Fetch & Silhouette Icon Fallback)
 
 ### Added & Upgraded

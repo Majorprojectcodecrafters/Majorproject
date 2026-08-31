@@ -1,16 +1,23 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function StudentProfilePage() {
   const { showToast } = useToast();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
+  const navigate = useNavigate();
   const [contact, setContact] = useState('');
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef(null);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const { data: profile, isLoading, refetch } = useQuery({
     queryKey: ['studentProfilePage'],
@@ -154,6 +161,18 @@ export default function StudentProfilePage() {
               <div><strong>Student ID:</strong> {profile.uniqueId}</div>
               <div><strong>Class:</strong> {profile.class?.name || 'N/A'}</div>
               <div><strong>Stream:</strong> {profile.stream?.name || 'N/A'}</div>
+            </div>
+
+            {/* Logout Action inside Profile Section */}
+            <div className="border-t pt-3">
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full py-2 px-4 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 hover:text-red-700 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors shadow-xs"
+              >
+                <span>🚪</span>
+                <span>Logout from Account</span>
+              </button>
             </div>
           </div>
 
