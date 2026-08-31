@@ -111,6 +111,19 @@ export default function AdminAllocationsPage() {
     }
   };
 
+  const handleDeleteClass = async (classId, className) => {
+    if (!window.confirm(`Are you sure you want to delete class "${className}"?`)) return;
+
+    try {
+      await apiClient.delete(`/admin/classes/${classId}`);
+      showToast(`Class "${className}" deleted successfully!`, 'success');
+      refetchClasses();
+      queryClient.invalidateQueries({ queryKey: ['adminClassesList'] });
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to delete class', 'error');
+    }
+  };
+
   const handleReassignStudent = async (e) => {
     e.preventDefault();
     if (!reassignStudentId || !reassignTargetClassId) {
@@ -324,13 +337,29 @@ export default function AdminAllocationsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {classes.map(c => (
-                <div key={c.id} className="border rounded-lg p-4 bg-gray-50/50 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-base text-gray-900">{c.name}</span>
-                    <span className="text-xs text-gray-500">{c.academicYear}</span>
+                <div key={c.id} className="border rounded-lg p-4 bg-gray-50/50 space-y-3 flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-base text-gray-900">{c.name}</span>
+                      <span className="text-xs font-semibold px-2 py-0.5 bg-slate-200 text-slate-700 rounded">{c.academicYear}</span>
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      {t('enrolledStudents', 'Enrolled Students')}: <strong>{c.students?.length || 0}</strong>
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-600">
-                    {t('enrolledStudents', 'Enrolled Students')}: <strong>{c.students?.length || 0}</strong>
+
+                  <div className="flex justify-end pt-2 border-t border-gray-200">
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteClass(c.id, c.name)}
+                      title="Delete Class"
+                      className="px-2.5 py-1 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors flex items-center gap-1"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      {t('deleteBtn', 'Delete Class')}
+                    </button>
                   </div>
                 </div>
               ))}

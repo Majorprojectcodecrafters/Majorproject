@@ -2,6 +2,18 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.7.2] - 2026-08-31 (Admin Class Deletion Functionality & Relation Cleanup)
+
+### Admin Class Management Enhancements
+- **Enhanced Delete Class Controller (`admin.controller.js`)**:
+  - Implemented relation cleanup for `teacherAssignments` and `classSubjects` before deleting a class.
+  - Added student enrollment protection check: blocks deletion if active students are enrolled in the class with a clear alert message (`Please reassign students first`).
+- **Added Delete Class Button in Admin Allocations Page (`AdminAllocationsPage.jsx`)**:
+  - Added a clean **`Delete Class`** action button to each class card in the **Manage Classes** tab of `AdminAllocationsPage.jsx`.
+  - Added confirmation modal and automatic query refetching upon deletion.
+
+---
+
 ## [2.7.1] - 2026-08-31 (Minimal SVG Eye and Down-Arrow Action Buttons)
 
 ### Minimal Action Button Refinement

@@ -330,12 +330,27 @@ exports.deleteClass = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const existing = await prisma.class.findUnique({ where: { id } });
+    const existing = await prisma.class.findUnique({
+      where: { id },
+      include: { students: true, teacherAssignments: true }
+    });
+
     if (!existing) return res.status(404).json({ success: false, message: 'Class not found' });
+
+    if (existing.students && existing.students.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete class "${existing.name}". There are ${existing.students.length} students enrolled in this class. Please reassign students first.`
+      });
+    }
+
+    // Clean up relations
+    await prisma.teacherAssignment.deleteMany({ where: { classId: id } });
+    await prisma.classSubject.deleteMany({ where: { classId: id } });
 
     await prisma.class.delete({ where: { id } });
 
-    res.json({ success: true, message: 'Class deleted successfully' });
+    res.json({ success: true, message: `Class "${existing.name}" deleted successfully` });
 
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
