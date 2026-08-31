@@ -102,11 +102,15 @@ exports.generatePracticeQuiz = async (req, res) => {
     const count = Number(questionCount);
     const durationMins = Number((count * 1.3).toFixed(1)); // 1.3 mins per question
 
-    // 1. Fetch MCQs from DB question bank
+    // 1. Fetch MCQs from DB question bank (filtering out dummy placeholders)
     const dbQuestions = await prisma.question.findMany({
       where: {
         chapterId,
-        questionType: 'MCQ'
+        questionType: 'MCQ',
+        NOT: [
+          { questionText: { startsWith: 'Question #' } },
+          { questionText: { contains: 'Question #' } }
+        ]
       }
     });
 
@@ -117,7 +121,11 @@ exports.generatePracticeQuiz = async (req, res) => {
       if (typeof q.options === 'string') {
         try { optionsArr = JSON.parse(q.options); } catch (e) {}
       }
-      if (optionsArr.length >= 4) {
+
+      const isDummyText = !q.questionText || q.questionText.trim().startsWith('Question #');
+      const isDummyOptions = optionsArr.some(o => typeof o === 'string' && (o.trim() === 'Option A' || o.trim() === 'A) Option A'));
+
+      if (!isDummyText && !isDummyOptions && optionsArr.length >= 4) {
         const rawOptions = optionsArr.slice(0, 4);
         const origCorrect = parseCorrectOption(q.answerKey, rawOptions, q.answerKey);
         const { options, correctOption } = shuffleOptionsAndCorrectIndex(rawOptions, origCorrect);
@@ -473,44 +481,83 @@ exports.createChallenge = async (req, res) => {
     const count = Number(questionCount);
     const durationMins = Number((count * 1.3).toFixed(1));
 
-    // Generate Standardized MHT-CET Questions for both to attempt
+    // Fetch MCQs from DB question bank (filtering out dummy placeholders)
     const dbQuestions = await prisma.question.findMany({
-      where: { chapterId, questionType: 'MCQ' },
-      take: count
+      where: {
+        chapterId,
+        questionType: 'MCQ',
+        NOT: [
+          { questionText: { startsWith: 'Question #' } },
+          { questionText: { contains: 'Question #' } }
+        ]
+      }
     });
 
-    let challengeQs = dbQuestions.map((q, idx) => {
+    let challengeQs = [];
+
+    dbQuestions.forEach(q => {
       let optionsArr = Array.isArray(q.options) ? q.options : [];
       if (typeof q.options === 'string') {
         try { optionsArr = JSON.parse(q.options); } catch (e) {}
       }
-      const rawOptions = optionsArr.length >= 4 ? optionsArr.slice(0, 4) : ['Option A', 'Option B', 'Option C', 'Option D'];
-      const origCorrect = parseCorrectOption(q.answerKey, rawOptions, q.answerKey);
-      const { options, correctOption } = shuffleOptionsAndCorrectIndex(rawOptions, origCorrect);
 
-      return {
-        id: q.id,
-        questionText: q.questionText,
-        options,
-        correctOption,
-        explanation: q.answerKey || 'MHT-CET challenge solution.'
-      };
-    });
+      const isDummyText = !q.questionText || q.questionText.trim().startsWith('Question #');
+      const isDummyOptions = optionsArr.some(o => typeof o === 'string' && (o.trim() === 'Option A' || o.trim() === 'A) Option A'));
 
-    if (challengeQs.length < count) {
-      const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
-      const chapter = await prisma.chapter.findUnique({ where: { id: chapterId } });
-      for (let i = challengeQs.length; i < count; i++) {
-        const rawOptions = ['(2/5) MR^2', '(1/2) MR^2', '(2/3) MR^2', '(7/5) MR^2'];
-        const { options, correctOption } = shuffleOptionsAndCorrectIndex(rawOptions, 0);
+      if (!isDummyText && !isDummyOptions && optionsArr.length >= 4) {
+        const rawOptions = optionsArr.slice(0, 4);
+        const origCorrect = parseCorrectOption(q.answerKey, rawOptions, q.answerKey);
+        const { options, correctOption } = shuffleOptionsAndCorrectIndex(rawOptions, origCorrect);
 
         challengeQs.push({
-          id: `chall_q_${i}`,
-          questionText: `MHT-CET Standard Practice Question ${i + 1} for ${chapter?.name || 'Chapter'}`,
+          id: q.id,
+          questionText: q.questionText,
           options,
           correctOption,
-          explanation: 'Standard MHT-CET formula solution.'
+          explanation: q.answerKey || 'MHT-CET challenge solution.'
         });
+      }
+    });
+
+    // If DB questions fewer than requested count, generate via LLM grounded in chapter curriculum
+    const needed = count - challengeQs.length;
+    if (needed > 0) {
+      const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
+      const chapter = await prisma.chapter.findUnique({ where: { id: chapterId } });
+
+      const prompt = `Generate exactly ${needed} Multiple Choice Questions (MCQs) strictly conforming to the Maharashtra MHT-CET Entrance Examination standard for 12th Grade ${subject?.name || 'Physics'}, Chapter: "${chapter?.name || 'Chapter'}".
+Format Requirements:
+Return ONLY a valid JSON array of objects. Each object MUST contain:
+- "questionText": string (conceptual/problem-solving MHT-CET standard)
+- "options": array of 4 distinct string choices
+- "correctOption": integer index (0 for Option A, 1 for Option B, 2 for Option C, 3 for Option D)
+- "explanation": brief 1-2 sentence step-by-step solution/concept explanation
+
+Important: Distribute the correct answer index across 0, 1, 2, and 3 evenly. Do NOT make 0 (Option A) the correct answer for every question.`;
+
+      try {
+        const llmResponse = await generateLLMResponse(prompt, { temperature: 0.4 });
+        const jsonMatch = llmResponse.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          const generated = JSON.parse(jsonMatch[0]);
+          generated.forEach((g, idx) => {
+            if (g.questionText && Array.isArray(g.options) && g.options.length >= 4) {
+              const rawOptions = g.options.slice(0, 4);
+              const origCorrect = parseCorrectOption(g.correctOption, rawOptions, g.explanation);
+              const { options, correctOption } = shuffleOptionsAndCorrectIndex(rawOptions, origCorrect);
+
+              challengeQs.push({
+                id: `chall_gen_${Date.now()}_${idx}`,
+                questionText: g.questionText,
+                options,
+                correctOption,
+                explanation: g.explanation || 'MHT-CET concept solution.'
+              });
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('⚠️ Challenge LLM generation fallback:', e.message);
       }
     }
 

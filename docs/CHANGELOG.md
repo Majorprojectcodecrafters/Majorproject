@@ -2,6 +2,18 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.6.1] - 2026-08-31 (Dummy Question Placeholder Filtering & LLM Fallback Enforcement)
+
+### Question Bank Quality & Filtering Enhancements
+- **Filtered Dummy Placeholder Records (`practice.controller.js`)**:
+  - Filtered out legacy seed placeholder rows (`questionText` starting with `"Question #"` or options `["A) Option A", ...]`) across both practice sessions and classmate challenges (`generatePracticeQuiz`, `createChallenge`).
+- **Enforced High-Quality MHT-CET Curriculum Grounded LLM Generation**:
+  - Automatically triggers LLM curriculum-grounded generation when valid DB questions are fewer than requested, ensuring 100% of questions contain real problem statements and options.
+- **Empirical Execution Verification**:
+  - Verified `generatePracticeQuiz` outputs 100% genuine conceptual MHT-CET Physics & Mathematics questions.
+
+---
+
 ## [2.6.0] - 2026-08-31 (MHT-CET Classmate Challenge Accept & Attempt Flow Integration)
 
 ### Gamified MHT-CET Challenge Execution
