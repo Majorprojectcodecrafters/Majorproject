@@ -11,5 +11,6 @@ router.get('/units', protect, curriculumController.getUnits);
 router.get('/chapters', protect, curriculumController.getChapters);
 router.get('/topics', protect, curriculumController.getTopics);
 router.get('/weightage', protect, curriculumController.getWeightage);
+router.post('/sync-syllabus', protect, curriculumController.syncSyllabusTopics);
 
 module.exports = router;

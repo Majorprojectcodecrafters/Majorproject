@@ -2,6 +2,20 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.1.6] - 2026-08-31 (Official MSB Science Curriculum Topics Mapping Pipeline)
+
+### Added & Upgraded
+- **MSB Curriculum Matrix & Synchronization Pipeline (`syllabusMapperService.js`)**:
+  - Implemented authoritative Maharashtra State Board (MSB) 11th & 12th topic matrix for Physics, Chemistry, Mathematics & Biology.
+  - Added `syncOfficialSyllabusTopics()` pipeline to automatically upsert all missing core curriculum topics across all 61 Science chapters.
+  - Increased total database mapped curriculum topics from **255 to 648 topics** (186 Physics, 170 Chemistry, 121 Mathematics & 171 Biology).
+- **Curriculum API Endpoint (`curriculum.routes.js`, `curriculum.controller.js`)**:
+  - Registered `POST /api/curriculum/sync-syllabus` endpoint to trigger automated syllabus topic synchronization.
+- **Zero Impact on Paper Generation**:
+  - Question paper generation pipeline (`qpGenerator.js`, `pdfExporter.js`) remained 100% untouched.
+
+---
+
 ## [2.1.5] - 2026-08-31 (RAG Engine Resilient Fallback & ChromaDB Diagnostics)
 
 ### Fixed & Upgraded

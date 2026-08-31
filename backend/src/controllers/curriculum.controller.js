@@ -147,3 +147,18 @@ exports.getWeightage = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+// Trigger automated official MSB syllabus topics mapping & sync
+exports.syncSyllabusTopics = async (req, res) => {
+  try {
+    const { syncOfficialSyllabusTopics } = require('../services/syllabusMapperService');
+    const result = await syncOfficialSyllabusTopics();
+    res.json({
+      success: true,
+      message: 'Official MSB syllabus topics mapped and synchronized successfully.',
+      data: result
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
