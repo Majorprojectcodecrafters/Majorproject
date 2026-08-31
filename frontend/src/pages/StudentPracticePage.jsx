@@ -143,6 +143,44 @@ export default function StudentPracticePage() {
     }
   };
 
+  const myStudentId = progressData?.leaderboard?.find(s => s.isMe)?.studentId;
+
+  const handleStartChallengeQuiz = (c) => {
+    const rawQuestions = Array.isArray(c.questionsData) ? c.questionsData : [];
+    if (rawQuestions.length === 0) {
+      showToast('Challenge contains no questions', 'error');
+      return;
+    }
+
+    const sanitizedQuestions = rawQuestions.map((q, idx) => ({
+      id: q.id || `q_${idx}`,
+      questionText: q.questionText,
+      options: Array.isArray(q.options) ? q.options : [],
+      orderInt: idx + 1
+    }));
+
+    setQuizData({
+      subjectName: c.subject?.name || 'MHT-CET Challenge',
+      chapterName: c.chapter?.name || 'Practice Challenge',
+      questionCount: sanitizedQuestions.length,
+      durationMins: c.durationMins || 13,
+      questions: sanitizedQuestions,
+      rawQuestions
+    });
+
+    setActiveChallengeToPlay(c);
+    setInQuiz(true);
+    setCurrentIdx(0);
+    setSelectedAnswers({});
+    setQuestionTimes({});
+    setRevealedQuestions({});
+    setStreak(0);
+    setMaxStreak(0);
+    setPracticeResult(null);
+    setTimeLeft(Math.round((c.durationMins || 13) * 60));
+    setQuestionStartTime(Date.now());
+  };
+
   const handleFinishPractice = async () => {
     if (submitting || practiceResult) return;
 
@@ -150,19 +188,51 @@ export default function StudentPracticePage() {
     const totalTimeTaken = Math.round((quizData.durationMins * 60) - timeLeft);
 
     try {
-      const res = await apiClient.post('/practice/submit', {
-        subjectId: selectedSubjectId,
-        chapterId: selectedChapterId,
-        timeTakenSeconds: totalTimeTaken > 0 ? totalTimeTaken : 10,
-        answers: selectedAnswers,
-        questionTimes,
-        rawQuestions: quizData.rawQuestions
-      });
+      if (activeChallengeToPlay) {
+        const res = await apiClient.post('/practice/challenge/submit', {
+          challengeId: activeChallengeToPlay.id,
+          answers: selectedAnswers,
+          timeTakenSeconds: totalTimeTaken > 0 ? totalTimeTaken : 10
+        });
 
-      setPracticeResult(res.data.data);
-      showToast('Practice session complete!', 'success');
-      refetchProgress();
-      queryClient.invalidateQueries({ queryKey: ['practiceProgress'] });
+        const updated = res.data.data;
+        showToast('Challenge attempt submitted!', 'success');
+
+        const isChallenger = updated.challengerId === myStudentId;
+        const myScore = isChallenger ? updated.challengerScore : updated.opponentScore;
+        const myXp = isChallenger ? updated.challengerXp : updated.opponentXp;
+
+        setPracticeResult({
+          isChallenge: true,
+          correctCount: myScore,
+          totalQuestions: updated.questionCount || 10,
+          totalXp: myXp || 0,
+          accuracy: Math.round((myScore / (updated.questionCount || 10)) * 100),
+          timeTakenSeconds: totalTimeTaken > 0 ? totalTimeTaken : 10,
+          status: updated.status,
+          updatedChallenge: updated
+        });
+
+        setActiveChallengeToPlay(null);
+        refetchChallenges();
+        refetchProgress();
+        queryClient.invalidateQueries({ queryKey: ['studentChallenges'] });
+        queryClient.invalidateQueries({ queryKey: ['practiceProgress'] });
+      } else {
+        const res = await apiClient.post('/practice/submit', {
+          subjectId: selectedSubjectId,
+          chapterId: selectedChapterId,
+          timeTakenSeconds: totalTimeTaken > 0 ? totalTimeTaken : 10,
+          answers: selectedAnswers,
+          questionTimes,
+          rawQuestions: quizData.rawQuestions
+        });
+
+        setPracticeResult(res.data.data);
+        showToast('Practice session complete!', 'success');
+        refetchProgress();
+        queryClient.invalidateQueries({ queryKey: ['practiceProgress'] });
+      }
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to submit practice result', 'error');
     } finally {
@@ -589,24 +659,59 @@ export default function StudentPracticePage() {
                       <th className="p-3">Subject & Chapter</th>
                       <th className="p-3">Scores</th>
                       <th className="p-3">Status / Winner</th>
+                      <th className="p-3 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y text-sm">
-                    {challenges.map(c => (
-                      <tr key={c.id} className="hover:bg-gray-50">
-                        <td className="p-3 font-semibold text-gray-900">{c.challenger?.user?.name}</td>
-                        <td className="p-3 font-semibold text-gray-900">{c.opponent?.user?.name}</td>
-                        <td className="p-3 text-xs">{c.subject?.name} • {c.chapter?.name}</td>
-                        <td className="p-3 text-xs font-mono">
-                          {c.challengerScore !== null ? `${c.challengerScore} pts` : 'Pending'} vs {c.opponentScore !== null ? `${c.opponentScore} pts` : 'Pending'}
-                        </td>
-                        <td className="p-3">
-                          <span className={`badge ${c.status === 'COMPLETED' ? 'badge-success' : 'badge-warning'}`}>
-                            {c.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    {challenges.map(c => {
+                      const isChallenger = c.challengerId === myStudentId;
+                      const isOpponent = c.opponentId === myStudentId;
+                      const challengerAttempted = c.challengerScore !== null;
+                      const opponentAttempted = c.opponentScore !== null;
+
+                      let canPlay = false;
+                      if (isChallenger && !challengerAttempted) canPlay = true;
+                      if (isOpponent && !opponentAttempted) canPlay = true;
+
+                      return (
+                        <tr key={c.id} className="hover:bg-gray-50">
+                          <td className="p-3 font-semibold text-gray-900">
+                            {c.challenger?.user?.name} {isChallenger && '(You)'}
+                          </td>
+                          <td className="p-3 font-semibold text-gray-900">
+                            {c.opponent?.user?.name} {isOpponent && '(You)'}
+                          </td>
+                          <td className="p-3 text-xs">{c.subject?.name} • {c.chapter?.name}</td>
+                          <td className="p-3 text-xs font-mono">
+                            {challengerAttempted ? `${c.challengerScore} pts` : 'Pending'} vs {opponentAttempted ? `${c.opponentScore} pts` : 'Pending'}
+                          </td>
+                          <td className="p-3">
+                            <span className={`badge ${c.status === 'COMPLETED' ? 'badge-success' : 'badge-warning'}`}>
+                              {c.status === 'COMPLETED' ? (
+                                c.winnerId === myStudentId ? '🏆 You Won!' : c.winnerId ? '❌ Opponent Won' : '🤝 Tied!'
+                              ) : c.status}
+                            </span>
+                          </td>
+                          <td className="p-3 text-right">
+                            {canPlay ? (
+                              <button
+                                onClick={() => {
+                                  setActiveTab('arena');
+                                  handleStartChallengeQuiz(c);
+                                }}
+                                className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors"
+                              >
+                                {isOpponent ? '⚔️ Accept & Attempt' : '🎮 Play Your Side'}
+                              </button>
+                            ) : (
+                              <span className="text-xs text-gray-400 font-semibold">
+                                {c.status === 'COMPLETED' ? 'Completed' : 'Waiting for opponent'}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

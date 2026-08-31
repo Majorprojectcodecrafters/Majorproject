@@ -2,6 +2,20 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.6.0] - 2026-08-31 (MHT-CET Classmate Challenge Accept & Attempt Flow Integration)
+
+### Gamified MHT-CET Challenge Execution
+- **Integrated Challenge Acceptance & Quiz Player Flow (`StudentPracticePage.jsx`)**:
+  - Implemented **`⚔️ Accept & Attempt`** action button for receiver students in the Classmate Challenges Feed Table.
+  - Implemented **`🎮 Play Your Side`** action button for challenger students who haven't attempted their generated challenge session yet.
+- **Challenge Evaluation & Winner Resolution (`StudentPracticePage.jsx`, `practice.controller.js`)**:
+  - Connected frontend submit handler to POST `/api/practice/challenge/submit`.
+  - Calculates accuracy, speed time tie-breaking, updates challenge status (`ACCEPTED` $\rightarrow$ `COMPLETED`), awards XP to both players, and displays winner badges (`🏆 You Won!`, `🏆 Opponent Won`, `🤝 Tied!`).
+- **Executed Empirical Challenge Flow Test**:
+  - Ran automated end-to-end challenge creation, receiver attempt, challenger attempt, and winner resolution test against PostgreSQL database.
+
+---
+
 ## [2.5.9] - 2026-08-31 (Email Anti-Spam Deliverability Optimization & MIME Plain Text Fallback)
 
 ### Email Deliverability & Anti-Spam Enhancements
