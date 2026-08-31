@@ -2,6 +2,15 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.7.1] - 2026-08-31 (Minimal SVG Eye and Down-Arrow Action Buttons)
+
+### Minimal Action Button Refinement
+- **Replaced Plain Text & Emojis with Clean Minimal SVG Icons (`StudentDashboard.jsx`)**:
+  - Replaced `"View Paper"` and `"Download PDF"` text buttons and emoji stickers with clean, minimal, non-funky SVG vector Eye and Down-Arrow icons.
+  - Styled with slate (`p-2 text-slate-700 bg-slate-100 border-slate-200`) and blue (`p-2 text-blue-600 bg-blue-50 border-blue-200`) action button designs.
+
+---
+
 ## [2.7.0] - 2026-08-31 (Post-Exam Question Paper Publishing Policy & Student View/Download Access)
 
 ### Question Paper Security & Post-Exam Publishing Policy

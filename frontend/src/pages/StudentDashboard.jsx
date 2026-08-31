@@ -158,16 +158,27 @@ export default function StudentDashboard() {
                       <div className="flex items-center justify-end gap-2">
                         <Link
                           to={`/paper/${paper.id}`}
-                          className="btn-secondary py-1.5 px-3 text-xs font-bold flex items-center gap-1.5"
+                          title="View Question Paper"
+                          className="p-2 text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg transition-colors flex items-center justify-center"
                         >
-                          👁️ View Paper
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
                         </Link>
                         <button
                           onClick={() => handleDownloadPaper(paper)}
                           disabled={downloadingId === paper.id}
-                          className="btn-primary py-1.5 px-3 text-xs font-bold flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700"
+                          title="Download Question Paper PDF"
+                          className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors flex items-center justify-center disabled:opacity-50"
                         >
-                          {downloadingId === paper.id ? 'Downloading...' : '📥 Download PDF'}
+                          {downloadingId === paper.id ? (
+                            <span className="spinner w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                          )}
                         </button>
                       </div>
                     </td>
