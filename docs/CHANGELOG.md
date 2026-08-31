@@ -2,6 +2,14 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.7.6] - 2026-08-31 (Automated 1-Click Google Drive OAuth Authorization Helper)
+
+### Automated OAuth Setup Helper
+- **Automated OAuth Token Generator (`getGoogleDriveToken.js`, `package.json`)**:
+  - Created a 1-click CLI helper script (`npm run drive:auth`) that launches the Google OAuth consent browser, listens on `http://localhost:3000/oauth2callback`, exchanges the authorization code, and automatically updates `GOOGLE_REFRESH_TOKEN` in `backend/.env`.
+
+---
+
 ## [2.7.5] - 2026-08-31 (Configured Google Drive OAuth Refresh Token & Diagnostic Setup)
 
 ### Google Drive Integration & Diagnostic Setup

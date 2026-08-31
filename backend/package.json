@@ -11,7 +11,8 @@
     "test": "jest --detectOpenHandles",
     "test:watch": "jest --watch",
     "chroma:setup": "powershell -ExecutionPolicy Bypass -File scripts/setup-chroma.ps1",
-    "chroma": ".\\.chroma-venv\\Scripts\\chroma.exe run --path chroma_db --port 8000"
+    "chroma": ".\\.chroma-venv\\Scripts\\chroma.exe run --path chroma_db --port 8000",
+    "drive:auth": "node scripts/getGoogleDriveToken.js"
   },
   "keywords": [],
   "author": "",
