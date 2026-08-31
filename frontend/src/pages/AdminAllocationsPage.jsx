@@ -145,19 +145,19 @@ export default function AdminAllocationsPage() {
             onClick={() => setActiveTab('allocations')}
             className={`btn-sm ${activeTab === 'allocations' ? 'btn-primary' : 'btn-secondary'}`}
           >
-            🧑‍🏫 Teacher Allocations
+            Teacher Allocations
           </button>
           <button
             onClick={() => setActiveTab('classes')}
             className={`btn-sm ${activeTab === 'classes' ? 'btn-primary' : 'btn-secondary'}`}
           >
-            🏫 Manage Classes ({classes.length})
+            Manage Classes ({classes.length})
           </button>
           <button
             onClick={() => setActiveTab('students')}
             className={`btn-sm ${activeTab === 'students' ? 'btn-primary' : 'btn-secondary'}`}
           >
-            🎓 Student Reassignment
+            Student Reassignment
           </button>
         </div>
       </div>
@@ -222,7 +222,7 @@ export default function AdminAllocationsPage() {
 
             <div className="flex justify-end pt-2">
               <button type="submit" className="btn-primary">
-                ➕ Add Allocation
+                Add Allocation
               </button>
             </div>
           </form>
@@ -307,7 +307,7 @@ export default function AdminAllocationsPage() {
             </div>
 
             <button type="submit" className="btn-primary min-w-36">
-              ➕ Create Class
+              Create Class
             </button>
           </form>
 
@@ -370,7 +370,7 @@ export default function AdminAllocationsPage() {
             </div>
 
             <button type="submit" className="btn-primary">
-              🔄 Reassign Student
+              Reassign Student
             </button>
           </form>
         </div>

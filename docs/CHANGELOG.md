@@ -2,6 +2,15 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.2.2] - 2026-08-31 (Frontend Emoji Sticker Removal & Minimal UI Cleanup)
+
+### UI Minimalism Refinement
+- **Removed Informal Emoji Stickers Across All Components**:
+  - Removed decorative emojis (`📢`, `🤖`, `⚡`, `📷`, `🚪`, `🚀`, `🏆`, `📊`, `🎯`, `⚔️`, `🔥`, `💡`, `📖`, `📑`, `🔒`, `🔗`, `🔑`, `✏️`, `💾`, `🎉`, etc.) across 16 frontend pages and components.
+  - Achieved clean, professional, minimal institutional UI typography and aesthetics.
+
+---
+
 ## [2.2.1] - 2026-08-31 (Strict Separation of Knowledge Base and Student Library Functionalities)
 
 ### Architecture & Navigation Separation

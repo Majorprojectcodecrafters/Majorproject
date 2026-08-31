@@ -221,7 +221,7 @@ export default function StudentPracticePage() {
             <div className="h-8 w-px bg-purple-700"></div>
             <div className="text-center px-2">
               <div className="text-[10px] text-purple-300 uppercase font-bold">Total XP</div>
-              <div className="text-xl font-black text-emerald-300">⚡ {progressData.stats.totalXp} XP</div>
+              <div className="text-xl font-black text-emerald-300">{progressData.stats.totalXp} XP</div>
             </div>
             <div className="h-8 w-px bg-purple-700"></div>
             <div className="text-center px-2">
@@ -238,25 +238,25 @@ export default function StudentPracticePage() {
           onClick={() => { setActiveTab('arena'); setInQuiz(false); setPracticeResult(null); }}
           className={`btn-sm font-bold ${activeTab === 'arena' ? 'btn-primary' : 'btn-secondary'}`}
         >
-          🎯 Practice Arena
+          Practice Arena
         </button>
         <button
           onClick={() => setActiveTab('challenges')}
           className={`btn-sm font-bold ${activeTab === 'challenges' ? 'btn-primary' : 'btn-secondary'}`}
         >
-          ⚔️ Classmate Challenges ({challenges.filter(c => c.status === 'PENDING').length})
+          Classmate Challenges ({challenges.filter(c => c.status === 'PENDING').length})
         </button>
         <button
           onClick={() => setActiveTab('leaderboard')}
           className={`btn-sm font-bold ${activeTab === 'leaderboard' ? 'btn-primary' : 'btn-secondary'}`}
         >
-          🏆 Class Leaderboard
+          Class Leaderboard
         </button>
         <button
           onClick={() => setActiveTab('heatmap')}
           className={`btn-sm font-bold ${activeTab === 'heatmap' ? 'btn-primary' : 'btn-secondary'}`}
         >
-          📊 Chapter Mastery Heatmap
+          Chapter Mastery Heatmap
         </button>
       </div>
 
@@ -316,7 +316,7 @@ export default function StudentPracticePage() {
 
             {/* MHT-CET XP Rules Card */}
             <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 text-xs space-y-2 text-purple-950">
-              <div className="font-bold text-purple-900 text-sm">⚡ MHT-CET Gamification Rewards Engine:</div>
+              <div className="font-bold text-purple-900 text-sm">MHT-CET Gamification Rewards Engine:</div>
               <ul className="list-disc pl-4 space-y-1">
                 <li><strong>Base XP:</strong> 10 XP per correct MHT-CET question.</li>
                 <li><strong>Streak Multiplier:</strong> 3 consecutive correct → 1.5× XP (15 XP/q); 5 consecutive correct → 2.0× XP (20 XP/q).</li>
@@ -330,7 +330,7 @@ export default function StudentPracticePage() {
               disabled={!selectedSubjectId || !selectedChapterId}
               className="btn-primary w-full text-lg py-3"
             >
-              🚀 Launch Practice Quiz
+              Launch Practice Quiz
             </button>
           </div>
         </div>
@@ -349,7 +349,7 @@ export default function StudentPracticePage() {
             <div className="flex items-center gap-4">
               <div className="bg-purple-900 px-3 py-1.5 rounded-lg border border-purple-700 text-center">
                 <div className="text-[10px] text-purple-300 uppercase font-bold">Streak</div>
-                <div className="text-lg font-black text-amber-300">🔥 {streak} {streak >= 5 ? '(2.0x XP)' : streak >= 3 ? '(1.5x XP)' : ''}</div>
+                <div className="text-lg font-black text-amber-300">{streak} {streak >= 5 ? '(2.0x XP)' : streak >= 3 ? '(1.5x XP)' : ''}</div>
               </div>
 
               {!practiceResult && (
@@ -364,7 +364,7 @@ export default function StudentPracticePage() {
           {/* Result Summary Screen */}
           {practiceResult && (
             <div className="card border-4 border-purple-600 space-y-6 text-center py-8">
-              <span className="text-5xl">{practiceResult.badge ? '🏆' : '🎯'}</span>
+              <span className="text-5xl">{practiceResult.badge ? '' : ''}</span>
               <h3 className="text-3xl font-black text-purple-950">Practice Complete!</h3>
 
               {practiceResult.badge && (
@@ -384,11 +384,11 @@ export default function StudentPracticePage() {
                 </div>
                 <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
                   <div className="text-xs text-amber-700 uppercase font-bold">Total XP Earned</div>
-                  <div className="text-2xl font-black text-amber-900">⚡ +{practiceResult.xpBreakdown?.totalXp} XP</div>
+                  <div className="text-2xl font-black text-amber-900">+{practiceResult.xpBreakdown?.totalXp} XP</div>
                 </div>
                 <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="text-xs text-blue-700 uppercase font-bold">Max Streak</div>
-                  <div className="text-2xl font-black text-blue-900">🔥 {practiceResult.maxStreak}</div>
+                  <div className="text-2xl font-black text-blue-900">{practiceResult.maxStreak}</div>
                 </div>
               </div>
 
@@ -421,7 +421,7 @@ export default function StudentPracticePage() {
                     </div>
 
                     {q.explanation && (
-                      <p className="text-xs text-gray-700 italic border-t pt-1">💡 <strong>Solution:</strong> {q.explanation}</p>
+                      <p className="text-xs text-gray-700 italic border-t pt-1"><strong>Solution:</strong> {q.explanation}</p>
                     )}
                   </div>
                 ))}
@@ -478,7 +478,7 @@ export default function StudentPracticePage() {
               {/* Instant Solution Explanation Display */}
               {revealedQuestions[quizData.questions[currentIdx].id] && (
                 <div className="p-4 rounded-lg bg-blue-50 border border-blue-200 text-xs text-blue-950 space-y-1">
-                  <div className="font-bold text-blue-900">💡 Solution Explanation:</div>
+                  <div className="font-bold text-blue-900">Solution Explanation:</div>
                   <p>{quizData.rawQuestions.find(q => q.id === quizData.questions[currentIdx].id)?.explanation}</p>
                 </div>
               )}
@@ -498,7 +498,7 @@ export default function StudentPracticePage() {
                   </button>
                 ) : (
                   <button onClick={handleFinishPractice} disabled={submitting} className="btn-primary bg-emerald-600 hover:bg-emerald-700 py-2">
-                    {submitting ? 'Evaluating...' : '🏁 Finish & Calculate XP'}
+                    {submitting ? 'Evaluating...' : 'Finish & Calculate XP'}
                   </button>
                 )}
               </div>
@@ -512,7 +512,7 @@ export default function StudentPracticePage() {
         <div className="space-y-8">
           <form onSubmit={handleCreateChallenge} className="card bg-purple-50/50 border border-purple-200 p-6 space-y-4">
             <h2 className="text-base font-bold text-purple-950 uppercase tracking-wider">
-              ⚔️ Invite Classmate to Practice Challenge
+              Invite Classmate to Practice Challenge
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -569,7 +569,7 @@ export default function StudentPracticePage() {
             </div>
 
             <button type="submit" className="btn-primary">
-              ⚔️ Send Challenge
+              Send Challenge
             </button>
           </form>
 
@@ -619,7 +619,7 @@ export default function StudentPracticePage() {
       {activeTab === 'leaderboard' && progressData?.leaderboard && (
         <div className="card space-y-6 max-w-3xl mx-auto border-t-4 border-amber-500">
           <div className="flex items-center justify-between border-b pb-3">
-            <h2 className="text-xl font-bold text-gray-900">🏆 Class Leaderboard</h2>
+            <h2 className="text-xl font-bold text-gray-900">Class Leaderboard</h2>
             <span className="text-xs text-gray-500 font-semibold">Ranked by Total XP in Class</span>
           </div>
 
@@ -641,7 +641,7 @@ export default function StudentPracticePage() {
                 </div>
 
                 <div className="text-right">
-                  <div className="text-lg font-black text-purple-700">⚡ {student.totalXp} XP</div>
+                  <div className="text-lg font-black text-purple-700">{student.totalXp} XP</div>
                 </div>
               </div>
             ))}
@@ -654,7 +654,7 @@ export default function StudentPracticePage() {
         <div className="card space-y-6">
           <div className="flex justify-between items-center border-b pb-3">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">📊 Chapterwise Mastery Heatmap</h2>
+              <h2 className="text-xl font-bold text-gray-900">Chapterwise Mastery Heatmap</h2>
               <p className="text-xs text-gray-500">Mastered (&gt;80%), Intermediate (50-80%), Needs Practice (&lt;50%)</p>
             </div>
           </div>

@@ -64,7 +64,6 @@ export default function StudentMaterialsPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left pt-4 border-t border-slate-100 max-w-xl mx-auto">
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
-            <div className="p-2 rounded-xl bg-purple-100 text-purple-700 font-bold text-xs mt-0.5">📖</div>
             <div>
               <h4 className="font-bold text-xs text-slate-900">Curriculum Textbooks</h4>
               <p className="text-[11px] text-slate-500 mt-0.5">MSB official 11th & 12th textbooks for Physics, Chemistry, Maths & Bio</p>
@@ -72,7 +71,6 @@ export default function StudentMaterialsPage() {
           </div>
 
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
-            <div className="p-2 rounded-xl bg-blue-100 text-blue-700 font-bold text-xs mt-0.5">📑</div>
             <div>
               <h4 className="font-bold text-xs text-slate-900">Chapter Notes & PYQP</h4>
               <p className="text-[11px] text-slate-500 mt-0.5">Detailed notes, formula sheets, and past board papers (2020-2025)</p>
@@ -80,7 +78,6 @@ export default function StudentMaterialsPage() {
           </div>
 
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
-            <div className="p-2 rounded-xl bg-emerald-100 text-emerald-700 font-bold text-xs mt-0.5">⚡</div>
             <div>
               <h4 className="font-bold text-xs text-slate-900">Direct In-App Viewer</h4>
               <p className="text-[11px] text-slate-500 mt-0.5">High-speed private PDF streaming with protected inline document viewer</p>
@@ -88,7 +85,6 @@ export default function StudentMaterialsPage() {
           </div>
 
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
-            <div className="p-2 rounded-xl bg-amber-100 text-amber-700 font-bold text-xs mt-0.5">🔒</div>
             <div>
               <h4 className="font-bold text-xs text-slate-900">Server Authentication</h4>
               <p className="text-[11px] text-slate-500 mt-0.5">Zero external browser redirects or personal Google login requirements</p>

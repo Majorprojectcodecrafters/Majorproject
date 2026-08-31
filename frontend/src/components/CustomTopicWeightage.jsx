@@ -40,7 +40,7 @@ export default function CustomTopicWeightage({ chapters, targetTotalMarks, onCha
 
       {!isValid && (
         <div className="rounded bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
-          ⚠️ <strong>Weightage Validation:</strong> Total assigned topic marks ({totalAssignedMarks}m) must equal paper target marks ({targetTotalMarks}m). Remaining to allocate: {remainingMarks}m.
+          <strong>Weightage Validation:</strong> Total assigned topic marks ({totalAssignedMarks}m) must equal paper target marks ({targetTotalMarks}m). Remaining to allocate: {remainingMarks}m.
         </div>
       )}
 

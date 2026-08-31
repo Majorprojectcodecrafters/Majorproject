@@ -66,7 +66,7 @@ export default function StudentAnnouncementsPage() {
               {a.attachmentUrl && (
                 <div className="pt-3 border-t flex flex-wrap items-center justify-between gap-3 bg-gray-50/80 p-3 rounded-lg">
                   <div className="flex items-center gap-2 text-xs font-bold text-gray-700">
-                    <span>📎 Attachment ({a.attachmentType}):</span>
+                    <span>Attachment ({a.attachmentType}):</span>
                   </div>
 
                   <div className="flex gap-2">
@@ -75,7 +75,7 @@ export default function StudentAnnouncementsPage() {
                         onClick={() => setSelectedImageUrl(a.attachmentUrl)}
                         className="btn-secondary py-1 text-xs bg-white text-blue-700"
                       >
-                        🖼️ Preview Image Notice
+                        Preview Image
                       </button>
                     )}
 
@@ -84,7 +84,7 @@ export default function StudentAnnouncementsPage() {
                         onClick={() => setSelectedPdfUrl(a.attachmentUrl)}
                         className="btn-secondary py-1 text-xs bg-white text-red-700"
                       >
-                        📄 Open PDF Notice Viewer
+                        Open PDF Viewer
                       </button>
                     )}
 
@@ -94,7 +94,7 @@ export default function StudentAnnouncementsPage() {
                       rel="noopener noreferrer"
                       className="btn-secondary py-1 text-xs"
                     >
-                      🔗 Open Direct Link
+                      Open Direct Link
                     </a>
                   </div>
                 </div>
@@ -109,7 +109,7 @@ export default function StudentAnnouncementsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full h-[90vh] flex flex-col p-4">
             <div className="flex justify-between items-center border-b pb-2 mb-3">
-              <h3 className="font-bold text-gray-900 text-lg">📄 Notice PDF Viewer</h3>
+              <h3 className="font-bold text-gray-900 text-lg">Notice PDF Viewer</h3>
               <button
                 onClick={() => setSelectedPdfUrl(null)}
                 className="text-gray-400 hover:text-gray-600 font-bold text-lg"
@@ -131,7 +131,7 @@ export default function StudentAnnouncementsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="bg-white rounded-lg shadow-2xl max-w-3xl w-full p-4 space-y-3">
             <div className="flex justify-between items-center border-b pb-2">
-              <h3 className="font-bold text-gray-900 text-lg">🖼️ Notice Image</h3>
+              <h3 className="font-bold text-gray-900 text-lg">Notice Attachment Image</h3>
               <button
                 onClick={() => setSelectedImageUrl(null)}
                 className="text-gray-400 hover:text-gray-600 font-bold text-lg"

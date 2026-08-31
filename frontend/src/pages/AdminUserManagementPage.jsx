@@ -156,7 +156,7 @@ export default function AdminUserManagementPage() {
       <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-2xl">👥</span>
+            <span className="text-2xl"></span>
             <h1 className="text-2xl font-bold text-gray-900">User Management (Teachers & Students)</h1>
           </div>
           <p className="text-sm text-gray-600 mt-1">
@@ -189,7 +189,7 @@ export default function AdminUserManagementPage() {
               roleFilter === 'TEACHER' ? 'bg-purple-700 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-100 border'
             }`}
           >
-            👨‍🏫 Teachers ({usersData?.filter(u => u.role === 'TEACHER').length || 0})
+            👨‍Teachers ({usersData?.filter(u => u.role === 'TEACHER').length || 0})
           </button>
           <button
             onClick={() => setRoleFilter('STUDENT')}
@@ -197,7 +197,7 @@ export default function AdminUserManagementPage() {
               roleFilter === 'STUDENT' ? 'bg-purple-700 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-100 border'
             }`}
           >
-            🎓 Students ({usersData?.filter(u => u.role === 'STUDENT').length || 0})
+            Students ({usersData?.filter(u => u.role === 'STUDENT').length || 0})
           </button>
         </div>
 
@@ -216,7 +216,7 @@ export default function AdminUserManagementPage() {
           <Skeleton className="h-64 w-full" />
         ) : filteredUsers.length === 0 ? (
           <div className="text-center py-12 text-slate-500">
-            <span className="text-4xl block mb-2">👤</span>
+            <span className="text-4xl block mb-2"></span>
             <p className="font-semibold text-slate-700">No users found matching your filter criteria.</p>
           </div>
         ) : (
@@ -279,7 +279,7 @@ export default function AdminUserManagementPage() {
                         onClick={() => handleOpenEdit(user)}
                         className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-xs border"
                       >
-                        ✏️ Edit
+                        Edit
                       </button>
                       <button
                         onClick={() => {
@@ -289,7 +289,7 @@ export default function AdminUserManagementPage() {
                         }}
                         className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg font-bold text-xs"
                       >
-                        🗑️
+                        
                       </button>
                     </td>
                   </tr>
@@ -306,7 +306,7 @@ export default function AdminUserManagementPage() {
           <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl p-6 border border-slate-200 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b pb-3 mb-5">
               <h3 className="font-bold text-lg text-slate-900">
-                {editingUser ? `✏️ Edit User: ${editingUser.name}` : '➕ Add New User'}
+                {editingUser ? `Edit User: ${editingUser.name}` : 'Add New User'}
               </h3>
               <button
                 onClick={() => { setShowAddModal(false); setEditingUser(null); resetForm(); }}

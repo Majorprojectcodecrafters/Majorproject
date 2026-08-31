@@ -137,7 +137,7 @@ export default function StudentQuizPage() {
                         }}
                         className="btn-primary py-1.5 text-xs"
                       >
-                        🚀 Start Quiz
+                        Start Quiz
                       </button>
                     )}
                   </div>
@@ -242,7 +242,7 @@ export default function StudentQuizPage() {
 
                     {q.explanation && (
                       <p className="text-xs text-gray-700 italic border-t pt-2">
-                        💡 <strong>Explanation:</strong> {q.explanation}
+                        <strong>Explanation:</strong> {q.explanation}
                       </p>
                     )}
                   </div>
@@ -288,7 +288,7 @@ export default function StudentQuizPage() {
                   disabled={submitting}
                   className="btn-primary min-w-48 text-base py-3"
                 >
-                  {submitting ? 'Evaluating...' : '🚀 Submit Quiz'}
+                  {submitting ? 'Evaluating...' : 'Submit Quiz'}
                 </button>
               </div>
             </div>

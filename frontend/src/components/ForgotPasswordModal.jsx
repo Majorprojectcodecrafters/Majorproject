@@ -82,7 +82,6 @@ export default function ForgotPasswordModal({ onClose }) {
         {/* Top Header */}
         <div className="flex items-center justify-between border-b pb-3 mb-5">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🔑</span>
             <h3 className="font-bold text-lg text-slate-900">Forgot Password</h3>
           </div>
           <button
@@ -95,7 +94,7 @@ export default function ForgotPasswordModal({ onClose }) {
 
         {errorMsg && (
           <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium">
-            ⚠️ {errorMsg}
+            {errorMsg}
           </div>
         )}
 
@@ -123,7 +122,7 @@ export default function ForgotPasswordModal({ onClose }) {
               disabled={loading}
               className="btn-primary w-full py-2.5 font-bold text-sm"
             >
-              {loading ? <><span className="spinner mr-2"></span>Sending OTP Email...</> : '📩 Send 6-Digit OTP'}
+              {loading ? <><span className="spinner mr-2"></span>Sending OTP Email...</> : 'Send 6-Digit OTP'}
             </button>
           </form>
         )}
@@ -203,7 +202,7 @@ export default function ForgotPasswordModal({ onClose }) {
               disabled={loading}
               className="btn-primary w-full py-2.5 font-bold text-sm"
             >
-              {loading ? <><span className="spinner mr-2"></span>Resetting Password...</> : '🔒 Reset Password'}
+              {loading ? <><span className="spinner mr-2"></span>Resetting Password...</> : ' Reset Password'}
             </button>
           </form>
         )}
@@ -211,7 +210,6 @@ export default function ForgotPasswordModal({ onClose }) {
         {/* Step 4: Success Confirmation */}
         {step === 4 && (
           <div className="text-center py-4 space-y-4">
-            <div className="text-4xl">🎉</div>
             <h4 className="text-lg font-bold text-slate-900">Password Reset Successful!</h4>
             <p className="text-xs text-slate-600">
               Your password has been changed successfully. You can now sign in with your new credentials.

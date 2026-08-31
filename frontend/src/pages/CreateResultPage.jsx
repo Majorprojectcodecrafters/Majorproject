@@ -189,13 +189,13 @@ export default function CreateResultPage() {
                 onClick={downloadExcel}
                 className="btn-secondary py-1 text-xs bg-white text-green-700 hover:bg-green-50 border-green-300"
               >
-                📊 Download Excel Sheet
+                Download Excel Sheet
               </button>
               <button
                 onClick={downloadPDF}
                 className="btn-secondary py-1 text-xs bg-white text-red-700 hover:bg-red-50 border-red-300"
               >
-                📄 Download Result PDF
+                Download Result PDF
               </button>
             </div>
           </div>
@@ -218,7 +218,7 @@ export default function CreateResultPage() {
               disabled={isSubmitting || !students.length}
               className="btn-primary"
             >
-              {isSubmitting ? 'Publishing...' : '💾 Save & Publish All Results'}
+              {isSubmitting ? 'Publishing...' : 'Save & Publish All Results'}
             </button>
           </div>
 

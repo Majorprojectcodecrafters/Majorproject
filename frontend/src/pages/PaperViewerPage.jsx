@@ -212,13 +212,13 @@ export default function PaperViewerPage() {
           {canEditOrManage && (
             <>
               <button onClick={previewPDF} disabled={previewing} className="btn-secondary">
-                {previewing ? 'Preparing...' : '📄 Preview PDF'}
+                {previewing ? 'Preparing...' : 'Preview PDF'}
               </button>
               <button onClick={() => downloadPDF('student')} className="btn-secondary">
-                ⬇️ Student PDF
+                Download Student PDF
               </button>
               <button onClick={() => downloadPDF('teacher')} className="btn-secondary">
-                🔑 Answer Key PDF
+                Download Answer Key PDF
               </button>
             </>
           )}
@@ -316,7 +316,7 @@ export default function PaperViewerPage() {
                       onClick={() => openEditModal(q)}
                       className="rounded bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition-colors"
                     >
-                      ✏️ Edit Question
+                      Edit Question
                     </button>
                   )}
                 </div>

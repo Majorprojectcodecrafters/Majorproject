@@ -127,13 +127,13 @@ export default function TeacherQuizPage() {
             onClick={() => setActiveTab('builder')}
             className={`btn-sm ${activeTab === 'builder' ? 'btn-primary' : 'btn-secondary'}`}
           >
-            ⚡ Generate Quiz
+            Generate Quiz
           </button>
           <button
             onClick={() => setActiveTab('list')}
             className={`btn-sm ${activeTab === 'list' ? 'btn-primary' : 'btn-secondary'}`}
           >
-            📋 Manage & Results ({quizzes.length})
+            Manage & Results ({quizzes.length})
           </button>
         </div>
       </div>
@@ -253,7 +253,7 @@ export default function TeacherQuizPage() {
               disabled={generating || !selectedSubjectId || !selectedClassId || !selectedChapterIds.length}
               className="btn-primary min-w-48"
             >
-              {generating ? 'Generating Quiz...' : '⚡ Generate Quiz'}
+              {generating ? 'Generating Quiz...' : 'Generate Quiz'}
             </button>
           </form>
 
@@ -274,7 +274,7 @@ export default function TeacherQuizPage() {
                   disabled={generatedQuiz.isPublished}
                   className="btn-primary bg-green-600 hover:bg-green-700"
                 >
-                  {generatedQuiz.isPublished ? '✓ Published to Class' : '🚀 Publish Quiz to Class'}
+                  {generatedQuiz.isPublished ? '✓ Published to Class' : 'Publish Quiz to Class'}
                 </button>
               </div>
 

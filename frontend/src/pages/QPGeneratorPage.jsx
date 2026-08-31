@@ -396,7 +396,7 @@ export default function QPGeneratorPage() {
                 {boardPatternLoading && <p className="text-sm text-gray-500">Loading board pattern structure...</p>}
                 {boardPatternError && (
                   <div className="rounded bg-red-50 border border-red-200 p-4 text-xs text-red-700">
-                    ⚠️ {boardPatternError}
+                    {boardPatternError}
                   </div>
                 )}
                 {selectedBoardPattern && (
@@ -423,7 +423,7 @@ export default function QPGeneratorPage() {
             {patternMode === 'CUSTOM' && savedCustomPatterns.length > 0 && (
               <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-blue-900">📚 Load from Saved Custom Patterns Library:</label>
+                  <label className="text-xs font-bold text-blue-900">Load from Saved Custom Patterns Library:</label>
                   <span className="text-xs font-semibold text-blue-700">{savedCustomPatterns.length} Saved Pattern(s)</span>
                 </div>
                 <select
@@ -625,7 +625,7 @@ export default function QPGeneratorPage() {
                 disabled={generating}
                 className="btn-primary bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-6 rounded-lg shadow"
               >
-                {generating ? '🤖 Generating Question Paper...' : '🚀 Generate Question Paper'}
+                {generating ? 'Generating Question Paper...' : 'Generate Question Paper'}
               </button>
             </div>
           </div>
@@ -647,7 +647,7 @@ export default function QPGeneratorPage() {
                 Grounding: {generatedData.textbookState}
               </span>
               <button onClick={handleSavePaper} className="btn-primary">
-                💾 Save Question Paper
+                Save Question Paper
               </button>
             </div>
           </div>
@@ -656,7 +656,7 @@ export default function QPGeneratorPage() {
           {generatedData.validation && (
             <div className={`p-4 rounded-lg text-xs ${generatedData.validation.valid ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
               <div className="font-bold mb-1">
-                {generatedData.validation.valid ? '✅ Structural Pattern Validation Passed' : '⚠️ Validation Warnings'}
+                {generatedData.validation.valid ? 'Structural Pattern Validation Passed' : 'Validation Warnings'}
               </div>
               {generatedData.validation.errors?.map((err, i) => (
                 <div key={i}>• {err}</div>
@@ -697,7 +697,7 @@ export default function QPGeneratorPage() {
               ← Regenerate / Modify Config
             </button>
             <button onClick={handleSavePaper} className="btn-primary">
-              💾 Save & Go to Dashboard
+              Save & Go to Dashboard
             </button>
           </div>
         </div>

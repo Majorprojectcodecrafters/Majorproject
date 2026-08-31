@@ -96,7 +96,7 @@ export default function ManageAnnouncementsPage() {
       {/* Composer Form */}
       <form onSubmit={handleCreateNotice} className="card bg-blue-50/40 border border-blue-200 p-6 space-y-5">
         <h2 className="text-base font-bold text-blue-950 uppercase tracking-wider">
-          📢 Compose New Announcement
+          Compose New Announcement
         </h2>
 
         <div>
@@ -152,7 +152,7 @@ export default function ManageAnnouncementsPage() {
 
         <div className="flex justify-end pt-2">
           <button type="submit" disabled={submitting} className="btn-primary min-w-44">
-            {submitting ? 'Publishing...' : '📢 Publish Notice'}
+            {submitting ? 'Publishing...' : 'Publish Notice'}
           </button>
         </div>
       </form>
@@ -191,7 +191,7 @@ export default function ManageAnnouncementsPage() {
                     <td className="p-3 text-xs font-bold text-blue-700">
                       {a.attachmentUrl ? (
                         <a href={a.attachmentUrl} target="_blank" rel="noreferrer" className="hover:underline">
-                          🔗 {a.attachmentType}
+                          View {a.attachmentType}
                         </a>
                       ) : 'None'}
                     </td>

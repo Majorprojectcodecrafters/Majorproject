@@ -141,7 +141,7 @@ export default function TeacherProfilePage() {
                 disabled={uploadingPhoto}
                 className="btn-secondary py-1.5 px-4 text-xs font-bold w-full rounded-xl flex items-center justify-center gap-1.5"
               >
-                <span>📷</span>
+                <span></span>
                 <span>{uploadingPhoto ? 'Uploading...' : currentAvatar ? 'Change Photo' : 'Upload Photo'}</span>
               </button>
 
@@ -175,7 +175,7 @@ export default function TeacherProfilePage() {
                 onClick={handleLogout}
                 className="w-full py-2 px-4 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 hover:text-red-700 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors shadow-xs"
               >
-                <span>🚪</span>
+                <span></span>
                 <span>Logout from Account</span>
               </button>
             </div>

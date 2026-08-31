@@ -69,7 +69,7 @@ export default function TeacherStudentsPage() {
           ))
         ) : (
           <div className="col-span-3 card bg-amber-50 border border-amber-200 text-amber-800 p-4 text-sm">
-            💡 No class allocations set by Admin yet. Displaying directly assigned students.
+            No class allocations set by Admin yet. Displaying directly assigned students.
           </div>
         )}
       </div>
@@ -144,7 +144,7 @@ export default function TeacherStudentsPage() {
                         onClick={() => setSelectedStudent(student)}
                         className="btn-secondary py-1 text-xs"
                       >
-                        📊 View Performance
+                        View Performance
                       </button>
                     </td>
                   </tr>

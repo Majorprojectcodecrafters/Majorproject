@@ -198,7 +198,7 @@ export default function CustomPatternBuilder({
           disabled={savingToLibrary}
           className="btn-secondary text-xs font-semibold py-1.5 px-3 flex items-center gap-1.5 text-blue-700 hover:bg-blue-50 border-blue-200"
         >
-          {savingToLibrary ? 'Saving...' : '💾 Save Pattern to Library'}
+          {savingToLibrary ? 'Saving...' : 'Save Pattern to Library'}
         </button>
       </div>
 
@@ -320,7 +320,7 @@ export default function CustomPatternBuilder({
 
         {markMismatch && (
           <div className="mt-3 rounded bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
-            ⚠️ <strong>Total Marks Warning:</strong> Calculated attempted marks ({computedAttemptedMarks}m) do not equal selected target marks ({targetTotalMarks}m). Please adjust section attempt rules or update your target total marks.
+            <strong>Total Marks Warning:</strong> Calculated attempted marks ({computedAttemptedMarks}m) do not equal selected target marks ({targetTotalMarks}m). Please adjust section attempt rules or update your target total marks.
           </div>
         )}
       </div>
