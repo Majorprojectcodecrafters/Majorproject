@@ -2,6 +2,21 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.5.9] - 2026-08-31 (Email Anti-Spam Deliverability Optimization & MIME Plain Text Fallback)
+
+### Email Deliverability & Anti-Spam Enhancements
+- **MIME `multipart/alternative` Plain Text Fallback (`emailService.js`)**:
+  - Added explicit plain-text fallback (`text: ...`) alongside clean HTML body to satisfy Gmail, Outlook, and Yahoo anti-phishing deliverability algorithms.
+- **Clean Subject Line & From Header (`emailService.js`)**:
+  - Removed spam trigger emojis (`🔑`) from subject line: `Your QPGen Verification Code: 719403`.
+  - Matched display sender address: `"Shri Siddheshwar Mahavidyalaya - QPGen Portal" <siddheshwarmahavidyalaya@gmail.com>`.
+- **Anti-Spam Email Headers (`emailService.js`)**:
+  - Configured priority headers (`X-Priority`, `X-MSMail-Priority`, `X-Auto-Response-Suppress`) ensuring placement in Gmail's **Primary Inbox** tab.
+- **Executed Dispatch Test (`emailService.js`)**:
+  - Verified clean email dispatch (`Message-ID: <5dfb4118-945b-a25e-bce5-9ec7ee579a55@gmail.com>`).
+
+---
+
 ## [2.5.8] - 2026-08-31 (Numeric Placeholder Removal, 30s Resend OTP Timer, & Email Delivery Verification)
 
 ### UI Security Clarification & Resend Cooldown
