@@ -2,6 +2,18 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.1.7] - 2026-08-31 (Navbar Redesign & Merged Profile Section)
+
+### Redesigned & Simplified
+- **Merged User Profile Section (`Navbar.jsx`)**:
+  - Combined username display, role badge, and profile navigation into a single profile pill control on the right of the navbar.
+  - Integrated the **Logout** button directly inside the merged profile section, eliminating separate standalone "My Profile" and "Logout" buttons.
+- **QPGen Logo Dashboard Routing (`Navbar.jsx`)**:
+  - Removed the standalone "Dashboard" link from the navbar.
+  - Bound the `QPGen` brand logo directly to the user's role-based dashboard route (`/dashboard` for Teacher, `/student/papers` for Student, `/admin/dashboard` for Admin).
+
+---
+
 ## [2.1.6] - 2026-08-31 (Official MSB Science Curriculum Topics Mapping Pipeline)
 
 ### Added & Upgraded

@@ -10,65 +10,76 @@ export default function Navbar() {
     navigate('/login');
   };
 
+  const getDashboardRoute = () => {
+    if (!user) return '/';
+    if (user.role === 'TEACHER') return '/dashboard';
+    if (user.role === 'ADMIN') return '/admin/dashboard';
+    if (user.role === 'STUDENT') return '/student/papers';
+    return '/';
+  };
+
+  const getProfileRoute = () => {
+    if (!user) return '/';
+    if (user.role === 'TEACHER') return '/teacher/profile';
+    if (user.role === 'STUDENT') return '/student/profile';
+    if (user.role === 'ADMIN') return '/admin/dashboard';
+    return '/';
+  };
+
+  const dashboardRoute = getDashboardRoute();
+  const profileRoute = getProfileRoute();
+
   return (
-    <nav className="border-b border-gray-200 bg-white shadow-sm">
-      <div className="container mx-auto flex items-center justify-between px-4 py-4">
-        <Link to="/" className="text-2xl font-bold text-blue-600">
-          QPGen
+    <nav className="border-b border-slate-200 bg-white shadow-sm select-none">
+      <div className="container mx-auto flex items-center justify-between px-4 py-3">
+        {/* QPGen Brand Logo (Routes directly to Dashboard) */}
+        <Link 
+          to={dashboardRoute} 
+          className="text-2xl font-extrabold text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1.5"
+          title="Go to Dashboard"
+        >
+          <span>QPGen</span>
         </Link>
 
         {user && (
           <div className="flex items-center gap-6">
-            <div className="text-sm">
-              <p className="font-medium text-gray-900">{user.name}</p>
-              <p className="text-gray-500">{user.role}</p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-4 text-sm font-medium">
+            {/* Center Navigation Links (Without Dashboard or Standalone Profile) */}
+            <div className="flex flex-wrap items-center gap-5 text-sm font-semibold">
               {user.role === 'TEACHER' && (
                 <>
-                  <Link to="/dashboard" className="text-gray-600 hover:text-gray-900">
-                    Dashboard
-                  </Link>
-                  <Link to="/teacher/students" className="text-gray-600 hover:text-gray-900">
+                  <Link to="/teacher/students" className="text-slate-600 hover:text-blue-600 transition-colors">
                     Your Students
                   </Link>
-                  <Link to="/generator" className="text-gray-600 hover:text-gray-900">
+                  <Link to="/generator" className="text-slate-600 hover:text-blue-600 transition-colors">
                     Generate QP
                   </Link>
-                  <Link to="/teacher/results/create" className="text-gray-600 hover:text-gray-900">
+                  <Link to="/teacher/results/create" className="text-slate-600 hover:text-blue-600 transition-colors">
                     Results
                   </Link>
-                  <Link to="/teacher/quiz" className="text-gray-600 hover:text-gray-900">
+                  <Link to="/teacher/quiz" className="text-slate-600 hover:text-blue-600 transition-colors">
                     Quizzes
                   </Link>
-                  <Link to="/manage/announcements" className="text-gray-600 hover:text-gray-900 font-bold text-purple-700">
+                  <Link to="/manage/announcements" className="text-purple-700 hover:text-purple-900 font-bold">
                     Announcements
                   </Link>
-                  <Link to="/admin/knowledge-base" className="text-gray-600 hover:text-gray-900">
+                  <Link to="/admin/knowledge-base" className="text-slate-600 hover:text-blue-600 transition-colors">
                     Knowledge Base
-                  </Link>
-                  <Link to="/teacher/profile" className="text-gray-600 hover:text-gray-900">
-                    My Profile
                   </Link>
                 </>
               )}
 
               {user.role === 'ADMIN' && (
                 <>
-                  <Link to="/admin/dashboard" className="text-gray-600 hover:text-gray-900">
-                    Admin
-                  </Link>
-                  <Link to="/admin/users" className="text-gray-600 hover:text-gray-900 font-bold text-purple-700">
+                  <Link to="/admin/users" className="text-purple-700 hover:text-purple-900 font-bold">
                     Manage Users
                   </Link>
-                  <Link to="/admin/allocations" className="text-gray-600 hover:text-gray-900">
+                  <Link to="/admin/allocations" className="text-slate-600 hover:text-blue-600 transition-colors">
                     Allocations
                   </Link>
-                  <Link to="/manage/announcements" className="text-gray-600 hover:text-gray-900 font-bold text-purple-700">
+                  <Link to="/manage/announcements" className="text-purple-700 hover:text-purple-900 font-bold">
                     Announcements
                   </Link>
-                  <Link to="/admin/knowledge-base" className="text-gray-600 hover:text-gray-900">
+                  <Link to="/admin/knowledge-base" className="text-slate-600 hover:text-blue-600 transition-colors">
                     Student Library
                   </Link>
                 </>
@@ -76,33 +87,50 @@ export default function Navbar() {
 
               {user.role === 'STUDENT' && (
                 <>
-                  <Link to="/student/papers" className="text-gray-600 hover:text-gray-900">
+                  <Link to="/student/papers" className="text-slate-600 hover:text-blue-600 transition-colors">
                     Papers
                   </Link>
-                  <Link to="/student/practice" className="text-purple-700 hover:text-purple-900 font-bold bg-purple-50 px-2 py-1 rounded">
+                  <Link to="/student/practice" className="text-purple-700 hover:text-purple-900 font-bold bg-purple-50 px-2.5 py-1 rounded-lg">
                     Practice (MHT-CET)
                   </Link>
-                  <Link to="/student/announcements" className="text-gray-600 hover:text-gray-900 font-bold text-purple-700">
+                  <Link to="/student/announcements" className="text-purple-700 hover:text-purple-900 font-bold">
                     Announcements
                   </Link>
-                  <Link to="/student/materials" className="text-gray-600 hover:text-gray-900">
+                  <Link to="/student/materials" className="text-slate-600 hover:text-blue-600 transition-colors">
                     Study Materials
                   </Link>
-                  <Link to="/student/results" className="text-gray-600 hover:text-gray-900">
+                  <Link to="/student/results" className="text-slate-600 hover:text-blue-600 transition-colors">
                     Results
                   </Link>
-                  <Link to="/student/quizzes" className="text-gray-600 hover:text-gray-900">
+                  <Link to="/student/quizzes" className="text-slate-600 hover:text-blue-600 transition-colors">
                     Quizzes
-                  </Link>
-                  <Link to="/student/profile" className="text-gray-600 hover:text-gray-900">
-                    My Profile
                   </Link>
                 </>
               )}
+            </div>
+
+            {/* Merged User Profile Section & Integrated Logout */}
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 p-1.5 rounded-2xl shadow-xs">
+              <Link
+                to={profileRoute}
+                className="flex items-center gap-2.5 px-2.5 py-1 rounded-xl hover:bg-white hover:shadow-xs transition-all"
+                title="View Profile"
+              >
+                <div className="w-7 h-7 rounded-lg bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-xs uppercase">
+                  {user.name ? user.name[0] : 'U'}
+                </div>
+                <div className="text-left">
+                  <p className="font-bold text-xs text-slate-900 leading-tight truncate max-w-[120px]">{user.name}</p>
+                  <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">{user.role}</p>
+                </div>
+              </Link>
+
+              <div className="h-5 w-px bg-slate-200"></div>
 
               <button
                 onClick={handleLogout}
-                className="rounded bg-red-50 px-3 py-1 text-sm font-medium text-red-600 hover:bg-red-100"
+                className="px-2.5 py-1 text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                title="Logout"
               >
                 Logout
               </button>
