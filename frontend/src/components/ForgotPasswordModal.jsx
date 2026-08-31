@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import apiClient from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
 
@@ -11,6 +11,16 @@ export default function ForgotPasswordModal({ onClose }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Countdown timer for 30s OTP resend
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   // Step 1: Send OTP to Email
   const handleSendOtp = async (e) => {
@@ -24,10 +34,33 @@ export default function ForgotPasswordModal({ onClose }) {
       const res = await apiClient.post('/auth/forgot-password', { email });
       if (res.data.success) {
         showToast(res.data.message, 'success');
+        setOtp('');
+        setResendCooldown(30);
         setStep(2);
       }
     } catch (err) {
       setErrorMsg(err.response?.data?.message || err.message || 'Failed to send OTP email');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Resend OTP (30s cooldown)
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || loading) return;
+
+    setLoading(true);
+    setErrorMsg('');
+
+    try {
+      const res = await apiClient.post('/auth/forgot-password', { email });
+      if (res.data.success) {
+        showToast('A new 6-digit OTP code has been sent to your email.', 'success');
+        setOtp('');
+        setResendCooldown(30);
+      }
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || err.message || 'Failed to resend OTP email');
     } finally {
       setLoading(false);
     }
@@ -131,7 +164,7 @@ export default function ForgotPasswordModal({ onClose }) {
         {step === 2 && (
           <form onSubmit={handleVerifyOtp} className="space-y-4">
             <p className="text-sm text-slate-600">
-              An email containing a 6-digit OTP code has been sent to <strong>{email}</strong>.
+              An email containing a 6-digit OTP code has been sent to <strong>{email}</strong>. (Valid for 10 minutes)
             </p>
 
             <div>
@@ -141,13 +174,29 @@ export default function ForgotPasswordModal({ onClose }) {
                 maxLength={6}
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                placeholder="849201"
+                placeholder="------"
                 required
-                className="input-field mt-1.5 w-full text-center text-2xl tracking-widest font-mono font-bold border-purple-400 focus:border-purple-600"
+                className="input-field mt-1.5 w-full text-center text-2xl tracking-widest font-mono font-bold border-blue-400 focus:border-blue-600"
               />
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex items-center justify-between text-xs pt-1 px-1">
+              <span className="text-slate-500">Didn't receive code?</span>
+              <button
+                type="button"
+                disabled={resendCooldown > 0 || loading}
+                onClick={handleResendOtp}
+                className={`font-bold transition-colors ${
+                  resendCooldown > 0
+                    ? 'text-slate-400 cursor-not-allowed'
+                    : 'text-blue-600 hover:text-blue-800 underline'
+                }`}
+              >
+                {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : 'Resend OTP'}
+              </button>
+            </div>
+
+            <div className="flex gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setStep(1)}
@@ -157,7 +206,7 @@ export default function ForgotPasswordModal({ onClose }) {
               </button>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || otp.length !== 6}
                 className="btn-primary w-2/3 py-2.5 font-bold text-sm"
               >
                 {loading ? <><span className="spinner mr-2"></span>Verifying...</> : '✓ Verify OTP'}

@@ -2,6 +2,45 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.5.8] - 2026-08-31 (Numeric Placeholder Removal, 30s Resend OTP Timer, & Email Delivery Verification)
+
+### UI Security Clarification & Resend Cooldown
+- **Removed Static Numeric Placeholder (`ForgotPasswordModal.jsx`)**:
+  - Replaced the static input placeholder `placeholder="849201"` with `placeholder="------"` to ensure no numbers are rendered inside the empty OTP input box.
+- **Added 30-Second Resend OTP Cooldown Timer (`ForgotPasswordModal.jsx`)**:
+  - Added a interactive **"Resend OTP"** button with a 30-second countdown timer (`resendCooldown`).
+  - While the timer counts down (`Resend OTP in 28s`), the button is disabled to prevent spamming. Once expired, users can trigger a fresh OTP dispatch.
+- **Strict 10-Minute OTP Expiration (`auth.controller.js`)**:
+  - Enforced 10-minute lifetime expiration on generated OTPs (`expiresAt = Date.now() + 10 * 60 * 1000`).
+- **Executed Email Dispatch Test (`emailService.js`)**:
+  - Ran backend test script verifying email service execution (`EMAIL TEST RESULT: { success: true }`).
+
+---
+
+## [2.5.7] - 2026-08-31 (Strict Security Compliance: Zero OTP Leaks & Manual OTP Entry)
+
+### Security Enforcement & Privacy Protection
+- **Eliminated All OTP Leaks in API Responses (`auth.controller.js`)**:
+  - Removed `devOtp` from backend response JSON payload completely.
+  - Ensured backend API response messages contain **zero credential, password, or OTP code information**.
+- **Enforced Manual 6-Digit OTP Entry (`ForgotPasswordModal.jsx`)**:
+  - Removed auto-fill logic from the frontend modal. Users must manually enter the 6-digit OTP code received via email to proceed.
+- **Fixed Email Template Syntax (`emailService.js`)**:
+  - Corrected `className` to `class` in Nodemailer HTML template string.
+
+---
+
+## [2.5.6] - 2026-08-31 (Password Reset Rate Limiting & Demo Mode OTP Auto-fill Fix)
+
+### Password Reset & Rate Limiting Enhancements
+- **Resolved Rate Limiting Block (`rateLimit.middleware.js`)**:
+  - Relaxed rate limiting constraints on local/dev environments and localhost IP keys to prevent developers and test users from getting locked out with HTTP `429 Too Many Requests`.
+- **Demo Mode OTP Auto-fill & Smtp Logging (`auth.controller.js`, `ForgotPasswordModal.jsx`)**:
+  - Automatically returns and populates `devOtp` in the modal when SMTP credentials are not configured in `backend/.env`, making password reset 100% testable in local development.
+  - Added clear documentation for configuring production Gmail SMTP credentials in `backend/.env`.
+
+---
+
 ## [2.5.5] - 2026-08-31 (Active Teacher Allocations Roster Table Multilingual Translations)
 
 ### Active Teacher Allocations Roster Translations

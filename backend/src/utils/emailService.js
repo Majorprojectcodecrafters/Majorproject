@@ -59,7 +59,7 @@ async function sendPasswordResetOtpEmail(userEmail, userName, otpCode) {
           <p>We received a request to reset your QPGen account password. Use the 6-digit OTP code below to verify your identity:</p>
           
           <div class="otp-box">
-            <div className="otp-code">${otpCode}</div>
+            <div class="otp-code">${otpCode}</div>
           </div>
 
           <p style="font-size: 13px; color: #475569;">This OTP is valid for <strong>10 minutes</strong>. Do not share this code with anyone.</p>
