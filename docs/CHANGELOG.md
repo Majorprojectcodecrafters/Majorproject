@@ -2,6 +2,49 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.5.5] - 2026-08-31 (Active Teacher Allocations Roster Table Multilingual Translations)
+
+### Active Teacher Allocations Roster Translations
+- **Added Translation Keys for Active Allocations Table (`translations.js`, `AdminAllocationsPage.jsx`)**:
+  - Wrapped section title (`"Active Teacher Allocations"` / `"सक्रिय शिक्षक आवंटन"` / `"सक्रिय शिक्षक वाटप"`), empty state message (`"No teacher allocations configured yet."`), table headers (`"TEACHER"`, `"ASSIGNED SUBJECT"`, `"ASSIGNED CLASS / DIVISION"`, `"ACADEMIC YEAR"`, `"ACTION"`), and row action button (`"Remove Allocation"` / `"आवंटन हटाएं"` / `"वाटप काढा"`) across **English**, **Hindi (हिंदी)**, and **Marathi (मराठी)**.
+
+---
+
+## [2.5.4] - 2026-08-31 (User Management & Admin Allocations Full Multilingual Translation Coverage)
+
+### Admin Management Multilingual Completion
+- **Added Translation Hooks & Dictionary Keys (`translations.js`, `AdminUserManagementPage.jsx`, `AdminAllocationsPage.jsx`)**:
+  - **User Management Page**: Wrapped headers ("User Management (Teachers & Students)"), subtitle, add user button ("+ Add New User (Teacher / Student)"), filter tabs ("All Users", "Teachers", "Students"), search placeholder, table column headers ("USER DETAILS", "ROLE", "CLASS / DETAILS", "CREATED DATE", "ACTIONS"), and action buttons ("Edit", Delete icon tooltip) across **English**, **Hindi (हिंदी)**, and **Marathi (मराठी)**.
+  - **Admin Allocations & Class Management Page**: Wrapped page title ("Admin Allocations & Class Management"), subtitle, tabs ("Teacher Allocations", "Manage Classes", "Student Reassignment"), card headers, form input labels ("Teacher", "Subject", "Class / Division"), dropdown placeholders, and action buttons ("Add Allocation", "Create Class", "Reassign Student") across all 3 languages.
+
+---
+
+## [2.5.3] - 2026-08-31 (Eye Icon & Horizontal Row Alignment for Knowledge Base Action Buttons)
+
+### Action Button Layout & Eye SVG Icon
+- **Aligned Action Buttons in Single Horizontal Row (`AdminKnowledgeBasePage.jsx`)**:
+  - Replaced plain text "View Document" button with a crisp Eye SVG icon button (`p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg`).
+  - Aligned the Eye icon button and Red Dustbin SVG icon button side-by-side in a single horizontal row (`flex items-center justify-end gap-2`).
+
+---
+
+## [2.5.2] - 2026-08-31 (Knowledge Base Action Button Styling Match)
+
+### Action Button UI Alignment
+- **Matched View Document Button to Secondary Edit Style (`AdminKnowledgeBasePage.jsx`)**:
+  - Updated **View Document** button to match the clean light-slate outline button styling (`px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-xs border border-slate-200 shadow-xs`) placed alongside the red dustbin SVG icon button.
+
+---
+
+## [2.5.1] - 2026-08-31 (View Document Buttons Theme Color Alignment to Blue)
+
+### Button Theme Alignment & Red Trash Icon Preservation
+- **Updated View Document Buttons (`AdminKnowledgeBasePage.jsx`)**:
+  - Replaced purple button styles (`bg-purple-700`) with clean, institutional blue theme buttons (`bg-blue-600 hover:bg-blue-700`).
+  - Preserved the red trash/dustbin SVG icon button (`p-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg`).
+
+---
+
 ## [2.5.0] - 2026-08-31 (Institutional Student Unique ID System & Database Re-allocation)
 
 ### Institutional Student Universal Unique ID Feature

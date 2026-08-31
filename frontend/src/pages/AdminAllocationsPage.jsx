@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function AdminAllocationsPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const { t } = useLanguage();
 
   const [activeTab, setActiveTab] = useState('allocations'); // 'allocations' | 'classes' | 'students'
   const [selectedTeacherId, setSelectedTeacherId] = useState('');
@@ -130,13 +132,13 @@ export default function AdminAllocationsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl space-y-8">
+    <div className="container mx-auto px-4 py-8 max-w-6xl space-y-8 select-none">
       {/* Header */}
       <div className="border-b pb-4 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Admin Allocations & Class Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('adminAllocationsTitle', 'Admin Allocations & Class Management')}</h1>
           <p className="mt-1 text-sm text-gray-600">
-            Assign Teachers to Classes & Subjects, create granular Divisions (11th C, 11th D), and manage Student Class Allocations.
+            {t('adminAllocationsSubtitle', 'Assign Teachers to Classes & Subjects, create granular Divisions (11th C, 11th D), and manage Student Class Allocations.')}
           </p>
         </div>
 
@@ -145,19 +147,19 @@ export default function AdminAllocationsPage() {
             onClick={() => setActiveTab('allocations')}
             className={`btn-sm ${activeTab === 'allocations' ? 'btn-primary' : 'btn-secondary'}`}
           >
-            Teacher Allocations
+            {t('teacherAllocationsTab', 'Teacher Allocations')}
           </button>
           <button
             onClick={() => setActiveTab('classes')}
             className={`btn-sm ${activeTab === 'classes' ? 'btn-primary' : 'btn-secondary'}`}
           >
-            Manage Classes ({classes.length})
+            {t('manageClassesTab', 'Manage Classes')} ({classes.length})
           </button>
           <button
             onClick={() => setActiveTab('students')}
             className={`btn-sm ${activeTab === 'students' ? 'btn-primary' : 'btn-secondary'}`}
           >
-            Student Reassignment
+            {t('studentReassignmentTab', 'Student Reassignment')}
           </button>
         </div>
       </div>
@@ -168,19 +170,19 @@ export default function AdminAllocationsPage() {
           {/* Allocation Form */}
           <form onSubmit={handleCreateAllocation} className="card bg-blue-50/50 border border-blue-200 p-6 space-y-4">
             <h2 className="text-base font-bold text-blue-950 uppercase tracking-wider">
-              Allocate Teacher ➔ Subject ➔ Class / Division
+              {t('allocateTeacherHeader', 'Allocate Teacher ➔ Subject ➔ Class / Division')}
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="input-label">Teacher</label>
+                <label className="input-label">{t('selectTeacherLabel', 'Teacher')}</label>
                 <select
                   value={selectedTeacherId}
                   onChange={(e) => setSelectedTeacherId(e.target.value)}
                   className="input-field bg-white"
                   required
                 >
-                  <option value="">Select Teacher</option>
+                  <option value="">{t('selectTeacherPlaceholder', 'Select Teacher')}</option>
                   {teachers.map(t => (
                     <option key={t.teacher?.id} value={t.teacher?.id}>
                       {t.name} ({t.email})
@@ -190,14 +192,14 @@ export default function AdminAllocationsPage() {
               </div>
 
               <div>
-                <label className="input-label">Subject</label>
+                <label className="input-label">{t('selectSubjectLabel', 'Subject')}</label>
                 <select
                   value={selectedSubjectId}
                   onChange={(e) => setSelectedSubjectId(e.target.value)}
                   className="input-field bg-white"
                   required
                 >
-                  <option value="">Select Subject</option>
+                  <option value="">{t('selectSubjectPlaceholder', 'Select Subject')}</option>
                   {subjects.map(s => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
@@ -205,14 +207,14 @@ export default function AdminAllocationsPage() {
               </div>
 
               <div>
-                <label className="input-label">Class / Division</label>
+                <label className="input-label">{t('selectClassLabel', 'Class / Division')}</label>
                 <select
                   value={selectedClassId}
                   onChange={(e) => setSelectedClassId(e.target.value)}
                   className="input-field bg-white"
                   required
                 >
-                  <option value="">Select Class / Division</option>
+                  <option value="">{t('selectClassPlaceholder', 'Select Class / Division')}</option>
                   {classes.map(c => (
                     <option key={c.id} value={c.id}>{c.name} ({c.academicYear})</option>
                   ))}
@@ -222,27 +224,29 @@ export default function AdminAllocationsPage() {
 
             <div className="flex justify-end pt-2">
               <button type="submit" className="btn-primary">
-                Add Allocation
+                {t('addAllocationBtn', 'Add Allocation')}
               </button>
             </div>
           </form>
 
           {/* Current Allocations Table */}
           <div className="card space-y-4">
-            <h3 className="text-lg font-bold text-gray-900 border-b pb-2">Active Teacher Allocations ({allocations.length})</h3>
+            <h3 className="text-lg font-bold text-gray-900 border-b pb-2">
+              {t('activeAllocationsTitle', 'Active Teacher Allocations')} ({allocations.length})
+            </h3>
 
             {allocations.length === 0 ? (
-              <p className="py-6 text-center text-gray-500">No teacher allocations configured yet.</p>
+              <p className="py-6 text-center text-gray-500">{t('noAllocations', 'No teacher allocations configured yet.')}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
                     <tr className="border-b bg-gray-50 text-xs font-semibold text-gray-700 uppercase">
-                      <th className="p-3">Teacher</th>
-                      <th className="p-3">Assigned Subject</th>
-                      <th className="p-3">Assigned Class / Division</th>
-                      <th className="p-3">Academic Year</th>
-                      <th className="p-3 text-right">Action</th>
+                      <th className="p-3">{t('tableHeaderTeacher', 'Teacher')}</th>
+                      <th className="p-3">{t('tableHeaderSubject', 'Assigned Subject')}</th>
+                      <th className="p-3">{t('tableHeaderClass', 'Assigned Class / Division')}</th>
+                      <th className="p-3">{t('tableHeaderYear', 'Academic Year')}</th>
+                      <th className="p-3 text-right">{t('tableHeaderAction', 'Action')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y text-sm">
@@ -262,7 +266,7 @@ export default function AdminAllocationsPage() {
                             onClick={() => handleDeleteAllocation(a.id)}
                             className="text-xs text-red-600 hover:text-red-900 font-bold"
                           >
-                            Remove Allocation
+                            {t('removeBtn', 'Remove Allocation')}
                           </button>
                         </td>
                       </tr>
@@ -279,11 +283,13 @@ export default function AdminAllocationsPage() {
       {activeTab === 'classes' && (
         <div className="space-y-8">
           <form onSubmit={handleCreateClass} className="card p-6 space-y-4">
-            <h2 className="text-base font-bold text-gray-900 uppercase tracking-wider">Create New Class / Division</h2>
+            <h2 className="text-base font-bold text-gray-900 uppercase tracking-wider">
+              {t('createClassHeader', 'Create New Class / Division')}
+            </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="input-label">Class Name (e.g. 11th C, 11th D, 12th Science)</label>
+                <label className="input-label">{t('classNameInputLabel', 'Class Name (e.g. 11th C, 11th D, 12th Science)')}</label>
                 <input
                   type="text"
                   placeholder="e.g. 11th C"
@@ -295,7 +301,7 @@ export default function AdminAllocationsPage() {
               </div>
 
               <div>
-                <label className="input-label">Academic Year</label>
+                <label className="input-label">{t('academicYearInputLabel', 'Academic Year')}</label>
                 <input
                   type="text"
                   value={newClassAcademicYear}
@@ -307,12 +313,14 @@ export default function AdminAllocationsPage() {
             </div>
 
             <button type="submit" className="btn-primary min-w-36">
-              Create Class
+              {t('createClassBtn', 'Create Class')}
             </button>
           </form>
 
           <div className="card space-y-4">
-            <h3 className="text-lg font-bold text-gray-900 border-b pb-2">All Classes & Divisions ({classes.length})</h3>
+            <h3 className="text-lg font-bold text-gray-900 border-b pb-2">
+              {t('allClassesTitle', 'All Classes & Divisions')} ({classes.length})
+            </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {classes.map(c => (
@@ -322,7 +330,7 @@ export default function AdminAllocationsPage() {
                     <span className="text-xs text-gray-500">{c.academicYear}</span>
                   </div>
                   <div className="text-xs text-gray-600">
-                    Enrolled Students: <strong>{c.students?.length || 0}</strong>
+                    {t('enrolledStudents', 'Enrolled Students')}: <strong>{c.students?.length || 0}</strong>
                   </div>
                 </div>
               ))}
@@ -334,35 +342,37 @@ export default function AdminAllocationsPage() {
       {/* TAB 3: STUDENT REASSIGNMENT */}
       {activeTab === 'students' && (
         <div className="card space-y-6">
-          <h2 className="text-lg font-bold text-gray-900 border-b pb-2">Reassign Student to Another Class</h2>
+          <h2 className="text-lg font-bold text-gray-900 border-b pb-2">
+            {t('reassignStudentHeader', 'Reassign Student to Another Class')}
+          </h2>
 
           <form onSubmit={handleReassignStudent} className="space-y-4 max-w-xl">
             <div>
-              <label className="input-label">Select Student</label>
+              <label className="input-label">{t('selectStudentLabel', 'Select Student')}</label>
               <select
                 value={reassignStudentId}
                 onChange={(e) => setReassignStudentId(e.target.value)}
                 className="input-field"
                 required
               >
-                <option value="">Select Student</option>
+                <option value="">{t('selectStudentPlaceholder', 'Select Student')}</option>
                 {students.map(s => (
                   <option key={s.student?.id} value={s.student?.id}>
-                    {s.name} ({s.student?.uniqueId || s.email}) — Current Class: {s.student?.class?.name || 'Unassigned'}
+                    {s.name} ({s.student?.uniqueId || s.email}) — {t('currentClass', 'Current Class')}: {s.student?.class?.name || 'Unassigned'}
                   </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="input-label">Target Class / Division</label>
+              <label className="input-label">{t('targetClassLabel', 'Target Class / Division')}</label>
               <select
                 value={reassignTargetClassId}
                 onChange={(e) => setReassignTargetClassId(e.target.value)}
                 className="input-field"
                 required
               >
-                <option value="">Select New Class</option>
+                <option value="">{t('selectClassPlaceholder', 'Select New Class')}</option>
                 {classes.map(c => (
                   <option key={c.id} value={c.id}>{c.name} ({c.academicYear})</option>
                 ))}
@@ -370,7 +380,7 @@ export default function AdminAllocationsPage() {
             </div>
 
             <button type="submit" className="btn-primary">
-              Reassign Student
+              {t('reassignBtn', 'Reassign Student')}
             </button>
           </form>
         </div>

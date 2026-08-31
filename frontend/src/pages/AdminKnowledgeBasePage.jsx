@@ -303,9 +303,9 @@ export default function AdminKnowledgeBasePage() {
               {t('googleDriveOverviewTitle', 'Google Drive Storage Overview')}
             </h2>
             <div className="space-y-3">
-              <div className="p-3 bg-purple-50 rounded-xl border border-purple-100">
-                <div className="text-xs text-purple-700 font-bold">{t('syncedStudyMaterials', 'Synced Study Materials')}</div>
-                <div className="text-2xl font-black text-purple-900 mt-0.5">{materials.length}</div>
+              <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
+                <div className="text-xs text-blue-700 font-bold">{t('syncedStudyMaterials', 'Synced Study Materials')}</div>
+                <div className="text-2xl font-black text-blue-900 mt-0.5">{materials.length}</div>
               </div>
               <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
                 <div className="text-xs text-blue-700 font-bold">{t('driveSubfoldersExplored', 'Drive Subfolders Explored')}</div>
@@ -322,7 +322,7 @@ export default function AdminKnowledgeBasePage() {
           onClick={() => setActiveTab('materials')}
           className={`py-3 px-6 text-sm font-bold border-b-2 transition-colors ${
             activeTab === 'materials'
-              ? 'border-purple-700 text-purple-900 bg-purple-50/50'
+              ? 'border-blue-600 text-blue-800 bg-blue-50/50'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -332,7 +332,7 @@ export default function AdminKnowledgeBasePage() {
           onClick={() => setActiveTab('tree')}
           className={`py-3 px-6 text-sm font-bold border-b-2 transition-colors ${
             activeTab === 'tree'
-              ? 'border-purple-700 text-purple-900 bg-purple-50/50'
+              ? 'border-blue-600 text-blue-800 bg-blue-50/50'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -372,9 +372,9 @@ export default function AdminKnowledgeBasePage() {
                       </td>
                       <td className="py-3 px-4">
                         <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                          item.category === 'TEXTBOOK' ? 'bg-purple-100 text-purple-800' :
+                          item.category === 'TEXTBOOK' ? 'bg-blue-100 text-blue-800' :
                           item.category === 'PREVIOUS_BOARD_PAPER' ? 'bg-amber-100 text-amber-800' :
-                          'bg-blue-100 text-blue-800'
+                          'bg-slate-100 text-slate-800'
                         }`}>
                           {item.category}
                         </span>
@@ -388,23 +388,33 @@ export default function AdminKnowledgeBasePage() {
                       <td className="py-3 px-4 font-mono text-[11px] text-slate-500 max-w-xs truncate">
                         {item.description || 'Google Drive'}
                       </td>
-                      <td className="py-3 px-4 text-right space-x-2">
-                        <button
-                          onClick={() => setActiveDocument(item)}
-                          className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white rounded-lg font-bold text-xs shadow-sm"
-                        >
-                          View Document
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (window.confirm(`Delete "${item.title}" from Google Drive?`)) {
-                              deleteMutation.mutate(item.id);
-                            }
-                          }}
-                          className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg font-bold text-xs"
-                        >
-                          Delete
-                        </button>
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setActiveDocument(item)}
+                            className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200 rounded-lg transition-colors inline-flex items-center justify-center shadow-xs"
+                            title="View Document"
+                          >
+                            <svg className="w-4 h-4 text-slate-700 fill-current" viewBox="0 0 24 24">
+                              <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`Delete "${item.title}" from Google Drive?`)) {
+                                deleteMutation.mutate(item.id);
+                              }
+                            }}
+                            className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 border border-red-200 rounded-lg transition-colors inline-flex items-center justify-center shadow-xs"
+                            title="Delete Document"
+                          >
+                            <svg className="w-4 h-4 text-red-600 fill-current" viewBox="0 0 24 24">
+                              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                            </svg>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Skeleton } from '../components/Skeleton';
 
 export default function AdminUserManagementPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const { t } = useLanguage();
 
   const [roleFilter, setRoleFilter] = useState(''); // '' | 'TEACHER' | 'STUDENT'
   const [searchTerm, setSearchTerm] = useState('');
@@ -157,10 +159,10 @@ export default function AdminUserManagementPage() {
         <div>
           <div className="flex items-center gap-2">
             <span className="text-2xl"></span>
-            <h1 className="text-2xl font-bold text-gray-900">User Management (Teachers & Students)</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t('userManagementTitle', 'User Management (Teachers & Students)')}</h1>
           </div>
           <p className="text-sm text-gray-600 mt-1">
-            Manage teacher profiles, student class allocations, credentials, and accounts.
+            {t('userManagementSubtitle', 'Manage teacher profiles, student class allocations, credentials, and accounts.')}
           </p>
         </div>
 
@@ -168,7 +170,7 @@ export default function AdminUserManagementPage() {
           onClick={() => { resetForm(); setShowAddModal(true); }}
           className="btn-primary flex items-center gap-2 text-xs font-bold py-2.5 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm"
         >
-          + Add New User (Teacher / Student)
+          {t('addNewUserBtn', '+ Add New User (Teacher / Student)')}
         </button>
       </div>
 
@@ -181,7 +183,7 @@ export default function AdminUserManagementPage() {
               roleFilter === '' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
             }`}
           >
-            All Users ({usersData?.length || 0})
+            {t('allUsersTab', 'All Users')} ({usersData?.length || 0})
           </button>
           <button
             onClick={() => setRoleFilter('TEACHER')}
@@ -189,7 +191,7 @@ export default function AdminUserManagementPage() {
               roleFilter === 'TEACHER' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
             }`}
           >
-            Teachers ({usersData?.filter(u => u.role === 'TEACHER').length || 0})
+            {t('teachersTab', 'Teachers')} ({usersData?.filter(u => u.role === 'TEACHER').length || 0})
           </button>
           <button
             onClick={() => setRoleFilter('STUDENT')}
@@ -197,13 +199,13 @@ export default function AdminUserManagementPage() {
               roleFilter === 'STUDENT' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
             }`}
           >
-            Students ({usersData?.filter(u => u.role === 'STUDENT').length || 0})
+            {t('studentsTab', 'Students')} ({usersData?.filter(u => u.role === 'STUDENT').length || 0})
           </button>
         </div>
 
         <input
           type="text"
-          placeholder="Search by name, email, or Student ID..."
+          placeholder={t('searchUserPlaceholder', 'Search by name, email, or Student ID...')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="input-field max-w-xs text-xs py-2 bg-white"
@@ -217,18 +219,18 @@ export default function AdminUserManagementPage() {
         ) : filteredUsers.length === 0 ? (
           <div className="text-center py-12 text-slate-500">
             <span className="text-4xl block mb-2"></span>
-            <p className="font-semibold text-slate-700">No users found matching your filter criteria.</p>
+            <p className="font-semibold text-slate-700">{t('noUsersFoundFilter', 'No users found matching your filter criteria.')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm border-collapse">
               <thead>
                 <tr className="border-b bg-slate-50 text-slate-700 text-xs uppercase tracking-wider font-bold">
-                  <th className="py-3 px-4">User Details</th>
-                  <th className="py-3 px-4">Role</th>
-                  <th className="py-3 px-4">Class / Details</th>
-                  <th className="py-3 px-4">Created Date</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  <th className="py-3 px-4">{t('userDetailsCol', 'USER DETAILS')}</th>
+                  <th className="py-3 px-4">{t('roleCol', 'ROLE')}</th>
+                  <th className="py-3 px-4">{t('classDetailsCol', 'CLASS / DETAILS')}</th>
+                  <th className="py-3 px-4">{t('createdDateCol', 'CREATED DATE')}</th>
+                  <th className="py-3 px-4 text-right">{t('actionsCol', 'ACTIONS')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-800 text-xs">
@@ -238,7 +240,7 @@ export default function AdminUserManagementPage() {
                       {user.name}
                       <span className="block text-[11px] text-slate-500 font-normal">{user.email}</span>
                       {user.student?.uniqueId && (
-                        <span className="inline-block mt-0.5 font-mono text-[10px] text-purple-700 font-bold bg-purple-50 px-1.5 py-0.5 rounded">
+                        <span className="inline-block mt-0.5 font-mono text-[10px] text-blue-700 font-bold bg-blue-50 px-1.5 py-0.5 rounded">
                           ID: {user.student.uniqueId}
                         </span>
                       )}
@@ -257,16 +259,16 @@ export default function AdminUserManagementPage() {
                     <td className="py-3 px-4">
                       {user.role === 'STUDENT' ? (
                         <div>
-                          <p className="font-semibold text-slate-800">{user.student?.class?.name || 'Unassigned Class'}</p>
+                          <p className="font-semibold text-slate-800">{user.student?.class?.name || t('unassignedClass', 'Unassigned Class')}</p>
                           <p className="text-[10px] text-slate-400">Contact: {user.student?.contact || 'N/A'}</p>
                         </div>
                       ) : user.role === 'TEACHER' ? (
                         <div>
                           <p className="font-semibold text-slate-800">{user.teacher?.education || 'N/A'}</p>
-                          <p className="text-[10px] text-slate-400">Experience: {user.teacher?.experienceYears || 0} yrs</p>
+                          <p className="text-[10px] text-slate-400">Experience: {user.teacher?.experienceYears || 0} {t('experienceUnit', 'yrs')}</p>
                         </div>
                       ) : (
-                        <span className="text-slate-400">System Administrator</span>
+                        <span className="text-slate-400">{t('systemAdminRole', 'System Administrator')}</span>
                       )}
                     </td>
 
@@ -279,7 +281,7 @@ export default function AdminUserManagementPage() {
                         onClick={() => handleOpenEdit(user)}
                         className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-xs border"
                       >
-                        Edit
+                        {t('editBtn', 'Edit')}
                       </button>
                       <button
                         type="button"
