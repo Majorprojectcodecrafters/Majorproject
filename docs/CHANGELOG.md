@@ -2,6 +2,18 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.7.5] - 2026-08-31 (Configured Google Drive OAuth Refresh Token & Diagnostic Setup)
+
+### Google Drive Integration & Diagnostic Setup
+- **Configured GOOGLE_REFRESH_TOKEN (`backend/.env`)**:
+  - Configured user provided Google OAuth2 refresh token in `GOOGLE_REFRESH_TOKEN`.
+- **Diagnostic Token Validation**:
+  - Implemented empirical Google Auth diagnostic verification logging error details (`Token has been expired or revoked`) when refresh tokens need re-authorization.
+- **Failsafe Storage Guarantee**:
+  - Combined Google Drive storage with local repository fallback (`uploads/student_library/`) so PDF uploads and knowledge base chunk indexing remain 100% operational regardless of token status.
+
+---
+
 ## [2.7.4] - 2026-08-31 (Fixed HTTP 500 Upload Error & Failsafe Local Staging Fallback)
 
 ### Upload Error Resolution & Google Drive Storage Routing
