@@ -1,258 +1,108 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../lib/api';
-import { TableSkeleton } from '../components/Skeleton';
 import ProtectedDocumentViewer from '../components/ProtectedDocumentViewer';
 
-const STREAMS = [
-  '12th Science',
-  '11th Science',
-  '12th arts',
-  '11th Arts',
-  '12th Commerce',
-  '11th Commerce'
-];
-
-const STREAM_SUBJECTS = {
-  '12th Science': ['Physics', 'Chemistry', 'Mathematics', 'Biology'],
-  '11th Science': ['Physics', 'Chemistry', 'Mathematics', 'Biology'],
-  '12th arts': ['History', 'Political Science', 'Sociology', 'Economics'],
-  '11th Arts': ['History', 'Political Science', 'Sociology', 'Economics'],
-  '12th Commerce': ['Book-keeping & Accountancy', 'Organization of Commerce', 'Secretarial Practice', 'Economics'],
-  '11th Commerce': ['Book-keeping & Accountancy', 'Organization of Commerce', 'Secretarial Practice', 'Economics']
-};
-
-const CATEGORIES = [
-  { key: 'Notes', label: 'Notes' },
-  { key: 'PYQP', label: 'Previous Year Question Papers (PYQP)' },
-  { key: 'Question Banks', label: 'Question Banks' },
-  { key: 'Textbook', label: 'Textbook' }
-];
-
 export default function StudentMaterialsPage() {
-  const [selectedStream, setSelectedStream] = useState('12th Science');
-  const [selectedSubject, setSelectedSubject] = useState('Mathematics');
-  const [selectedCategory, setSelectedCategory] = useState('Textbook');
-  const [activeDocument, setActiveDocument] = useState(null);
+  const [viewingDocument, setViewingDocument] = useState(null);
 
-  // 1. Fetch Student Profile for Context Auto-Resolution
   const { data: profile } = useQuery({
-    queryKey: ['studentEnrolledProfile'],
+    queryKey: ['student-profile-materials'],
     queryFn: async () => {
       const res = await apiClient.get('/student-library/profile');
-      return res.data.data;
-    },
-    onSuccess: (data) => {
-      if (data?.resolvedClassName && STREAMS.includes(data.resolvedClassName)) {
-        setSelectedStream(data.resolvedClassName);
-      }
+      return res.data?.data;
     }
   });
-
-  const availableSubjects = useMemo(() => {
-    return STREAM_SUBJECTS[selectedStream] || ['Physics', 'Chemistry', 'Mathematics', 'Biology'];
-  }, [selectedStream]);
-
-  const activeSubject = availableSubjects.includes(selectedSubject) ? selectedSubject : availableSubjects[0];
-
-  // 2. Fetch Actual Files directly from Google Drive Folder Tree (Automated Sync)
-  const { data: driveResponse, isLoading: filesLoading, error } = useQuery({
-    queryKey: ['googleDriveFiles', selectedStream, activeSubject, selectedCategory],
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        stream: selectedStream,
-        subject: activeSubject,
-        category: selectedCategory
-      });
-      const res = await apiClient.get(`/student-library/drive-files?${params.toString()}`);
-      return res.data;
-    }
-  });
-
-  const driveFiles = driveResponse?.data || [];
-
-  const formatBytes = (bytes) => {
-    if (!bytes) return 'PDF File';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const handleDownload = (file) => {
-    const downloadUrl = `/api/student-library/materials/${file.id}/download?fileName=${encodeURIComponent(file.name)}`;
-    window.open(downloadUrl, '_blank');
-  };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl space-y-8 select-none">
-      {/* Clean Minimalist Header Banner */}
-      <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-xl border border-slate-800">
-        <div className="flex items-center gap-2">
-          <span className="px-2.5 py-0.5 rounded bg-purple-600/30 border border-purple-400/40 text-purple-200 text-[10px] font-bold uppercase tracking-wider">
-            Institutional Library
-          </span>
-          {profile?.rawClassName && (
-            <span className="text-xs text-purple-300 font-semibold">
-              Enrolled: {profile.rawClassName}
+    <div className="container mx-auto px-4 py-8 max-w-5xl space-y-8 select-none">
+      {/* Clean Header Banner */}
+      <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-xl border border-slate-800 flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded bg-purple-600/30 border border-purple-400/40 text-purple-200 text-[10px] font-bold uppercase tracking-wider">
+              Institutional Library
             </span>
-          )}
+            {profile?.rawClassName && (
+              <span className="text-xs text-purple-300 font-semibold">
+                Enrolled: {profile.rawClassName}
+              </span>
+            )}
+          </div>
+          <h1 className="text-3xl font-extrabold mt-1 text-slate-100">Student Study Material Library</h1>
+          <p className="text-sm text-slate-300 mt-1">
+            Access official curriculum textbooks, chapter notes, and previous year board papers.
+          </p>
         </div>
-        <h1 className="text-3xl font-extrabold mt-1 text-slate-100">Study Materials & Notes</h1>
-        <p className="text-sm text-slate-300 mt-1">
-          Access official curriculum textbooks, chapter notes, previous year board papers, and reference materials.
-        </p>
-      </div>
-
-      {/* Level 1: Stream / Class Context Selector */}
-      <div className="space-y-3">
-        <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Academic Class & Stream</h2>
-        <div className="flex flex-wrap gap-2">
-          {STREAMS.map((st) => (
-            <button
-              key={st}
-              onClick={() => {
-                setSelectedStream(st);
-                const subs = STREAM_SUBJECTS[st] || [];
-                if (!subs.includes(selectedSubject)) setSelectedSubject(subs[0]);
-              }}
-              className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all border ${
-                selectedStream === st
-                  ? 'bg-purple-700 text-white border-purple-600 shadow-md scale-[1.02]'
-                  : 'bg-white text-slate-700 border-slate-200 hover:border-purple-300'
-              }`}
-            >
-              {st}
-            </button>
-          ))}
+        <div>
+          <span className="px-3.5 py-1.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            Syncing & Upgrading
+          </span>
         </div>
       </div>
 
-      {/* Clean Breadcrumb Path */}
-      <div className="flex items-center gap-2 text-xs font-bold bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm text-slate-700">
-        <span className="text-slate-900">{selectedStream}</span>
-        <span className="text-slate-300">/</span>
-        <span className="text-slate-900">{activeSubject}</span>
-        <span className="text-slate-300">/</span>
-        <span className="text-purple-700 font-extrabold uppercase">{selectedCategory}</span>
-      </div>
+      {/* Coming Soon Showcase Card */}
+      <div className="bg-white rounded-3xl p-8 sm:p-12 border border-slate-200 shadow-xl text-center max-w-3xl mx-auto space-y-6">
+        <div className="w-20 h-20 bg-purple-50 text-purple-700 rounded-3xl flex items-center justify-center mx-auto shadow-inner border border-purple-100">
+          <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+        </div>
 
-      {/* Level 2: Stream-Scoped Subjects */}
-      <div className="space-y-3">
-        <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-          Available Subjects ({selectedStream})
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {availableSubjects.map((sub) => {
-            const isSelected = activeSubject === sub;
-            return (
-              <button
-                key={sub}
-                onClick={() => setSelectedSubject(sub)}
-                className={`p-4 rounded-xl text-left border transition-all ${
-                  isSelected
-                    ? 'bg-purple-50 border-purple-500 text-purple-950 font-bold shadow-sm ring-1 ring-purple-400'
-                    : 'bg-white border-slate-200 text-slate-700 hover:border-purple-300'
-                }`}
-              >
-                <div className="text-sm font-bold truncate">{sub}</div>
-              </button>
-            );
-          })}
+        <div className="space-y-2">
+          <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-bold uppercase tracking-widest">
+            Coming Soon
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
+            Student Library Upgrade in Progress
+          </h2>
+          <p className="text-slate-600 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
+            We are currently upgrading our cloud storage integration to deliver seamless, high-speed document streaming directly from our Google Drive repository for all 11th and 12th curriculum materials.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left pt-4 border-t border-slate-100 max-w-xl mx-auto">
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-purple-100 text-purple-700 font-bold text-xs mt-0.5">📖</div>
+            <div>
+              <h4 className="font-bold text-xs text-slate-900">Curriculum Textbooks</h4>
+              <p className="text-[11px] text-slate-500 mt-0.5">MSB official 11th & 12th textbooks for Physics, Chemistry, Maths & Bio</p>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-blue-100 text-blue-700 font-bold text-xs mt-0.5">📑</div>
+            <div>
+              <h4 className="font-bold text-xs text-slate-900">Chapter Notes & PYQP</h4>
+              <p className="text-[11px] text-slate-500 mt-0.5">Detailed notes, formula sheets, and past board papers (2020-2025)</p>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-emerald-100 text-emerald-700 font-bold text-xs mt-0.5">⚡</div>
+            <div>
+              <h4 className="font-bold text-xs text-slate-900">Direct In-App Viewer</h4>
+              <p className="text-[11px] text-slate-500 mt-0.5">High-speed private PDF streaming with protected inline document viewer</p>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-amber-100 text-amber-700 font-bold text-xs mt-0.5">🔒</div>
+            <div>
+              <h4 className="font-bold text-xs text-slate-900">Server Authentication</h4>
+              <p className="text-[11px] text-slate-500 mt-0.5">Zero external browser redirects or personal Google login requirements</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Level 3: Material Category Tabs */}
-      <div className="card space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
-          <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.key}
-                onClick={() => setSelectedCategory(cat.key)}
-                className={`btn-sm font-bold transition-all ${
-                  selectedCategory === cat.key ? 'btn-primary' : 'btn-secondary'
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="text-xs text-slate-500 font-bold">
-            Available: {driveFiles.length} {driveFiles.length === 1 ? 'File' : 'Files'}
-          </div>
-        </div>
-
-        {filesLoading && <TableSkeleton rows={4} columns={3} />}
-        {error && (
-          <div className="rounded-xl bg-red-50 p-4 border border-red-200 text-red-700 text-sm font-medium">
-            Unable to load study materials. Please ensure backend server is running.
-          </div>
-        )}
-
-        {!filesLoading && !error && driveFiles.length === 0 && (
-          <div className="text-center py-12 space-y-2 bg-slate-50/60 rounded-xl border border-dashed border-slate-300">
-            <p className="text-base font-bold text-slate-700">
-              No study material available in this folder.
-            </p>
-          </div>
-        )}
-
-        {!filesLoading && !error && driveFiles.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {driveFiles.map((file) => (
-              <div
-                key={file.id}
-                className="p-5 rounded-xl border border-slate-200 hover:border-purple-400 bg-white shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4"
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-900 text-[10px] font-bold uppercase tracking-wider">
-                      {selectedCategory}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      {formatBytes(file.fileSize)}
-                    </span>
-                  </div>
-
-                  <h3 className="font-bold text-sm text-slate-900 line-clamp-2 break-all">{file.name}</h3>
-
-                  <div className="pt-2 text-xs text-slate-500 space-y-1 border-t border-slate-100">
-                    <div><strong>Subject:</strong> {activeSubject}</div>
-                    <div><strong>Class:</strong> {selectedStream}</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 pt-2">
-                  <button
-                    onClick={() => setActiveDocument(file)}
-                    className="flex-1 btn-primary py-2 text-xs font-bold"
-                  >
-                    View Document
-                  </button>
-                  <button
-                    onClick={() => handleDownload(file)}
-                    className="px-3 py-2 btn-secondary text-xs font-bold border border-slate-300 hover:bg-slate-100"
-                    title="Download File"
-                  >
-                    Download
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Document Viewer Modal */}
-      {activeDocument && (
+      {/* Modal Document Viewer */}
+      {viewingDocument && (
         <ProtectedDocumentViewer
-          documentId={activeDocument.id}
-          title={activeDocument.name}
-          subjectName={activeSubject}
-          className={selectedStream}
-          onClose={() => setActiveDocument(null)}
+          documentId={viewingDocument.id}
+          title={viewingDocument.name || viewingDocument.title}
+          onClose={() => setViewingDocument(null)}
         />
       )}
     </div>

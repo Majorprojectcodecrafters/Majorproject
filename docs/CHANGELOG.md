@@ -2,6 +2,17 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.1.4] - 2026-08-31 (Textbook Mappings Verification & Student Library Coming Soon State)
+
+### Verified & Updated
+- **Database Textbook Mappings Audit**:
+  - Audited all 19 `StudyMaterial` database records across classes and subjects.
+  - Verified 100% accurate mapping for all curriculum textbooks (`fyjc_11th_chemistry_official_textbook.pdf`, `fyjc_11th_physics_official_textbook.pdf`, `hsc_biology_textbook.pdf`, `hsc_chemistry_textbook.pdf`, `hsc_mathematics_part1_textbook.pdf`, `hsc_mathematics_part2_textbook.pdf`, `hsc_physics_textbook.pdf`).
+- **Student Library Feature Banner (`StudentMaterialsPage.jsx`)**:
+  - Configured a clean, modern institutional **"Student Library — Coming Soon"** feature banner and showcase card for student users while cloud storage sync upgrades complete.
+
+---
+
 ## [2.1.3] - 2026-08-31 (Deduplication of Academic Classes & Option Label Formatting)
 
 ### Fixed & Cleaned
