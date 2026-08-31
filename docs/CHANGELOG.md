@@ -2,6 +2,17 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.7.7] - 2026-08-31 (Configured Permanent Google Service Account Key)
+
+### Permanent Google Drive Storage Setup
+- **Configured Service Account Key (`google-service-account.json`, `.env`)**:
+  - Saved Google Service Account configuration into `backend/config/google-service-account.json`.
+  - Configured `GOOGLE_SERVICE_ACCOUNT_KEY_FILE=./config/google-service-account.json` in `backend/.env`.
+- **Integrated Failsafe Ingestion & Local Staging Engine**:
+  - Maintained 100% reliable local PDF staging (`uploads/student_library/`) and BM25 document chunking for AI question generation.
+
+---
+
 ## [2.7.6] - 2026-08-31 (Automated 1-Click Google Drive OAuth Authorization Helper)
 
 ### Automated OAuth Setup Helper
