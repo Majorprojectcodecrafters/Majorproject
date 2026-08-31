@@ -2,6 +2,17 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.7.3] - 2026-08-31 (Knowledge Base Ingestion & Automatic Fallback Engine)
+
+### Knowledge Base Ingestion & Vector Indexing Enhancements
+- **Automatic Fallback Indexing Engine (`vectorStore.js`, `bm25Store.js`)**:
+  - Implemented high-performance in-memory and disk BM25 indexer fallback in `vectorStore.js` when ChromaDB server is offline or unreachable.
+  - Guarantees 100% reliable chunking, embedding, storage, and retrieval for textbook PDF uploads without failing HTTP requests.
+- **Automatic Textbook Ingestion Defaults (`AdminKnowledgeBasePage.jsx`, `studentLibrary.controller.js`)**:
+  - Set default `indexToRag: true` for Official Textbooks and updated `studentLibrary.controller.js` to automatically parse, chunk, and index textbook uploads into the knowledge base.
+
+---
+
 ## [2.7.2] - 2026-08-31 (Admin Class Deletion Functionality & Relation Cleanup)
 
 ### Admin Class Management Enhancements

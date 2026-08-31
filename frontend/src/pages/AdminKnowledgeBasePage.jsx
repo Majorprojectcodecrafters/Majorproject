@@ -19,11 +19,11 @@ export default function AdminKnowledgeBasePage() {
 
   const [formData, setFormData] = useState({
     title: '',
-    category: 'TEACHER_NOTES', // "TEACHER_NOTES", "CHAPTER_NOTES", "TEXTBOOK", "PREVIOUS_BOARD_PAPER", "REFERENCE_MATERIAL"
+    category: 'TEXTBOOK', // "TEXTBOOK", "TEACHER_NOTES", "CHAPTER_NOTES", "PREVIOUS_BOARD_PAPER", "REFERENCE_MATERIAL"
     classId: '',
     subjectId: '',
     description: '',
-    indexToRag: false
+    indexToRag: true
   });
 
   // 1. Fetch Classes

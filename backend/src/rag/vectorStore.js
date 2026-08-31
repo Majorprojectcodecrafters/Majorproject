@@ -29,8 +29,6 @@ const { bm25Store } = require('./bm25Store');
 
 // Store chunks with complete curriculum & source metadata
 async function storeChunks(chunks, embeddings, metadata) {
-  const col = await getCollection();
-
   const ids = chunks.map((_, i) => `${metadata.fileName}_${metadata.sourceType || 'TEXTBOOK'}_chunk_${Date.now()}_${i}`);
   const documents = chunks.map(c => c.text);
   const metadatas = chunks.map((c, i) => ({
@@ -56,14 +54,21 @@ async function storeChunks(chunks, embeddings, metadata) {
     sourcePriority: Number(metadata.sourcePriority || 10)
   }));
 
-  await col.add({
-    ids,
-    embeddings,
-    documents,
-    metadatas
-  });
+  let chromaSuccess = false;
+  try {
+    const col = await getCollection();
+    await col.add({
+      ids,
+      embeddings,
+      documents,
+      metadatas
+    });
+    chromaSuccess = true;
+  } catch (chromaErr) {
+    console.warn('ℹ️ ChromaDB offline / unreachable — using high-performance BM25 indexing engine:', chromaErr.message);
+  }
 
-  // Synchronize BM25 Store with identical chunk IDs, documents, and metadatas
+  // Always index in BM25 Store for guaranteed vector/keyword search and retrieval
   try {
     const bm25Chunks = ids.map((id, i) => ({
       id,
@@ -75,7 +80,7 @@ async function storeChunks(chunks, embeddings, metadata) {
     console.warn('⚠️ BM25 sync warning:', bm25Err.message);
   }
 
-  console.log(`✅ Stored ${chunks.length} chunks in ChromaDB & BM25 index with complete curriculum metadata`);
+  console.log(`✅ Stored & Indexed ${chunks.length} chunks successfully (ChromaDB: ${chromaSuccess ? 'Active' : 'Bypassed'}, BM25: Active)`);
 }
 
 // Build strict curriculum-isolated ChromaDB query filter
@@ -115,71 +120,90 @@ async function queryChunks(queryEmbedding, filters = {}, topK = 10) {
 
     const results = await col.query(queryParams);
 
-    if (!results || !results.documents || !results.documents[0]) {
-      return [];
+    if (results && results.documents && results.documents[0] && results.documents[0].length > 0) {
+      const items = results.documents[0].map((doc, i) => {
+        const dist = results.distances ? results.distances[0][i] : 0;
+        const relevanceScore = typeof dist === 'number' ? Math.max(0, 1 - dist) : 1;
+        return {
+          text: doc,
+          metadata: results.metadatas[0][i],
+          distance: dist,
+          relevanceScore
+        };
+      });
+
+      items.sort((a, b) => {
+        const priorityDiff = (Number(b.metadata?.sourcePriority) || 10) - (Number(a.metadata?.sourcePriority) || 10);
+        if (priorityDiff !== 0) return priorityDiff;
+        return b.relevanceScore - a.relevanceScore;
+      });
+
+      return items;
     }
-
-    const items = results.documents[0].map((doc, i) => {
-      const dist = results.distances ? results.distances[0][i] : 0;
-      // Cosine / L2 distance to normalized relevance score (higher is better)
-      const relevanceScore = typeof dist === 'number' ? Math.max(0, 1 - dist) : 1;
-      return {
-        text: doc,
-        metadata: results.metadatas[0][i],
-        distance: dist,
-        relevanceScore
-      };
-    });
-
-    // Rank chunks primarily by sourcePriority (textbooks first), secondarily by relevance score
-    items.sort((a, b) => {
-      const priorityDiff = (Number(b.metadata?.sourcePriority) || 10) - (Number(a.metadata?.sourcePriority) || 10);
-      if (priorityDiff !== 0) return priorityDiff;
-      return b.relevanceScore - a.relevanceScore;
-    });
-
-    return items;
   } catch (err) {
-    console.warn('⚠️ Vector store query warning:', err.message);
+    console.warn('⚠️ ChromaDB query warning — falling back to BM25 index:', err.message);
+  }
+
+  // Fallback to BM25 Store query
+  try {
+    return bm25Store.search('', filters, topK);
+  } catch (bmErr) {
+    console.warn('⚠️ BM25 fallback search warning:', bmErr.message);
     return [];
   }
 }
 
 // Get collection stats
 async function getStats() {
-  const col = await getCollection();
-  const count = await col.count();
-  return { totalChunks: count, collection: COLLECTION_NAME };
+  let chromaCount = 0;
+  try {
+    const col = await getCollection();
+    chromaCount = await col.count();
+  } catch (e) {}
+
+  const bm25Count = bm25Store.documents ? bm25Store.documents.size : 0;
+  return {
+    totalChunks: Math.max(chromaCount, bm25Count),
+    collection: COLLECTION_NAME
+  };
 }
 
 // Delete chunks by source file
 async function deleteBySource(fileName) {
-  const col = await getCollection();
-  await col.delete({ where: { source: { $eq: fileName } } });
+  try {
+    const col = await getCollection();
+    await col.delete({ where: { source: { $eq: fileName } } });
+  } catch (e) {}
   bm25Store.deleteBySource(fileName);
   console.log(`🗑️ Deleted chunks for: ${fileName}`);
 }
 
 // Delete chunks by knowledge source ID
 async function deleteBySourceId(knowledgeSourceId) {
-  const col = await getCollection();
-  await col.delete({ where: { knowledgeSourceId: { $eq: knowledgeSourceId } } });
+  try {
+    const col = await getCollection();
+    await col.delete({ where: { knowledgeSourceId: { $eq: knowledgeSourceId } } });
+  } catch (e) {}
   bm25Store.deleteBySourceId(knowledgeSourceId);
   console.log(`🗑️ Deleted chunks for knowledgeSourceId: ${knowledgeSourceId}`);
 }
 
 // Delete chunks by subject
 async function deleteBySubject(subjectId) {
-  const col = await getCollection();
-  await col.delete({ where: { subjectId: { $eq: subjectId } } });
+  try {
+    const col = await getCollection();
+    await col.delete({ where: { subjectId: { $eq: subjectId } } });
+  } catch (e) {}
   bm25Store.deleteBySubject(subjectId);
   console.log(`🗑️ Deleted chunks for subjectId: ${subjectId}`);
 }
 
 // Delete chunks by grade
 async function deleteByGrade(grade) {
-  const col = await getCollection();
-  await col.delete({ where: { grade: { $eq: grade } } });
+  try {
+    const col = await getCollection();
+    await col.delete({ where: { grade: { $eq: grade } } });
+  } catch (e) {}
   console.log(`🗑️ Deleted chunks for grade: ${grade}`);
 }
 

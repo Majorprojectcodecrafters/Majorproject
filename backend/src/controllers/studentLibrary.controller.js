@@ -89,8 +89,8 @@ exports.uploadStudyMaterial = async (req, res) => {
 
     let ragMessage = 'Uploaded to Student Library (Google Drive). Not indexed to ChromaDB Vector Store.';
 
-    // If user explicitly selected "Index into RAG / ChromaDB Vector Store"
-    const shouldIndex = String(indexToRag) === 'true' || indexToRag === true;
+    // If user selected "Index into Knowledge Base" or uploaded an Official Textbook
+    const shouldIndex = String(indexToRag) === 'true' || indexToRag === true || category === 'TEXTBOOK';
     if (shouldIndex) {
       try {
         const { ingestPDF } = require('../rag/ragPipeline');

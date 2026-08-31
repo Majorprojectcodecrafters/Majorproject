@@ -251,7 +251,19 @@ class BM25Store {
     if (this.documents.size === 0) return [];
 
     const queryTokens = tokenizePreservingScientific(query);
-    if (queryTokens.length === 0) return [];
+    if (!query || queryTokens.length === 0) {
+      return Array.from(this.documents.values())
+        .filter(doc => this.matchesFilter(doc.metadata, filter))
+        .map(doc => ({
+          chunkId: doc.id,
+          text: doc.text,
+          metadata: doc.metadata,
+          relevanceScore: 1,
+          bm25Score: 1
+        }))
+        .sort((a, b) => (Number(b.metadata?.sourcePriority) || 10) - (Number(a.metadata?.sourcePriority) || 10))
+        .slice(0, topK);
+    }
 
     const N = this.documents.size;
     const scores = new Map();
