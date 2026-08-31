@@ -82,6 +82,7 @@ model User {
   password  String
   role      Role
   dob       DateTime
+  avatarUrl String?
 
   resetOtp         String?
   resetOtpExpires  DateTime?

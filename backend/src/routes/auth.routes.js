@@ -12,6 +12,8 @@ router.post('/register',        authLimiter, authController.register);
 router.post('/login',           authLimiter, authController.login);
 router.post('/logout',          authController.logout);
 router.get('/me',               protect, authController.getMe);
+router.post('/avatar',          protect, authController.updateAvatar);
+router.delete('/avatar',        protect, authController.deleteAvatar);
 router.get('/classes',          authController.getPublicClasses);
 router.get('/streams',          authController.getPublicStreams);
 

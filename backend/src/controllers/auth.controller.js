@@ -182,6 +182,46 @@ exports.getMe = async (req, res) => {
   }
 };
 
+// UPDATE AVATAR
+exports.updateAvatar = async (req, res) => {
+  try {
+    const { avatarUrl } = req.body;
+    if (!avatarUrl) {
+      return res.status(400).json({ success: false, message: 'avatarUrl is required' });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { avatarUrl }
+    });
+
+    res.json({
+      success: true,
+      message: 'Profile photo updated successfully',
+      avatarUrl: updatedUser.avatarUrl
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// DELETE AVATAR
+exports.deleteAvatar = async (req, res) => {
+  try {
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { avatarUrl: null }
+    });
+
+    res.json({
+      success: true,
+      message: 'Profile photo removed successfully'
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 // ==================== GOOGLE DRIVE OAUTH 2.0 FLOW ====================
 const { google } = require('googleapis');
 

@@ -2,6 +2,21 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.1.8] - 2026-08-31 (Customizable Profile Avatar Image & Blue Ring Navbar Styling)
+
+### Added & Styling Upgraded
+- **Profile Photo Schema Field (`schema.prisma`)**:
+  - Added `avatarUrl String?` field to `User` database model.
+- **Customizable Avatar Management API (`auth.controller.js`, `auth.routes.js`)**:
+  - Registered `POST /api/auth/avatar` (update/upload profile photo) and `DELETE /api/auth/avatar` (remove profile photo).
+- **Profile Photo Controls in Profile Pages (`TeacherProfilePage.jsx`, `StudentProfilePage.jsx`)**:
+  - Added **Upload/Change Photo** and **Remove Photo** controls in both Teacher and Student profile pages.
+- **Navbar Profile Pill Styling (`Navbar.jsx`)**:
+  - Styled navbar profile pill to match reference design with a circular profile avatar surrounded by a sleek blue ring.
+  - Dynamically displays the user's custom profile photo (`avatarUrl`) or fallback initial.
+
+---
+
 ## [2.1.7] - 2026-08-31 (Navbar Redesign & Merged Profile Section)
 
 ### Redesigned & Simplified
