@@ -2,6 +2,17 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.1.1] - 2026-08-31 (Strict Enforcement of Google Drive as Sole Source of Truth for Student Library Retrieval)
+
+### Fixed & Enforced
+- **Import of `path` module (`studentLibrary.controller.js`)**:
+  - Added `const path = require('path');` at module top, resolving `ReferenceError: path is not defined`.
+- **Google Drive Sole Source of Truth (`studentLibrary.controller.js`)**:
+  - Completely removed local `uploads/student_library` fallback logic from VIEW (`/materials/:id/view`) and DOWNLOAD (`/materials/:id/download`) endpoints.
+  - Enforced direct authenticated Google Drive API stream piping (`driveStream.pipe(res)`). Returns clean HTTP 404/500 JSON errors if Drive stream is unresolvable without any client redirects or local fallback files.
+
+---
+
 ## [2.1.0] - 2026-08-30 (Backend Authenticated Private Google Drive File Byte Streaming Architecture)
 
 ### Added & Rebuilt
