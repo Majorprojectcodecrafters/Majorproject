@@ -137,7 +137,15 @@ function AppRoutes() {
       <Route
         path="/student/materials"
         element={
-          <ProtectedRoute allowedRoles={['STUDENT']}>
+          <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+            <StudentMaterialsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/library"
+        element={
+          <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
             <StudentMaterialsPage />
           </ProtectedRoute>
         }

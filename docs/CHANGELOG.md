@@ -2,6 +2,16 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.2.1] - 2026-08-31 (Strict Separation of Knowledge Base and Student Library Functionalities)
+
+### Architecture & Navigation Separation
+- **Distinct Functionality Routes (`App.jsx`, `Navbar.jsx`)**:
+  - **Knowledge Base** (`/admin/knowledge-base`): Dedicated RAG vector store chunking & textbook processing interface for Teachers & Admins.
+  - **Student Library** (`/student/library` & `/student/materials`): Dedicated institutional student digital library displaying the clean **"Student Library — Coming Soon / Upgrading"** showcase card.
+  - Configured 100% separate navigation routes for Admin, Teacher, and Student roles in `Navbar.jsx`.
+
+---
+
 ## [2.2.0] - 2026-08-31 (Navbar Logout Removal & Profile Section Logout Option)
 
 ### Simplified & Relocated

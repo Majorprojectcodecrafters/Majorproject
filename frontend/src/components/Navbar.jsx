@@ -37,7 +37,7 @@ export default function Navbar() {
 
         {user && (
           <div className="flex items-center gap-6">
-            {/* Center Navigation Links (Without Dashboard, Logout, or Standalone Profile) */}
+            {/* Center Navigation Links */}
             <div className="flex flex-wrap items-center gap-5 text-sm font-semibold">
               {user.role === 'TEACHER' && (
                 <>
@@ -59,6 +59,9 @@ export default function Navbar() {
                   <Link to="/admin/knowledge-base" className="text-slate-600 hover:text-blue-600 transition-colors">
                     Knowledge Base
                   </Link>
+                  <Link to="/student/library" className="text-slate-600 hover:text-blue-600 transition-colors">
+                    Student Library
+                  </Link>
                 </>
               )}
 
@@ -74,6 +77,9 @@ export default function Navbar() {
                     Announcements
                   </Link>
                   <Link to="/admin/knowledge-base" className="text-slate-600 hover:text-blue-600 transition-colors">
+                    Knowledge Base
+                  </Link>
+                  <Link to="/student/library" className="text-slate-600 hover:text-blue-600 transition-colors">
                     Student Library
                   </Link>
                 </>
@@ -90,8 +96,8 @@ export default function Navbar() {
                   <Link to="/student/announcements" className="text-purple-700 hover:text-purple-900 font-bold">
                     Announcements
                   </Link>
-                  <Link to="/student/materials" className="text-slate-600 hover:text-blue-600 transition-colors">
-                    Study Materials
+                  <Link to="/student/library" className="text-slate-600 hover:text-blue-600 transition-colors">
+                    Student Library
                   </Link>
                   <Link to="/student/results" className="text-slate-600 hover:text-blue-600 transition-colors">
                     Results
