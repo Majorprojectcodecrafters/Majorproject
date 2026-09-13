@@ -2,6 +2,18 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.7.8] - 2026-09-13 (Session Security & Remember Me Feature)
+
+### Session Lifecycle & Remember Me Device Security
+- **Dual-Storage Authentication Utility (`authStorage.js`)**:
+  - Implemented session storage vs. persistent localStorage abstraction. By default, user authentication tokens are stored in `sessionStorage` and automatically purged when the browser tab is closed.
+- **"Remember me on this device" Feature (`LoginPage.jsx`, `schemas.js`, `AuthContext.jsx`)**:
+  - Added a clean "Remember me on this device" checkbox on the login page. When checked, auth credentials are stored in `localStorage` for persistent device login across browser restarts.
+- **Unified API Interceptors (`api.js`, `CreateResultPage.jsx`)**:
+  - Updated global request interceptor and PDF/Excel export endpoints to use `getStoredToken()` and `clearStoredAuth()`.
+
+---
+
 ## [2.7.7] - 2026-08-31 (Configured Permanent Google Service Account Key)
 
 ### Permanent Google Drive Storage Setup

@@ -26,7 +26,7 @@ export default function LoginPage() {
   const onSubmit = async (data) => {
     setLoading(true);
 
-    const result = await login(data.email, data.password);
+    const result = await login(data.email, data.password, Boolean(data.rememberMe));
 
     if (result.success) {
       // Redirect based on role
@@ -73,7 +73,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowForgotModal(true)}
-                  className="text-xs font-semibold text-purple-700 hover:text-purple-900"
+                  className="text-xs font-semibold text-purple-700 hover:text-purple-900 transition"
                 >
                   Forgot password?
                 </button>
@@ -85,6 +85,19 @@ export default function LoginPage() {
                 placeholder="••••••••"
               />
               {errors.password && <p className="form-error mt-1">{errors.password.message}</p>}
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex items-center cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  {...register('rememberMe')}
+                  className="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 transition cursor-pointer"
+                />
+                <span className="ml-2 text-xs font-semibold text-slate-600 hover:text-slate-900">
+                  Remember me on this device
+                </span>
+              </label>
             </div>
 
             <button

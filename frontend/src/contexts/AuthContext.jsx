@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import apiClient from '../lib/api';
+import { getStoredToken, getStoredUser, setStoredAuth, updateStoredUser, clearStoredAuth } from '../lib/authStorage';
 
 const AuthContext = createContext(null);
 
@@ -8,19 +9,15 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Load user and token from localStorage on mount & refresh from backend
+  // Load user and token from session/localStorage on mount & refresh from backend
   useEffect(() => {
-    const savedToken = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
+    const savedToken = getStoredToken();
+    const savedUser = getStoredUser();
     
     if (savedToken) {
       setToken(savedToken);
       if (savedUser) {
-        try {
-          setUser(JSON.parse(savedUser));
-        } catch (e) {
-          console.warn('Failed to parse saved user:', e.message);
-        }
+        setUser(savedUser);
       }
 
       // Fetch fresh user details (including avatarUrl) from server
@@ -29,7 +26,7 @@ export function AuthProvider({ children }) {
           if (res.data?.data) {
             const freshUser = res.data.data;
             setUser(freshUser);
-            localStorage.setItem('user', JSON.stringify(freshUser));
+            updateStoredUser(freshUser);
           }
         })
         .catch(err => {
@@ -41,13 +38,12 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (email, password, rememberMe = false) => {
     try {
       const response = await apiClient.post('/auth/login', { email, password });
       const { user: userData, token: newToken } = response.data.data;
       
-      localStorage.setItem('token', newToken);
-      localStorage.setItem('user', JSON.stringify(userData));
+      setStoredAuth(newToken, userData, rememberMe);
       
       setToken(newToken);
       setUser(userData);
@@ -64,20 +60,18 @@ export function AuthProvider({ children }) {
     } catch (e) {
       console.warn('Logout API warning:', e.message);
     } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      clearStoredAuth();
       setToken(null);
       setUser(null);
     }
   };
 
-  const register = async (data) => {
+  const register = async (data, rememberMe = false) => {
     try {
       const response = await apiClient.post('/auth/register', data);
       const { user: userData, token: newToken } = response.data.data;
       
-      localStorage.setItem('token', newToken);
-      localStorage.setItem('user', JSON.stringify(userData));
+      setStoredAuth(newToken, userData, rememberMe);
       
       setToken(newToken);
       setUser(userData);
@@ -91,7 +85,7 @@ export function AuthProvider({ children }) {
   const updateUser = (updatedFields) => {
     setUser((prev) => {
       const updated = { ...prev, ...updatedFields };
-      localStorage.setItem('user', JSON.stringify(updated));
+      updateStoredUser(updated);
       return updated;
     });
   };

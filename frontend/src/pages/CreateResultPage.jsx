@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../lib/api';
+import { getStoredToken } from '../lib/authStorage';
 import { useToast } from '../contexts/ToastContext';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -136,13 +137,13 @@ export default function CreateResultPage() {
 
   const downloadExcel = () => {
     if (!selectedQPId) return;
-    const token = localStorage.getItem('token');
+    const token = getStoredToken();
     window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/teacher/results/export/excel?questionPaperId=${selectedQPId}&token=${token}`, '_blank');
   };
 
   const downloadPDF = () => {
     if (!selectedQPId) return;
-    const token = localStorage.getItem('token');
+    const token = getStoredToken();
     window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/teacher/results/export/pdf?questionPaperId=${selectedQPId}&token=${token}`, '_blank');
   };
 
