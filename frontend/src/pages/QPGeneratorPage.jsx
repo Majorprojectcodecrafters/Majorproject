@@ -58,12 +58,10 @@ export default function QPGeneratorPage() {
     }
   });
 
-  // Default to 12th Standard if available
+  // Default to teacher's first assigned class
   useEffect(() => {
     if (classes.length > 0 && !selectedClassId) {
-      const cls12 = classes.find(c => c.name.includes('12th'));
-      if (cls12) setSelectedClassId(cls12.id);
-      else setSelectedClassId(classes[0].id);
+      setSelectedClassId(classes[0].id);
     }
   }, [classes, selectedClassId]);
 
@@ -272,6 +270,13 @@ export default function QPGeneratorPage() {
         {step === 1 && (
           <div className="card space-y-6">
             <h2 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">{t('step1Header', 'Step 1: Select Academic Scope')}</h2>
+
+            {classes.length === 0 && (
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium space-y-1">
+                <p className="font-bold text-sm text-amber-900">⚠️ No Allocated Classes Found</p>
+                <p>You currently do not have any classes or subjects allocated to your teacher account by the Administrator. Please contact your Admin to allocate your class and subject assignments in <strong>Admin Allocations</strong>.</p>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Class Dropdown */}

@@ -20,6 +20,22 @@ exports.getClasses = async (req, res) => {
     if (boardId) where.boardId = boardId;
     if (streamId) where.streamId = streamId;
 
+    // If requesting user is a TEACHER, limit classes strictly to those allocated to them
+    if (req.user && req.user.role === 'TEACHER') {
+      const teacherId = req.user.teacherId;
+      if (!teacherId) {
+        return res.json({ success: true, data: [] });
+      }
+
+      const assignments = await prisma.teacherAssignment.findMany({
+        where: { teacherId },
+        select: { classId: true }
+      });
+
+      const assignedClassIds = Array.from(new Set(assignments.map(a => a.classId)));
+      where.id = { in: assignedClassIds };
+    }
+
     const classes = await prisma.class.findMany({
       where,
       include: {
@@ -34,13 +50,29 @@ exports.getClasses = async (req, res) => {
   }
 };
 
-// Get subjects for a selected class (Class-First Cascading)
+// Get subjects for a selected class (Class-First Cascading & Teacher Allotment Scoped)
 exports.getSubjectsByClass = async (req, res) => {
   try {
     const { classId } = req.query;
 
     if (!classId) {
-      // Fallback: list all subjects
+      if (req.user && req.user.role === 'TEACHER' && req.user.teacherId) {
+        const assignments = await prisma.teacherAssignment.findMany({
+          where: { teacherId: req.user.teacherId },
+          include: {
+            subject: {
+              include: { stream: true }
+            }
+          }
+        });
+        const assignedSubjectsMap = new Map();
+        assignments.forEach(a => {
+          if (a.subject) assignedSubjectsMap.set(a.subject.id, a.subject);
+        });
+        return res.json({ success: true, data: Array.from(assignedSubjectsMap.values()) });
+      }
+
+      // Fallback for Admin: list all subjects
       const subjects = await prisma.subject.findMany({
         include: { stream: true },
         orderBy: { name: 'asc' }
@@ -48,6 +80,29 @@ exports.getSubjectsByClass = async (req, res) => {
       return res.json({ success: true, data: subjects });
     }
 
+    // If requesting user is a TEACHER, return ONLY the specific subject(s) assigned to them for this class
+    if (req.user && req.user.role === 'TEACHER' && req.user.teacherId) {
+      const assignments = await prisma.teacherAssignment.findMany({
+        where: {
+          teacherId: req.user.teacherId,
+          classId
+        },
+        include: {
+          subject: {
+            include: { stream: true }
+          }
+        }
+      });
+
+      const assignedSubjectsMap = new Map();
+      assignments.forEach(a => {
+        if (a.subject) assignedSubjectsMap.set(a.subject.id, a.subject);
+      });
+
+      return res.json({ success: true, data: Array.from(assignedSubjectsMap.values()) });
+    }
+
+    // Admin: return all subjects registered for this class
     const classSubjects = await prisma.classSubject.findMany({
       where: { classId },
       include: {

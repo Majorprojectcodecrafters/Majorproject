@@ -462,6 +462,34 @@ exports.generateQP = async (req, res) => {
       });
     }
 
+    // Verify Teacher Allotment authorization
+    if (req.user && req.user.role === 'TEACHER') {
+      const teacherId = req.user.teacherId;
+      if (!teacherId) {
+        return res.status(403).json({
+          success: false,
+          statusCode: 403,
+          message: 'Forbidden: Your teacher account profile is not found.'
+        });
+      }
+
+      const assignment = await prisma.teacherAssignment.findFirst({
+        where: {
+          teacherId,
+          ...(classId && { classId }),
+          subjectId
+        }
+      });
+
+      if (!assignment) {
+        return res.status(403).json({
+          success: false,
+          statusCode: 403,
+          message: 'Forbidden: You are not authorized to generate question papers for this class or subject.'
+        });
+      }
+    }
+
     const result = await generateQuestionPaper({
       classId,
       subjectId,

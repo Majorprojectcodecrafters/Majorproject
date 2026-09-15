@@ -2,6 +2,19 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.8.0] - 2026-09-15 (Teacher Class & Subject Allotment Scoping)
+
+### Teacher Allotment Security & Cascading Scope Restrictions
+- **Allotted Class & Subject Dropdown Filtering (`curriculum.controller.js`)**:
+  - Scoped `getClasses` for `TEACHER` role to return only unique classes assigned in `TeacherAssignment`.
+  - Scoped `getSubjectsByClass` for `TEACHER` role to return ONLY the specific subject(s) assigned to that teacher for the selected class.
+- **Server-Side 403 Authorization Validation (`rag.controller.js`, `qp.controller.js`)**:
+  - Enforced strict authorization checks on `generateQP` and `createQP` to reject unauthorized API requests for unassigned classes or subjects with `403 Forbidden`.
+- **UI Auto-Selection & Allotment Warning Banner (`QPGeneratorPage.jsx`)**:
+  - Updated Step 1 class selection to default to the teacher's first assigned class and added a warning banner if a teacher account has no class allocations.
+
+---
+
 ## [2.7.9] - 2026-09-15 (Isolated Per-User Account Language Preferences)
 
 ### Language Preference Isolation

@@ -27,6 +27,18 @@ exports.createQP = async (req, res) => {
     const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
     if (!subject) return res.status(404).json({ success: false, message: 'Subject not found' });
 
+    if (req.user && req.user.role === 'TEACHER') {
+      const assignment = await prisma.teacherAssignment.findFirst({
+        where: { teacherId, subjectId }
+      });
+      if (!assignment) {
+        return res.status(403).json({
+          success: false,
+          message: 'Forbidden: You are not authorized to create question papers for this subject.'
+        });
+      }
+    }
+
     if (questionIds?.length) {
       const foundQuestions = await prisma.question.findMany({
         where: { id: { in: questionIds } }
