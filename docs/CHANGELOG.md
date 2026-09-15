@@ -2,6 +2,15 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.7.9] - 2026-09-15 (Isolated Per-User Account Language Preferences)
+
+### Language Preference Isolation
+- **Isolated Storage Keys Per User (`LanguageContext.jsx`)**:
+  - Refactored `LanguageContext` to use user-scoped storage keys (`qpgen_language_${user.id}`).
+  - Added dynamic user change detection to automatically switch the active interface language when accounts switch or log out, ensuring language preferences set in one account do not leak or affect other accounts on the same browser/device.
+
+---
+
 ## [2.7.8] - 2026-09-13 (Session Security & Remember Me Feature)
 
 ### Session Lifecycle & Remember Me Device Security

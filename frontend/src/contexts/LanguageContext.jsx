@@ -1,17 +1,34 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { translations } from '../locales/translations';
+import { useAuth } from './AuthContext';
 
 const LanguageContext = createContext();
 
 export function LanguageProvider({ children }) {
+  const { user } = useAuth();
+
+  // Helper to construct isolated per-user storage key
+  const getLanguageStorageKey = (u) => {
+    return u?.id ? `qpgen_language_${u.id}` : 'qpgen_language_guest';
+  };
+
   const [language, setLanguageState] = useState(() => {
-    return localStorage.getItem('qpgen_language') || 'en';
+    const key = getLanguageStorageKey(user);
+    return localStorage.getItem(key) || 'en';
   });
+
+  // Automatically switch language to active user's preference when account changes
+  useEffect(() => {
+    const key = getLanguageStorageKey(user);
+    const savedLang = localStorage.getItem(key) || 'en';
+    setLanguageState(savedLang);
+  }, [user?.id]);
 
   const setLanguage = (lang) => {
     if (['en', 'hi', 'mr'].includes(lang)) {
       setLanguageState(lang);
-      localStorage.setItem('qpgen_language', lang);
+      const key = getLanguageStorageKey(user);
+      localStorage.setItem(key, lang);
     }
   };
 
