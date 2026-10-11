@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { sendServerError } = require('../utils/responseHandler');
 
 // ==================== PROFILE ====================
 
@@ -10,6 +11,11 @@ exports.getProfile = async (req, res) => {
         user: { select: { id: true, name: true, email: true, dob: true, role: true } },
         class: true,
         stream: { include: { subjects: { include: { chapters: true } } } },
+        enrolledSubjects: {
+          include: {
+            subject: { include: { chapters: true } }
+          }
+        },
         teachers: {
           include: {
             teacher: { include: { user: { select: { name: true, email: true } } } }
@@ -23,13 +29,13 @@ exports.getProfile = async (req, res) => {
     res.json({ success: true, data: student });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
 exports.updateProfile = async (req, res) => {
   try {
-    const { contact } = req.body;
+    const { contact, subjectIds } = req.body;
 
     const updated = await prisma.student.update({
       where: { id: req.user.studentId },
@@ -37,14 +43,25 @@ exports.updateProfile = async (req, res) => {
       include: {
         user: { select: { id: true, name: true, email: true, dob: true } },
         class: true,
-        stream: true
+        stream: true,
+        enrolledSubjects: { include: { subject: true } }
       }
     });
+
+    if (subjectIds !== undefined && Array.isArray(subjectIds)) {
+      await prisma.studentSubject.deleteMany({ where: { studentId: req.user.studentId } });
+      const validSubjectIds = subjectIds.filter(Boolean);
+      if (validSubjectIds.length > 0) {
+        await prisma.studentSubject.createMany({
+          data: validSubjectIds.map(subId => ({ studentId: req.user.studentId, subjectId: subId }))
+        });
+      }
+    }
 
     res.json({ success: true, data: updated });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -90,7 +107,7 @@ exports.getExamResults = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -117,7 +134,7 @@ exports.getExamResultById = async (req, res) => {
     res.json({ success: true, data: result });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -153,7 +170,7 @@ exports.getSemesterResults = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -171,7 +188,7 @@ exports.getSemesterResultById = async (req, res) => {
     res.json({ success: true, data: result });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -244,7 +261,7 @@ exports.getPublishedQPs = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -283,7 +300,7 @@ exports.getQPById = async (req, res) => {
     res.json({ success: true, data: qp });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -325,7 +342,7 @@ exports.exportStudentQP = async (req, res) => {
     res.send(pdfBuffer);
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -347,7 +364,7 @@ exports.getMyTeachers = async (req, res) => {
     res.json({ success: true, data: assignments.map(a => a.teacher) });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -373,7 +390,7 @@ exports.getMyStream = async (req, res) => {
     res.json({ success: true, data: student.stream });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -397,6 +414,6 @@ exports.getSubjectById = async (req, res) => {
     res.json({ success: true, data: subject });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };

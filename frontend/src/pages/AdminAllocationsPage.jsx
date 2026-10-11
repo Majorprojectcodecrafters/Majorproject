@@ -228,9 +228,13 @@ export default function AdminAllocationsPage() {
                   required
                 >
                   <option value="">{t('selectClassPlaceholder', 'Select Class / Division')}</option>
-                  {classes.map(c => (
-                    <option key={c.id} value={c.id}>{c.name} ({c.academicYear})</option>
-                  ))}
+                  {classes.map(c => {
+                    const streamName = c.stream?.name || '';
+                    const displayName = streamName && !c.name.toLowerCase().includes(streamName.toLowerCase())
+                      ? `${c.name} (${streamName})`
+                      : c.name;
+                    return <option key={c.id} value={c.id}>{displayName} ({c.academicYear})</option>;
+                  })}
                 </select>
               </div>
             </div>
@@ -402,9 +406,13 @@ export default function AdminAllocationsPage() {
                 required
               >
                 <option value="">{t('selectClassPlaceholder', 'Select New Class')}</option>
-                {classes.map(c => (
-                  <option key={c.id} value={c.id}>{c.name} ({c.academicYear})</option>
-                ))}
+                {classes.map(c => {
+                  const streamName = c.stream?.name || '';
+                  const displayName = streamName && !c.name.toLowerCase().includes(streamName.toLowerCase())
+                    ? `${c.name} (${streamName})`
+                    : c.name;
+                  return <option key={c.id} value={c.id}>{displayName} ({c.academicYear})</option>;
+                })}
               </select>
             </div>
 

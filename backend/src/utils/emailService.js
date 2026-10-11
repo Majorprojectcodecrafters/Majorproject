@@ -118,7 +118,11 @@ async function sendPasswordResetOtpEmail(userEmail, userName, otpCode) {
       return { success: false, mode: 'SMTP_FAILED', error: err.message };
     }
   } else {
-    console.log(`ℹ️ SMTP Not Configured. Simulated OTP for ${userEmail}: [ ${otpCode} ]`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`ℹ️ SMTP Not Configured. Simulated OTP for ${userEmail}: [ ${otpCode} ]`);
+    } else {
+      console.warn(`⚠️ SMTP Not Configured in production. Password reset email could not be dispatched.`);
+    }
     return { success: true, mode: 'SIMULATED' };
   }
 }

@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { sendServerError } = require('../utils/responseHandler');
 
 // ==================== DASHBOARD ====================
 
@@ -49,7 +50,7 @@ exports.getDashboard = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -70,7 +71,7 @@ exports.getAllUsers = async (req, res) => {
           id: true, name: true, email: true,
           role: true, dob: true, createdAt: true,
           teacher: true,
-          student: { include: { class: true, stream: true } }
+          student: { include: { class: true, stream: true, enrolledSubjects: { include: { subject: true } } } }
         },
         orderBy: { createdAt: 'desc' }
       }),
@@ -84,7 +85,7 @@ exports.getAllUsers = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -96,7 +97,7 @@ exports.getUserById = async (req, res) => {
         id: true, name: true, email: true,
         role: true, dob: true, createdAt: true,
         teacher: true,
-        student: { include: { class: true, stream: true } }
+        student: { include: { class: true, stream: true, enrolledSubjects: { include: { subject: true } } } }
       }
     });
 
@@ -105,7 +106,7 @@ exports.getUserById = async (req, res) => {
     res.json({ success: true, data: user });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -125,7 +126,7 @@ exports.deleteUser = async (req, res) => {
     res.json({ success: true, message: 'User deleted successfully' });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -134,11 +135,20 @@ exports.createUser = async (req, res) => {
   try {
     const { name, email, password, role, dob, classId, streamId, education, experienceYears, contact, uniqueId } = req.body;
 
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return res.status(400).json({ success: false, message: 'User name is required' });
+    }
+
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ success: false, message: 'Valid email is required' });
+    }
+    const normalizedEmail = email.toLowerCase().trim();
+
     if (!['ADMIN', 'TEACHER', 'STUDENT'].includes(role)) {
       return res.status(400).json({ success: false, message: 'Invalid role' });
     }
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existingUser) {
       return res.status(400).json({ success: false, message: 'User email already exists' });
     }
@@ -169,13 +179,20 @@ exports.createUser = async (req, res) => {
       req.resolvedStreamId = resolvedStreamId;
     }
 
+    let targetSubjectIds = Array.isArray(req.body.subjectIds) ? req.body.subjectIds.filter(Boolean) : [];
+    if (role === 'STUDENT' && targetSubjectIds.length === 0 && (req.resolvedStreamId || streamId)) {
+      const activeStreamId = req.resolvedStreamId || streamId;
+      const streamSubjects = await prisma.subject.findMany({ where: { streamId: activeStreamId } });
+      targetSubjectIds = streamSubjects.map(s => s.id);
+    }
+
     const bcrypt = require('bcrypt');
     const hashedPassword = await bcrypt.hash(password || 'qpgen123', 10);
 
     const user = await prisma.user.create({
       data: {
-        name,
-        email,
+        name: name.trim(),
+        email: normalizedEmail,
         password: hashedPassword,
         role,
         dob: dob ? new Date(dob) : new Date('2005-01-01'),
@@ -195,14 +212,19 @@ exports.createUser = async (req, res) => {
               uniqueId: studentUniqueId,
               contact: contact || 'N/A',
               classId: req.resolvedClassId || classId || null,
-              streamId: req.resolvedStreamId || streamId || null
+              streamId: req.resolvedStreamId || streamId || null,
+              ...(targetSubjectIds.length > 0 && {
+                enrolledSubjects: {
+                  create: targetSubjectIds.map(sId => ({ subjectId: sId }))
+                }
+              })
             }
           }
         })
       },
       include: {
         teacher: true,
-        student: { include: { class: true, stream: true } }
+        student: { include: { class: true, stream: true, enrolledSubjects: { include: { subject: true } } } }
       }
     });
 
@@ -210,7 +232,7 @@ exports.createUser = async (req, res) => {
     res.status(201).json({ success: true, data: safeUser });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to create user');
   }
 };
 
@@ -218,7 +240,7 @@ exports.createUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, dob, classId, streamId, education, experienceYears, contact, uniqueId } = req.body;
+    const { name, email, dob, classId, streamId, education, experienceYears, contact, uniqueId, subjectIds } = req.body;
 
     const existingUser = await prisma.user.findUnique({
       where: { id },
@@ -231,8 +253,8 @@ exports.updateUser = async (req, res) => {
     await prisma.user.update({
       where: { id },
       data: {
-        ...(name && { name }),
-        ...(email && { email }),
+        ...(name && { name: name.trim() }),
+        ...(email && { email: email.toLowerCase().trim() }),
         ...(dob && { dob: new Date(dob) })
       }
     });
@@ -256,13 +278,23 @@ exports.updateUser = async (req, res) => {
           ...(uniqueId !== undefined && { uniqueId })
         }
       });
+
+      if (subjectIds !== undefined && Array.isArray(subjectIds)) {
+        await prisma.studentSubject.deleteMany({ where: { studentId: existingUser.student.id } });
+        const validSubjectIds = subjectIds.filter(Boolean);
+        if (validSubjectIds.length > 0) {
+          await prisma.studentSubject.createMany({
+            data: validSubjectIds.map(subId => ({ studentId: existingUser.student.id, subjectId: subId }))
+          });
+        }
+      }
     }
 
     const fullUser = await prisma.user.findUnique({
       where: { id },
       include: {
         teacher: true,
-        student: { include: { class: true, stream: true } }
+        student: { include: { class: true, stream: true, enrolledSubjects: { include: { subject: true } } } }
       }
     });
 
@@ -270,7 +302,7 @@ exports.updateUser = async (req, res) => {
     res.json({ success: true, data: safeUser });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -290,7 +322,7 @@ exports.createClass = async (req, res) => {
     res.status(201).json({ success: true, data: newClass });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -302,7 +334,7 @@ exports.getAllClasses = async (req, res) => {
     });
     res.json({ success: true, data: classes });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -322,7 +354,7 @@ exports.updateClass = async (req, res) => {
     res.json({ success: true, data: updated });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -353,7 +385,7 @@ exports.deleteClass = async (req, res) => {
     res.json({ success: true, message: `Class "${existing.name}" deleted successfully` });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -371,7 +403,7 @@ exports.createStream = async (req, res) => {
     res.status(201).json({ success: true, data: stream });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -383,7 +415,7 @@ exports.getAllStreams = async (req, res) => {
     });
     res.json({ success: true, data: streams });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -400,7 +432,7 @@ exports.updateStream = async (req, res) => {
     res.json({ success: true, data: updated });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -416,7 +448,7 @@ exports.deleteStream = async (req, res) => {
     res.json({ success: true, message: 'Stream deleted successfully' });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -442,7 +474,7 @@ exports.createSubject = async (req, res) => {
     res.status(201).json({ success: true, data: subject });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -459,7 +491,7 @@ exports.getAllSubjects = async (req, res) => {
     res.json({ success: true, data: subjects });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -480,7 +512,7 @@ exports.updateSubject = async (req, res) => {
     res.json({ success: true, data: updated });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -496,7 +528,7 @@ exports.deleteSubject = async (req, res) => {
     res.json({ success: true, message: 'Subject deleted successfully' });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -522,7 +554,7 @@ exports.createChapter = async (req, res) => {
     res.status(201).json({ success: true, data: chapter });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -539,7 +571,7 @@ exports.getAllChapters = async (req, res) => {
     res.json({ success: true, data: chapters });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -560,7 +592,7 @@ exports.updateChapter = async (req, res) => {
     res.json({ success: true, data: updated });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -576,7 +608,7 @@ exports.deleteChapter = async (req, res) => {
     res.json({ success: true, message: 'Chapter deleted successfully' });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -608,7 +640,7 @@ exports.assignTeacherToStudent = async (req, res) => {
     res.status(201).json({ success: true, data: assignment });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -628,7 +660,7 @@ exports.unassignTeacherFromStudent = async (req, res) => {
     res.json({ success: true, message: 'Teacher unassigned from student successfully' });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -646,7 +678,7 @@ exports.createTemplate = async (req, res) => {
     res.status(201).json({ success: true, data: template });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -658,7 +690,7 @@ exports.getAllTemplates = async (req, res) => {
     });
     res.json({ success: true, data: templates });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -678,7 +710,7 @@ exports.updateTemplate = async (req, res) => {
     res.json({ success: true, data: updated });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -694,7 +726,7 @@ exports.deleteTemplate = async (req, res) => {
     res.json({ success: true, message: 'Template deleted successfully' });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -744,7 +776,7 @@ exports.createTeacherAssignment = async (req, res) => {
     res.status(201).json({ success: true, data: assignment });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -769,7 +801,7 @@ exports.getTeacherAssignments = async (req, res) => {
     res.json({ success: true, data: assignments });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -785,7 +817,7 @@ exports.deleteTeacherAssignment = async (req, res) => {
     res.json({ success: true, message: 'Teacher assignment removed successfully' });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -816,6 +848,6 @@ exports.updateStudentClass = async (req, res) => {
     res.json({ success: true, data: updated });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };

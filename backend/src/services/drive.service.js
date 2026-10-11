@@ -9,7 +9,7 @@ const path = require('path');
  */
 
 function isDriveConfigured() {
-  const saKeyFile = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE;
+  const saKeyFile = process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE;
   const saEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_DRIVE_CLIENT_EMAIL;
   const saKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || process.env.GOOGLE_DRIVE_PRIVATE_KEY;
   const hasServiceAccount = Boolean((saEmail && saKey) || (saKeyFile && fs.existsSync(saKeyFile)));
@@ -23,27 +23,38 @@ function getDriveClient() {
   }
 
   try {
-    const saKeyFile = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE;
+    const scopes = ['https://www.googleapis.com/auth/drive'];
+
+    const saKeyFile = process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE;
     if (saKeyFile && fs.existsSync(saKeyFile)) {
-      const auth = new google.auth.GoogleAuth({
-        keyFile: saKeyFile,
-        scopes: ['https://www.googleapis.com/auth/drive']
-      });
-      return google.drive({ version: 'v3', auth });
+      try {
+        const auth = new google.auth.GoogleAuth({
+          keyFile: saKeyFile,
+          scopes
+        });
+        return google.drive({ version: 'v3', auth });
+      } catch (saErr) {
+        console.warn('⚠️ GoogleAuth keyFile init notice:', saErr.message);
+      }
     }
 
     const saEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_DRIVE_CLIENT_EMAIL;
     const saKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || process.env.GOOGLE_DRIVE_PRIVATE_KEY;
 
     if (saEmail && saKey) {
-      const privateKey = saKey.replace(/\\n/g, '\n');
-      const auth = new google.auth.JWT(
-        saEmail,
-        null,
-        privateKey,
-        ['https://www.googleapis.com/auth/drive']
-      );
-      return google.drive({ version: 'v3', auth });
+      try {
+        const privateKey = saKey.replace(/\\n/g, '\n');
+        const auth = new google.auth.GoogleAuth({
+          credentials: {
+            client_email: saEmail,
+            private_key: privateKey
+          },
+          scopes
+        });
+        return google.drive({ version: 'v3', auth });
+      } catch (jwtErr) {
+        console.warn('⚠️ Google JWT init notice:', jwtErr.message);
+      }
     }
 
     if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REFRESH_TOKEN) {
@@ -72,7 +83,9 @@ async function getOrCreateFolder(drive, folderName, parentId = null) {
 
     const res = await drive.files.list({
       q: query,
-      fields: 'files(id, name)'
+      fields: 'files(id, name)',
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true
     });
 
     if (res.data.files && res.data.files.length > 0) {
@@ -88,7 +101,8 @@ async function getOrCreateFolder(drive, folderName, parentId = null) {
 
     const folder = await drive.files.create({
       resource: fileMetadata,
-      fields: 'id'
+      fields: 'id',
+      supportsAllDrives: true
     });
 
     return folder.data.id;
@@ -101,19 +115,60 @@ async function getOrCreateFolder(drive, folderName, parentId = null) {
 /**
  * Ensure folder structure: QPGen / Board / Stream / Class / Subject / Category
  */
-async function ensureFolderStructure({ board = 'MSB', stream = 'Science', className = '12th', subjectName = 'Physics', category = 'Textbooks' }) {
+async function ensureFolderStructure({ board = 'MSB', stream = 'Science', className = '12th Standard', subjectName = 'Physics', category = 'TEXTBOOK' }) {
   const drive = getDriveClient();
   if (!drive) return null;
 
-  const rootId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID || null;
-  const qpgenFolder = await getOrCreateFolder(drive, 'QPGen', rootId);
-  const boardFolder = await getOrCreateFolder(drive, board || 'MSB', qpgenFolder);
-  const streamFolder = await getOrCreateFolder(drive, stream || 'General', boardFolder);
-  const classFolder = await getOrCreateFolder(drive, className || '12th', streamFolder);
-  const subjectFolder = await getOrCreateFolder(drive, subjectName || 'Subject', classFolder);
-  const categoryFolder = await getOrCreateFolder(drive, category || 'Documents', subjectFolder);
+  const rootId = process.env.GOOGLE_DRIVE_ROOT_FOLDER || process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID || null;
+  const baseParentId = rootId || (await getOrCreateFolder(drive, 'QPGen_Resources', null));
 
-  return categoryFolder;
+  // 1. Determine Class Name (e.g. "11th Standard", "12th Standard")
+  let cleanClass = '12th Standard';
+  if (className) {
+    const clsStr = String(className);
+    if (clsStr.includes('11')) cleanClass = '11th Standard';
+    else if (clsStr.includes('12')) cleanClass = '12th Standard';
+    else cleanClass = clsStr;
+  }
+
+  // 2. Determine Branch / Stream (e.g. "Science", "Commerce", "Arts")
+  let cleanStream = stream || 'Science';
+  if (className && (!stream || stream === 'General')) {
+    const clsLower = String(className).toLowerCase();
+    if (clsLower.includes('commerce')) cleanStream = 'Commerce';
+    else if (clsLower.includes('arts')) cleanStream = 'Arts';
+    else if (clsLower.includes('science')) cleanStream = 'Science';
+  }
+
+  // 3. Determine Material Type
+  const categoryMap = {
+    TEXTBOOK: 'Textbooks',
+    TEACHER_NOTES: 'Notes',
+    CHAPTER_NOTES: 'Notes',
+    PREVIOUS_BOARD_PAPER: 'Previous Year Papers',
+    PAST_PAPER: 'Previous Year Papers',
+    QUESTION_BANK: 'Question Banks',
+    QUESTION_GLOSSARY: 'Question Banks',
+    SAMPLE_PAPER: 'Sample Papers',
+    REFERENCE_MATERIAL: 'Reference Material',
+    STUDY_MATERIAL: 'Reference Material',
+    OTHER: 'Other Material'
+  };
+  const cleanCategory = categoryMap[category] || category || 'General Material';
+
+  // Build hierarchy: Base -> Class -> Branch -> Material Type
+  const classFolderId = await getOrCreateFolder(drive, cleanClass, baseParentId);
+  const streamFolderId = await getOrCreateFolder(drive, cleanStream, classFolderId);
+  const categoryFolderId = await getOrCreateFolder(drive, cleanCategory, streamFolderId);
+
+  // If subject is specified, create Subject subfolder inside Material Type
+  if (subjectName && subjectName !== 'General' && subjectName !== 'All') {
+    const cleanSubject = subjectName.replace(/[\/\\?%*:|"<>]/g, '_');
+    const subjectFolderId = await getOrCreateFolder(drive, cleanSubject, categoryFolderId);
+    return subjectFolderId;
+  }
+
+  return categoryFolderId;
 }
 
 /**
@@ -146,7 +201,8 @@ async function uploadFileToDrive(filePath, fileName, mimeType = 'application/pdf
     const response = await drive.files.create({
       resource: fileMetadata,
       media,
-      fields: 'id, webViewLink'
+      fields: 'id, webViewLink',
+      supportsAllDrives: true
     });
 
     return {
@@ -176,7 +232,7 @@ async function downloadFileFromDrive(driveFileId, destinationPath) {
   try {
     const destStream = fs.createWriteStream(destinationPath);
     const res = await drive.files.get(
-      { fileId: driveFileId, alt: 'media' },
+      { fileId: driveFileId, alt: 'media', supportsAllDrives: true },
       { responseType: 'stream' }
     );
 
@@ -235,7 +291,7 @@ async function deleteFileFromDrive(driveFileId) {
   if (!drive) return false;
 
   try {
-    await drive.files.delete({ fileId: driveFileId });
+    await drive.files.delete({ fileId: driveFileId, supportsAllDrives: true });
     console.log(`✅ Deleted file (${driveFileId}) from Google Drive.`);
     return true;
   } catch (error) {

@@ -7,6 +7,7 @@ const {
   deleteFileFromDrive,
   listAllDriveFilesRecursive
 } = require('../services/drive.service');
+const { sendServerError } = require('../utils/responseHandler');
 
 // ==================== UPLOAD STUDY MATERIAL TO GOOGLE DRIVE ====================
 
@@ -282,7 +283,7 @@ exports.getStudyMaterials = async (req, res) => {
     res.json({ success: true, data: materials });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -489,7 +490,7 @@ exports.syncDriveMaterials = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -513,7 +514,7 @@ exports.getAdminDriveTree = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -567,7 +568,7 @@ exports.getStudentProfile = async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -616,7 +617,7 @@ exports.getDriveFilesForCategory = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -656,25 +657,50 @@ exports.streamDriveFileSecure = async (req, res) => {
       else contentType = metadata.mimeType;
     }
 
-    // 3. Obtain file stream directly from authenticated Google Drive API client
-    const driveStream = await getFileStreamFromDrive(targetDriveId);
-    if (!driveStream) {
-      return res.status(404).json({
-        success: false,
-        message: `Google Drive file stream not available for file ID: ${targetDriveId}`
-      });
+    // 3. Obtain file stream directly from authenticated Google Drive API client or local disk
+    let driveStream = null;
+    if (targetDriveId && !targetDriveId.startsWith('local-sim-') && !targetDriveId.startsWith('drive-sync-')) {
+      try {
+        driveStream = await getFileStreamFromDrive(targetDriveId);
+      } catch (err) {
+        console.warn(`⚠️ Drive stream notice for ${targetDriveId}:`, err.message);
+      }
     }
 
-    // 4. Pipe Google Drive stream directly to HTTP response (NO REDIRECTS, NO LOCAL FALLBACKS)
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(fileName)}"`);
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    if (driveStream) {
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(fileName)}"`);
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      return driveStream.pipe(res);
+    }
 
-    return driveStream.pipe(res);
+    // Fallback: local disk stream
+    let foundLocalPath = null;
+    if (material?.fileUrl && fs.existsSync(material.fileUrl)) {
+      foundLocalPath = material.fileUrl;
+    } else if (material?.fileName) {
+      const uploadDir = path.join(__dirname, '../../uploads/student_library');
+      if (fs.existsSync(uploadDir)) {
+        const files = fs.readdirSync(uploadDir);
+        const match = files.find(f => f.endsWith(material.fileName) || f === material.fileName);
+        if (match) foundLocalPath = path.join(uploadDir, match);
+      }
+    }
+
+    if (foundLocalPath && fs.existsSync(foundLocalPath)) {
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(fileName)}"`);
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      return fs.createReadStream(foundLocalPath).pipe(res);
+    }
+
+    return res.status(404).json({
+      success: false,
+      message: `File stream not available for file ID: ${targetDriveId}`
+    });
 
   } catch (error) {
-    console.error('❌ Google Drive stream error:', error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    return sendServerError(res, error, 'Failed to stream Google Drive file');
   }
 };
 
@@ -702,21 +728,47 @@ exports.downloadDriveFileSecure = async (req, res) => {
     const metadata = await getFileMetadataFromDrive(targetDriveId);
     const fileName = req.query.fileName || metadata?.name || material?.fileName || 'document.pdf';
 
-    const driveStream = await getFileStreamFromDrive(targetDriveId);
-    if (!driveStream) {
-      return res.status(404).json({
-        success: false,
-        message: `Google Drive download stream not available for file ID: ${targetDriveId}`
-      });
+    let driveStream = null;
+    if (targetDriveId && !targetDriveId.startsWith('local-sim-') && !targetDriveId.startsWith('drive-sync-')) {
+      try {
+        driveStream = await getFileStreamFromDrive(targetDriveId);
+      } catch (err) {
+        console.warn(`⚠️ Drive download notice for ${targetDriveId}:`, err.message);
+      }
     }
 
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
-    res.setHeader('Content-Type', 'application/octet-stream');
-    return driveStream.pipe(res);
+    if (driveStream) {
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+      res.setHeader('Content-Type', 'application/octet-stream');
+      return driveStream.pipe(res);
+    }
+
+    // Fallback: local disk stream
+    let foundDownloadPath = null;
+    if (material?.fileUrl && fs.existsSync(material.fileUrl)) {
+      foundDownloadPath = material.fileUrl;
+    } else if (material?.fileName) {
+      const uploadDir = path.join(__dirname, '../../uploads/student_library');
+      if (fs.existsSync(uploadDir)) {
+        const files = fs.readdirSync(uploadDir);
+        const match = files.find(f => f.endsWith(material.fileName) || f === material.fileName);
+        if (match) foundDownloadPath = path.join(uploadDir, match);
+      }
+    }
+
+    if (foundDownloadPath && fs.existsSync(foundDownloadPath)) {
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+      res.setHeader('Content-Type', 'application/octet-stream');
+      return fs.createReadStream(foundDownloadPath).pipe(res);
+    }
+
+    return res.status(404).json({
+      success: false,
+      message: `File download not available for file ID: ${targetDriveId}`
+    });
 
   } catch (error) {
-    console.error('❌ Google Drive download error:', error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    return sendServerError(res, error, 'Failed to download Google Drive file');
   }
 };
 
@@ -771,7 +823,7 @@ exports.streamStudyMaterialSecure = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to stream study material');
   }
 };
 
@@ -797,6 +849,6 @@ exports.deleteStudyMaterial = async (req, res) => {
     res.json({ success: true, message: `Study material "${material.title}" deleted successfully.` });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to delete study material');
   }
 };

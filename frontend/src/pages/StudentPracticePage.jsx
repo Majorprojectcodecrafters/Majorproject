@@ -101,6 +101,11 @@ export default function StudentPracticePage() {
       });
 
       const data = res.data.data;
+      if (!data || !Array.isArray(data.questions) || data.questions.length === 0) {
+        showToast('No practice questions could be loaded for this chapter. Please try again.', 'error');
+        return;
+      }
+
       setQuizData(data);
       setInQuiz(true);
       setCurrentIdx(0);
@@ -338,7 +343,12 @@ export default function StudentPracticePage() {
 
             <div className="space-y-4">
               <div>
-                <label className="input-label">Select Subject</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="input-label mb-0">Select Subject</label>
+                  <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                    Enrolled Subjects Only
+                  </span>
+                </div>
                 <select
                   value={selectedSubjectId}
                   onChange={(e) => {
@@ -352,6 +362,11 @@ export default function StudentPracticePage() {
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
+                {subjects.length === 0 && (
+                  <p className="text-xs text-amber-700 bg-amber-50 p-2 rounded-lg mt-1 border border-amber-200">
+                    No enrolled subjects found. Check your profile or contact your teacher to set your registered subjects.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -505,6 +520,23 @@ export default function StudentPracticePage() {
                   Return to Practice Arena
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Fallback card if questions array is empty */}
+          {!practiceResult && (!quizData.questions || quizData.questions.length === 0 || !quizData.questions[currentIdx]) && (
+            <div className="card text-center py-12 space-y-4 border-2 border-dashed border-slate-300">
+              <div className="text-4xl">⚠️</div>
+              <h3 className="text-xl font-bold text-slate-800">No Questions Available</h3>
+              <p className="text-sm text-slate-500 max-w-md mx-auto">
+                No practice questions were generated for this chapter session. Please return to the practice arena and try again or choose a different chapter.
+              </p>
+              <button
+                onClick={() => { setInQuiz(false); setPracticeResult(null); }}
+                className="btn-primary py-2 px-6"
+              >
+                Return to Practice Arena
+              </button>
             </div>
           )}
 

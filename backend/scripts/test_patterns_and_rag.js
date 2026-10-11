@@ -29,6 +29,12 @@ async function runTests() {
     if (bioPattern.totalMarks !== 70 || chemPattern.totalMarks !== 70) {
       throw new Error('Biology or Chemistry board pattern total marks mismatch');
     }
+
+    const englishPattern = getBoardPatternForSubject('English');
+    console.log(`  English: ID = ${englishPattern.id}, Total Marks = ${englishPattern.totalMarks}, Sections = ${englishPattern.sections.length}`);
+    if (englishPattern.id !== 'MSBSHSE_HSC_ENGLISH_01' || englishPattern.totalMarks !== 80 || englishPattern.sections.length !== 4) {
+      throw new Error('English board pattern specification mismatch');
+    }
     console.log('  ✅ Board Patterns lookup test passed!\n');
 
     // Test 2: Validation Engine

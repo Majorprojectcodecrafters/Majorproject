@@ -1,9 +1,8 @@
-const puppeteer = require('puppeteer');
-
 /**
  * Generate a clean, professional PDF result sheet for Test Results
  */
 async function generateResultPdf(qp, results) {
+  const puppeteer = require('puppeteer');
   const browser = await puppeteer.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox']

@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { sendServerError } = require('../utils/responseHandler');
 
 const safeTeacherInclude = {
   include: {
@@ -74,7 +75,7 @@ exports.createQP = async (req, res) => {
     res.status(201).json({ success: true, data: qp });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to create question paper');
   }
 };
 
@@ -121,7 +122,7 @@ exports.getAllQP = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to retrieve question papers');
   }
 };
 
@@ -146,10 +147,15 @@ exports.getQPById = async (req, res) => {
 
     if (!qp) return res.status(404).json({ success: false, message: 'Question paper not found' });
 
+    // Students cannot view unpublished draft question papers
+    if (req.user?.role === 'STUDENT' && qp.status !== 'PUBLISHED') {
+      return res.status(403).json({ success: false, message: 'Question paper is not published yet' });
+    }
+
     res.json({ success: true, data: qp });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to retrieve question paper details');
   }
 };
 
@@ -172,6 +178,11 @@ exports.updateQP = async (req, res) => {
       where: { id, isDeleted: false }
     });
     if (!existing) return res.status(404).json({ success: false, message: 'Question paper not found' });
+
+    // Enforce ownership: Teachers can only edit their own papers
+    if (req.user?.role === 'TEACHER' && existing.teacherId !== req.user?.teacherId) {
+      return res.status(403).json({ success: false, message: 'Forbidden: You do not have permission to modify this question paper' });
+    }
 
     const questionsUpdate = questionIds
       ? {
@@ -203,7 +214,7 @@ exports.updateQP = async (req, res) => {
     res.json({ success: true, data: qp });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to update question paper');
   }
 };
 
@@ -217,6 +228,11 @@ exports.deleteQP = async (req, res) => {
     });
     if (!existing) return res.status(404).json({ success: false, message: 'Question paper not found' });
 
+    // Enforce ownership: Teachers can only delete their own papers
+    if (req.user?.role === 'TEACHER' && existing.teacherId !== req.user?.teacherId) {
+      return res.status(403).json({ success: false, message: 'Forbidden: You do not have permission to delete this question paper' });
+    }
+
     await prisma.questionPaper.update({
       where: { id },
       data: { isDeleted: true }
@@ -225,7 +241,7 @@ exports.deleteQP = async (req, res) => {
     res.json({ success: true, message: 'Question paper deleted successfully' });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to delete question paper');
   }
 };
 
@@ -239,6 +255,11 @@ exports.publishQP = async (req, res) => {
     });
     if (!existing) return res.status(404).json({ success: false, message: 'Question paper not found' });
 
+    // Enforce ownership: Teachers can only publish their own papers
+    if (req.user?.role === 'TEACHER' && existing.teacherId !== req.user?.teacherId) {
+      return res.status(403).json({ success: false, message: 'Forbidden: You do not have permission to publish this question paper' });
+    }
+
     if (existing.status === 'PUBLISHED') {
       return res.status(400).json({ success: false, message: 'Question paper already published' });
     }
@@ -251,7 +272,7 @@ exports.publishQP = async (req, res) => {
     res.json({ success: true, data: qp });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to publish question paper');
   }
 };
 
@@ -276,6 +297,11 @@ exports.exportQPStudent = async (req, res) => {
     });
 
     if (!qp) return res.status(404).json({ success: false, message: 'Question paper not found' });
+
+    // Students can only export published papers
+    if (req.user?.role === 'STUDENT' && qp.status !== 'PUBLISHED') {
+      return res.status(403).json({ success: false, message: 'Question paper is not published yet' });
+    }
 
     const pdfBuffer = await exportQPToPDF(qp, false);
 
@@ -316,7 +342,7 @@ exports.exportQPStudent = async (req, res) => {
     if (tempPdfPath && fs.existsSync(tempPdfPath)) {
       try { fs.unlinkSync(tempPdfPath); } catch (e) {}
     }
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to export question paper');
   }
 };
 
@@ -326,8 +352,14 @@ exports.exportQPTeacher = async (req, res) => {
   try {
     const { id } = req.params;
 
+    const where = {
+      id,
+      isDeleted: false,
+      ...(req.user?.role === 'TEACHER' ? { teacherId: req.user.teacherId } : {})
+    };
+
     const qp = await prisma.questionPaper.findFirst({
-      where: { id, isDeleted: false, teacherId: req.user.teacherId },
+      where,
       include: {
         subject: true,
         questions: { include: { question: true } }
@@ -375,6 +407,6 @@ exports.exportQPTeacher = async (req, res) => {
     if (tempPdfPath && fs.existsSync(tempPdfPath)) {
       try { fs.unlinkSync(tempPdfPath); } catch (e) {}
     }
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to export answer key');
   }
 };

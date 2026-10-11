@@ -65,8 +65,15 @@ enum SourceType {
 }
 
 enum SourceStatus {
+  UPLOADING
   UPLOADED
+  QUEUED
   PROCESSING
+  EXTRACTING
+  CHUNKING
+  EMBEDDING
+  INDEXING
+  READY
   PROCESSED
   FAILED
   DISABLED
@@ -134,6 +141,7 @@ model Student {
   practiceAttempts PracticeQuizAttempt[]
   sentChallenges     PracticeChallenge[] @relation("ChallengerRelation")
   receivedChallenges PracticeChallenge[] @relation("OpponentRelation")
+  enrolledSubjects   StudentSubject[]
 }
 
 // MANY TO MANY RELATION
@@ -235,8 +243,23 @@ model Subject {
   practiceAttempts  PracticeQuizAttempt[]
   practiceChallenges PracticeChallenge[]
   studyMaterials    StudyMaterial[]
+  enrolledStudents  StudentSubject[]
 
   @@unique([name, streamId])
+}
+
+model StudentSubject {
+  id        String   @id @default(uuid())
+  studentId String
+  subjectId String
+  createdAt DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, subjectId])
+  @@index([studentId])
+  @@index([subjectId])
 }
 
 model ClassSubject {
@@ -355,6 +378,10 @@ model KnowledgeSource {
   driveFolderId  String?
   mimeType       String?
   fileUrl        String?      // Optional convenience preview link
+  storageProvider String      @default("GOOGLE_DRIVE")
+  processingError String?
+  checksum       String?
+  driveRevision  String?
   version        String       @default("1.0")
   academicYear   String?
   isActive       Boolean      @default(true)

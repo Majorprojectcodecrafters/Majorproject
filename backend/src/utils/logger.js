@@ -40,8 +40,13 @@ class Logger {
 
     console.log(`${colorMap[level]}[${level}]\x1b[0m ${timestamp} - ${message}`);
 
-    // File output
-    fs.appendFileSync(this.logFile, logString + '\n', { encoding: 'utf8' });
+    // Asynchronous non-blocking file output for scalability
+    fs.appendFile(this.logFile, logString + '\n', { encoding: 'utf8' }, (err) => {
+      if (err) {
+        // Fallback to stderr without throwing or crashing
+        console.error('Logger file write error:', err.message);
+      }
+    });
   }
 
   error(message, data) {

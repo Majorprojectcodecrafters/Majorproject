@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middlewares/auth.middleware');
+const { protect, authorize } = require('../middlewares/auth.middleware');
 const authController = require('../controllers/auth.controller');
 const rateLimit = require('../middlewares/rateLimit.middleware');
 
@@ -16,14 +16,15 @@ router.post('/avatar',          protect, authController.updateAvatar);
 router.delete('/avatar',        protect, authController.deleteAvatar);
 router.get('/classes',          authController.getPublicClasses);
 router.get('/streams',          authController.getPublicStreams);
+router.get('/subjects',         authController.getPublicSubjects);
 
 // Forgot Password Email OTP Flow Routes (Rate Limited)
 router.post('/forgot-password', otpLimiter, authController.forgotPassword);
 router.post('/verify-otp',      otpLimiter, authController.verifyOtp);
 router.post('/reset-password',   otpLimiter, authController.resetPassword);
 
-// Google Drive OAuth 2.0 Flow Routes
-router.get('/google/url',      authController.getGoogleAuthUrl);
+// Google Drive OAuth 2.0 Flow Routes (Restricted to Administrator)
+router.get('/google/url',      protect, authorize('ADMIN'), authController.getGoogleAuthUrl);
 router.get('/google/callback', authController.googleOAuthCallback);
 
 module.exports = router;

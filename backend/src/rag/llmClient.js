@@ -148,80 +148,112 @@ async function callOllama(prompt) {
  * Unified Multi-Provider & Multi-Key Key-Rotating LLM Caller
  */
 async function callLLM(prompt) {
+  const preferredProvider = (process.env.LLM_PROVIDER || '').toLowerCase();
   const geminiKeys = getGeminiKeys();
   const groqKeys = getGroqKeys();
 
-  // Try Gemini Pool (rotating across all Gemini keys)
-  if (geminiKeys.length > 0) {
-    for (let attempt = 0; attempt < geminiKeys.length; attempt++) {
-      const keyIdx = (currentGeminiKeyIdx + attempt) % geminiKeys.length;
-      const key = geminiKeys[keyIdx];
-      const maskedKey = key.slice(0, 8) + '...' + key.slice(-4);
-
+  const tryOpenRouter = async () => {
+    if (process.env.OPENROUTER_API_KEY) {
       try {
-        console.log(`🤖 Invoking [GEMINI Pool Key #${keyIdx + 1}/${geminiKeys.length}] (${maskedKey})...`);
-        const text = await callGeminiWithKey(prompt, key);
-        console.log(`✅ Success response from GEMINI Key #${keyIdx + 1}`);
-        currentGeminiKeyIdx = (keyIdx + 1) % geminiKeys.length;
+        console.log(`🤖 Invoking [OPENROUTER] API...`);
+        const text = await callOpenRouter(prompt);
+        console.log(`✅ Success response from OPENROUTER`);
         return text;
       } catch (err) {
-        console.warn(`⚠️ GEMINI Key #${keyIdx + 1} failed: ${err.message}`);
-        if (err.message.includes('429') || err.message.includes('Quota') || err.message.includes('limit')) {
-          console.log(`🔄 Quota exhausted for Gemini Key #${keyIdx + 1}, switching immediately to next key...`);
+        console.warn(`⚠️ OPENROUTER failed: ${err.message}`);
+      }
+    }
+    return null;
+  };
+
+  const tryGemini = async () => {
+    if (geminiKeys.length > 0) {
+      for (let attempt = 0; attempt < geminiKeys.length; attempt++) {
+        const keyIdx = (currentGeminiKeyIdx + attempt) % geminiKeys.length;
+        const key = geminiKeys[keyIdx];
+        const maskedKey = key.slice(0, 8) + '...' + key.slice(-4);
+
+        try {
+          console.log(`🤖 Invoking [GEMINI Pool Key #${keyIdx + 1}/${geminiKeys.length}] (${maskedKey})...`);
+          const text = await callGeminiWithKey(prompt, key);
+          console.log(`✅ Success response from GEMINI Key #${keyIdx + 1}`);
+          currentGeminiKeyIdx = (keyIdx + 1) % geminiKeys.length;
+          return text;
+        } catch (err) {
+          console.warn(`⚠️ GEMINI Key #${keyIdx + 1} failed: ${err.message}`);
         }
       }
     }
-  }
+    return null;
+  };
 
-  // Try Groq Pool (rotating across all Groq keys)
-  if (groqKeys.length > 0) {
-    for (let attempt = 0; attempt < groqKeys.length; attempt++) {
-      const keyIdx = (currentGroqKeyIdx + attempt) % groqKeys.length;
-      const key = groqKeys[keyIdx];
-      const maskedKey = key.slice(0, 8) + '...' + key.slice(-4);
+  const tryGroq = async () => {
+    if (groqKeys.length > 0) {
+      for (let attempt = 0; attempt < groqKeys.length; attempt++) {
+        const keyIdx = (currentGroqKeyIdx + attempt) % groqKeys.length;
+        const key = groqKeys[keyIdx];
+        const maskedKey = key.slice(0, 8) + '...' + key.slice(-4);
 
-      try {
-        console.log(`🤖 Invoking [GROQ Pool Key #${keyIdx + 1}/${groqKeys.length}] (${maskedKey})...`);
-        const text = await callGroqWithKey(prompt, key);
-        console.log(`✅ Success response from GROQ Key #${keyIdx + 1}`);
-        currentGroqKeyIdx = (keyIdx + 1) % groqKeys.length;
-        return text;
-      } catch (err) {
-        console.warn(`⚠️ GROQ Key #${keyIdx + 1} failed: ${err.message}`);
-        if (err.message.includes('429') || err.message.includes('Rate') || err.message.includes('limit')) {
-          console.log(`🔄 Rate limit for Groq Key #${keyIdx + 1}, switching immediately to next key...`);
+        try {
+          console.log(`🤖 Invoking [GROQ Pool Key #${keyIdx + 1}/${groqKeys.length}] (${maskedKey})...`);
+          const text = await callGroqWithKey(prompt, key);
+          console.log(`✅ Success response from GROQ Key #${keyIdx + 1}`);
+          currentGroqKeyIdx = (keyIdx + 1) % groqKeys.length;
+          return text;
+        } catch (err) {
+          console.warn(`⚠️ GROQ Key #${keyIdx + 1} failed: ${err.message}`);
         }
       }
     }
-  }
+    return null;
+  };
 
-  // Try OpenRouter
-  if (process.env.OPENROUTER_API_KEY) {
+  const tryOllama = async () => {
     try {
-      console.log(`🤖 Invoking [OPENROUTER] API...`);
-      const text = await callOpenRouter(prompt);
-      console.log(`✅ Success response from OPENROUTER`);
+      console.log(`🤖 Invoking [OLLAMA] local server...`);
+      const text = await callOllama(prompt);
+      console.log(`✅ Success response from OLLAMA`);
       return text;
     } catch (err) {
-      console.warn(`⚠️ OPENROUTER failed: ${err.message}`);
+      console.warn(`⚠️ OLLAMA local fallback failed: ${err.message}`);
     }
+    return null;
+  };
+
+  // 1. Try Preferred Provider first
+  if (preferredProvider === 'openrouter') {
+    const res = await tryOpenRouter();
+    if (res) return res;
+  } else if (preferredProvider === 'groq') {
+    const res = await tryGroq();
+    if (res) return res;
+  } else if (preferredProvider === 'gemini') {
+    const res = await tryGemini();
+    if (res) return res;
+  } else if (preferredProvider === 'ollama') {
+    const res = await tryOllama();
+    if (res) return res;
   }
 
-  // Try Local Ollama Fallback
-  try {
-    console.log(`🤖 Invoking [OLLAMA] local server...`);
-    const text = await callOllama(prompt);
-    console.log(`✅ Success response from OLLAMA`);
-    return text;
-  } catch (err) {
-    console.warn(`⚠️ OLLAMA local fallback failed: ${err.message}`);
-  }
+  // Fallbacks in order: OpenRouter -> Groq -> Gemini -> Ollama
+  let res = await tryOpenRouter();
+  if (res) return res;
 
-  throw new Error('All LLM keys across Gemini, Groq, OpenRouter, and Ollama pools are exhausted or unconfigured.');
+  res = await tryGroq();
+  if (res) return res;
+
+  res = await tryGemini();
+  if (res) return res;
+
+  res = await tryOllama();
+  if (res) return res;
+
+  throw new Error('All LLM keys across OpenRouter, Groq, Gemini, and Ollama pools are exhausted or unconfigured.');
 }
 
 module.exports = {
   callLLM,
+  generateLLMResponse: callLLM,
   getGeminiKeys,
   getGroqKeys
 };

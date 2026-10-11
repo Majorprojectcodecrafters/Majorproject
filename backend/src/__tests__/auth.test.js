@@ -1,17 +1,42 @@
 const request = require('supertest');
-const app = require('../src/app');
-const prisma = require('../src/config/prisma');
+const app = require('../app');
+const prisma = require('../config/prisma');
 const bcrypt = require('bcrypt');
 
 describe('Auth API', () => {
-  // Clean up after tests
+  const testEmails = ['john@example.com', 'john2@example.com', 'john3@example.com', 'duplicate@example.com', 'test@example.com'];
+
+  const cleanupTestUsers = async () => {
+    const users = await prisma.user.findMany({
+      where: { email: { in: testEmails } },
+      select: { id: true }
+    });
+    const userIds = users.map(u => u.id);
+    if (userIds.length > 0) {
+      await prisma.studentSubject.deleteMany({
+        where: { student: { userId: { in: userIds } } }
+      });
+      await prisma.student.deleteMany({
+        where: { userId: { in: userIds } }
+      });
+      await prisma.user.deleteMany({
+        where: { id: { in: userIds } }
+      });
+    }
+  };
+
+  beforeAll(async () => {
+    await cleanupTestUsers();
+  });
+
   afterAll(async () => {
-    await prisma.user.deleteMany();
+    await cleanupTestUsers();
     await prisma.$disconnect();
   });
 
   describe('POST /api/auth/register', () => {
     it('should register a new user successfully', async () => {
+      const firstClass = await prisma.class.findFirst();
       const response = await request(app)
         .post('/api/auth/register')
         .send({
@@ -22,13 +47,13 @@ describe('Auth API', () => {
           dob: '2000-01-15',
           uniqueId: 'STU001',
           contact: '9876543210',
-          classId: '550e8400-e29b-41d4-a716-446655440000',
-          streamId: '550e8400-e29b-41d4-a716-446655440001'
+          classId: firstClass?.id,
+          streamId: firstClass?.streamId
         });
 
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
-      expect(response.body.data.email).toBe('john@example.com');
+      expect(response.body.data.user.email).toBe('john@example.com');
     });
 
     it('should reject duplicate emails', async () => {

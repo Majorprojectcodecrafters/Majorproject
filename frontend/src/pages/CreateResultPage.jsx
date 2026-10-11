@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../lib/api';
-import { getStoredToken } from '../lib/authStorage';
 import { useToast } from '../contexts/ToastContext';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -135,16 +134,50 @@ export default function CreateResultPage() {
     }
   };
 
-  const downloadExcel = () => {
+  const downloadExcel = async () => {
     if (!selectedQPId) return;
-    const token = getStoredToken();
-    window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/teacher/results/export/excel?questionPaperId=${selectedQPId}&token=${token}`, '_blank');
+    try {
+      showToast('Preparing Excel sheet download...', 'info');
+      const response = await apiClient.get('/teacher/results/export/excel', {
+        params: { questionPaperId: selectedQPId },
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const cleanTitle = (selectedQP?.title || 'Results').replace(/[^a-zA-Z0-9_-]/g, '_');
+      link.setAttribute('download', `${cleanTitle}_Results.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      showToast('Excel report downloaded successfully!', 'success');
+    } catch (err) {
+      showToast('Failed to download Excel report', 'error');
+    }
   };
 
-  const downloadPDF = () => {
+  const downloadPDF = async () => {
     if (!selectedQPId) return;
-    const token = getStoredToken();
-    window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/teacher/results/export/pdf?questionPaperId=${selectedQPId}&token=${token}`, '_blank');
+    try {
+      showToast('Preparing PDF report download...', 'info');
+      const response = await apiClient.get('/teacher/results/export/pdf', {
+        params: { questionPaperId: selectedQPId },
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      const cleanTitle = (selectedQP?.title || 'Results').replace(/[^a-zA-Z0-9_-]/g, '_');
+      link.setAttribute('download', `${cleanTitle}_Results.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      showToast('PDF report downloaded successfully!', 'success');
+    } catch (err) {
+      showToast('Failed to download PDF report', 'error');
+    }
   };
 
   return (

@@ -1,5 +1,3 @@
-const { pipeline } = require('@xenova/transformers');
-
 // Reranker Configuration
 const RERANKER_MODEL = process.env.RERANKER_MODEL || 'Xenova/ms-marco-TinyBERT-L-2-v2';
 const DEFAULT_CANDIDATE_TOP_K = Number(process.env.RERANKER_CANDIDATE_TOP_K) || 25;
@@ -27,6 +25,7 @@ async function getRerankerPipeline() {
 
   try {
     isLoading = true;
+    const { pipeline } = require('@xenova/transformers');
     console.log(`🤖 Loading local Cross-Encoder Reranker model (${RERANKER_MODEL})...`);
     rerankerPipeline = await pipeline('text-classification', RERANKER_MODEL);
     console.log(`✅ Cross-Encoder Reranker model loaded successfully!`);

@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const { getBoardPatternForSubject, getAllBoardPatterns } = require('../config/boardPatterns');
+const { sendServerError } = require('../utils/responseHandler');
 
 // ==================== BOARD PATTERNS ====================
 
@@ -8,7 +9,7 @@ exports.getBoardPatterns = async (req, res) => {
     const patterns = getAllBoardPatterns();
     res.json({ success: true, data: patterns });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -26,7 +27,7 @@ exports.getBoardPatternBySubject = async (req, res) => {
 
     res.json({ success: true, data: pattern });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -57,7 +58,7 @@ exports.createCustomPattern = async (req, res) => {
 
     res.status(201).json({ success: true, data: customPattern });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -75,7 +76,7 @@ exports.getCustomPatterns = async (req, res) => {
 
     res.json({ success: true, data: patterns });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -98,7 +99,7 @@ exports.getCustomPatternById = async (req, res) => {
 
     res.json({ success: true, data: pattern });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -132,7 +133,7 @@ exports.updateCustomPattern = async (req, res) => {
 
     res.json({ success: true, data: updated });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -159,6 +160,6 @@ exports.deleteCustomPattern = async (req, res) => {
 
     res.json({ success: true, message: 'Custom pattern deleted successfully' });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };

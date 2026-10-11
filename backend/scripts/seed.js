@@ -126,7 +126,7 @@ const seed = async () => {
     console.log('✅ Classes created/verified (11th Standard, 12th Standard)');
 
     // 6. Create Subjects for Science
-    const subjectNames = ['Physics', 'Chemistry', 'Mathematics & Statistics', 'Biology'];
+    const subjectNames = ['Physics', 'Chemistry', 'Mathematics & Statistics', 'Biology', 'English'];
     const subjectMap = {};
     for (const name of subjectNames) {
       let subject = await prisma.subject.findFirst({

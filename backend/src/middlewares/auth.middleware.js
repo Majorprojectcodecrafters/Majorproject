@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const prisma = require('../config/prisma');
+const { sendServerError } = require('../utils/responseHandler');
 
 const protect = async (req, res, next) => {
   try {
@@ -55,7 +56,7 @@ const protect = async (req, res, next) => {
     if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({ success: false, message: 'Invalid token' });
     }
-    return res.status(500).json({ success: false, message: 'Auth error', error: error.message });
+    return sendServerError(res, error, 'Authentication verification error');
   }
 };
 

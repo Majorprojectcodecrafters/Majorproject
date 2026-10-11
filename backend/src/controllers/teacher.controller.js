@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { sendServerError } = require('../utils/responseHandler');
 
 // ==================== PROFILE ====================
 
@@ -31,7 +32,7 @@ exports.getProfile = async (req, res) => {
     res.json({ success: true, data: teacher });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -53,7 +54,7 @@ exports.updateProfile = async (req, res) => {
     res.json({ success: true, data: updated });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -73,7 +74,7 @@ exports.getAssignedClasses = async (req, res) => {
     res.json({ success: true, data: assignments });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -144,7 +145,7 @@ exports.getMyStudents = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -198,7 +199,7 @@ exports.getStudentById = async (req, res) => {
     res.json({ success: true, data: targetStudent });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -226,7 +227,7 @@ exports.createQuestion = async (req, res) => {
     res.status(201).json({ success: true, data: question });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -262,7 +263,7 @@ exports.getAllQuestions = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -278,7 +279,7 @@ exports.getQuestionById = async (req, res) => {
     res.json({ success: true, data: question });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -305,7 +306,7 @@ exports.updateQuestion = async (req, res) => {
     res.json({ success: true, data: updated });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -319,7 +320,7 @@ exports.deleteQuestion = async (req, res) => {
     res.json({ success: true, message: 'Question deleted successfully' });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -390,7 +391,7 @@ exports.createExamResult = async (req, res) => {
     res.status(201).json({ success: true, data: result });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -431,7 +432,7 @@ exports.getExamResults = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -461,7 +462,7 @@ exports.updateExamResult = async (req, res) => {
     res.json({ success: true, data: updated });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -477,7 +478,7 @@ exports.deleteExamResult = async (req, res) => {
     res.json({ success: true, message: 'Exam result deleted successfully' });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -516,7 +517,7 @@ exports.createSemesterResult = async (req, res) => {
     res.status(201).json({ success: true, data: result });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -550,7 +551,7 @@ exports.getSemesterResults = async (req, res) => {
     res.json({ success: true, data: results });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -583,7 +584,7 @@ exports.updateSemesterResult = async (req, res) => {
     res.json({ success: true, data: updated });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -606,7 +607,7 @@ exports.getSubjects = async (req, res) => {
     res.json({ success: true, data: subjects });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -628,7 +629,7 @@ exports.getChaptersBySubject = async (req, res) => {
     res.json({ success: true, data: chapters });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -667,7 +668,7 @@ exports.exportExamResultsExcel = async (req, res) => {
     res.send(buffer);
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -701,6 +702,6 @@ exports.exportExamResultsPdf = async (req, res) => {
     res.send(pdfBuffer);
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };

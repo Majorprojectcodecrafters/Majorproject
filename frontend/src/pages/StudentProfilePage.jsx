@@ -208,6 +208,27 @@ export default function StudentProfilePage() {
                 </div>
               </div>
 
+              {/* Registered / Enrolled Subjects Section */}
+              <div>
+                <label className="input-label font-bold text-xs text-slate-700 uppercase tracking-wider text-purple-950">
+                  {t('registeredSubjects', 'Subjects Registered For')}
+                </label>
+                <p className="text-xs text-slate-500 mb-2 font-medium">Your enrolled subjects for MHT-CET practice & learning access:</p>
+                {profile.enrolledSubjects && profile.enrolledSubjects.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {profile.enrolledSubjects.map((es) => (
+                      <span key={es.id || es.subjectId} className="inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-50 text-purple-800 border border-purple-200 shadow-xs">
+                        📚 {es.subject?.name || 'Subject'}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-amber-700 bg-amber-50 p-2.5 rounded-xl border border-amber-200 font-medium">
+                    All stream subjects default-enabled. Ask your teacher/admin to customize specific registered subjects.
+                  </p>
+                )}
+              </div>
+
               <div>
                 <label className="input-label font-bold text-xs text-slate-700">{t('contactPhoneNumber', 'Contact Phone Number')}</label>
                 <input

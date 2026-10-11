@@ -28,6 +28,7 @@ const upload = multer({
 
 // Knowledge Source Management (Admin & Teacher)
 router.post('/ingest',                    protect, authorize('ADMIN', 'TEACHER'), upload.single('pdf'), ragController.ingestPDF);
+router.post('/sync-drive',                protect, authorize('ADMIN', 'TEACHER'), ragController.syncDriveToKnowledgeBase);
 router.get('/sources',                    protect, authorize('ADMIN', 'TEACHER'), ragController.getKnowledgeSources);
 router.get('/student/materials',          protect, authorize('STUDENT', 'TEACHER', 'ADMIN'), ragController.getStudentKnowledgeSources);
 router.get('/sources/:id/view-secure',    protect, authorize('ADMIN', 'TEACHER', 'STUDENT'), ragController.streamKnowledgeSourceSecure);

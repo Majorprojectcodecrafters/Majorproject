@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const { uploadAttachmentFile } = require('../utils/googleDriveService');
+const { sendServerError } = require('../utils/responseHandler');
 
 exports.createAnnouncement = async (req, res) => {
   try {
@@ -63,7 +64,7 @@ exports.createAnnouncement = async (req, res) => {
     res.status(201).json({ success: true, message: 'Announcement created successfully!', data: announcement });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -104,7 +105,7 @@ exports.getAnnouncements = async (req, res) => {
     res.json({ success: true, data: announcements });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -125,6 +126,6 @@ exports.deleteAnnouncement = async (req, res) => {
     res.json({ success: true, message: 'Announcement deleted successfully' });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };

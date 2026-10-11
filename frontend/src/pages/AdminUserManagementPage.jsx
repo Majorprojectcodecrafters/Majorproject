@@ -27,17 +27,15 @@ export default function AdminUserManagementPage() {
     education: '',
     experienceYears: 0,
     contact: '',
-    uniqueId: ''
+    uniqueId: '',
+    subjectIds: []
   });
 
   // 1. Fetch Users List
-  const { data: usersData, isLoading: usersLoading, refetch: refetchUsers } = useQuery({
-    queryKey: ['adminUsers', roleFilter],
+  const { data: allUsers = [], isLoading: usersLoading, refetch: refetchUsers } = useQuery({
+    queryKey: ['adminUsers'],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (roleFilter) params.append('role', roleFilter);
-      params.append('limit', '100');
-      const res = await apiClient.get(`/admin/users?${params.toString()}`);
+      const res = await apiClient.get('/admin/users?limit=500');
       return res.data.data || [];
     }
   });
@@ -47,6 +45,15 @@ export default function AdminUserManagementPage() {
     queryKey: ['curriculum-classes'],
     queryFn: async () => {
       const res = await apiClient.get('/auth/classes');
+      return res.data.data || [];
+    }
+  });
+
+  // 3. Fetch Subjects for Student enrollment
+  const { data: availableSubjects = [] } = useQuery({
+    queryKey: ['admin-subjects', userForm.classId],
+    queryFn: async () => {
+      const res = await apiClient.get(userForm.classId ? `/auth/subjects?classId=${userForm.classId}` : '/auth/subjects');
       return res.data.data || [];
     }
   });
@@ -61,7 +68,8 @@ export default function AdminUserManagementPage() {
       showToast('User created successfully!', 'success');
       setShowAddModal(false);
       resetForm();
-      refetchUsers();
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['adminUsersList'] });
     },
     onError: (err) => {
       showToast(err.response?.data?.message || 'Failed to create user', 'error');
@@ -78,7 +86,8 @@ export default function AdminUserManagementPage() {
       showToast('User updated successfully!', 'success');
       setEditingUser(null);
       resetForm();
-      refetchUsers();
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['adminUsersList'] });
     },
     onError: (err) => {
       showToast(err.response?.data?.message || 'Failed to update user', 'error');
@@ -93,7 +102,8 @@ export default function AdminUserManagementPage() {
     },
     onSuccess: () => {
       showToast('User deleted successfully!', 'success');
-      refetchUsers();
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['adminUsersList'] });
     },
     onError: (err) => {
       showToast(err.response?.data?.message || 'Failed to delete user', 'error');
@@ -112,12 +122,14 @@ export default function AdminUserManagementPage() {
       education: '',
       experienceYears: 0,
       contact: '',
-      uniqueId: ''
+      uniqueId: '',
+      subjectIds: []
     });
   };
 
   const handleOpenEdit = (user) => {
     setEditingUser(user);
+    const existingSubjectIds = user.student?.enrolledSubjects?.map(es => es.subjectId || es.subject?.id).filter(Boolean) || [];
     setUserForm({
       name: user.name || '',
       email: user.email || '',
@@ -129,7 +141,8 @@ export default function AdminUserManagementPage() {
       education: user.teacher?.education || '',
       experienceYears: user.teacher?.experienceYears || 0,
       contact: user.student?.contact || '',
-      uniqueId: user.student?.uniqueId || ''
+      uniqueId: user.student?.uniqueId || '',
+      subjectIds: existingSubjectIds
     });
   };
 
@@ -142,7 +155,12 @@ export default function AdminUserManagementPage() {
     }
   };
 
-  const filteredUsers = (usersData || []).filter((u) => {
+  const totalAllUsers = allUsers.length;
+  const totalTeachers = allUsers.filter(u => u.role === 'TEACHER').length;
+  const totalStudents = allUsers.filter(u => u.role === 'STUDENT').length;
+
+  const filteredUsers = allUsers.filter((u) => {
+    if (roleFilter && u.role !== roleFilter) return false;
     const s = searchTerm.toLowerCase().trim();
     if (!s) return true;
     return (
@@ -183,7 +201,7 @@ export default function AdminUserManagementPage() {
               roleFilter === '' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
             }`}
           >
-            {t('allUsersTab', 'All Users')} ({usersData?.length || 0})
+            {t('allUsersTab', 'All Users')} ({totalAllUsers})
           </button>
           <button
             onClick={() => setRoleFilter('TEACHER')}
@@ -191,7 +209,7 @@ export default function AdminUserManagementPage() {
               roleFilter === 'TEACHER' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
             }`}
           >
-            {t('teachersTab', 'Teachers')} ({usersData?.filter(u => u.role === 'TEACHER').length || 0})
+            {t('teachersTab', 'Teachers')} ({totalTeachers})
           </button>
           <button
             onClick={() => setRoleFilter('STUDENT')}
@@ -199,7 +217,7 @@ export default function AdminUserManagementPage() {
               roleFilter === 'STUDENT' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
             }`}
           >
-            {t('studentsTab', 'Students')} ({usersData?.filter(u => u.role === 'STUDENT').length || 0})
+            {t('studentsTab', 'Students')} ({totalStudents})
           </button>
         </div>
 
@@ -386,11 +404,17 @@ export default function AdminUserManagementPage() {
                       className="input-field"
                     >
                       <option value="">-- Select Class --</option>
-                      {classes.map((cls) => (
-                        <option key={cls.id} value={cls.id}>
-                          {cls.name} ({cls.academicYear})
-                        </option>
-                      ))}
+                      {classes.map((cls) => {
+                        const streamName = cls.stream?.name || '';
+                        const displayName = streamName && !cls.name.toLowerCase().includes(streamName.toLowerCase())
+                          ? `${cls.name} (${streamName})`
+                          : cls.name;
+                        return (
+                          <option key={cls.id} value={cls.id}>
+                            {displayName} ({cls.academicYear})
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
 
@@ -416,6 +440,35 @@ export default function AdminUserManagementPage() {
                       />
                     </div>
                   </div>
+
+                  {availableSubjects.length > 0 && (
+                    <div>
+                      <label className="label font-semibold text-slate-800">Subjects Registered For</label>
+                      <p className="text-xs text-slate-500 mb-2">Check the subjects this student is enrolled into for practice and curriculum access:</p>
+                      <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-lg">
+                        {availableSubjects.map((sub) => {
+                          const isChecked = userForm.subjectIds?.includes(sub.id);
+                          return (
+                            <label key={sub.id} className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer hover:text-blue-600">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {
+                                  const current = userForm.subjectIds || [];
+                                  const next = isChecked
+                                    ? current.filter(id => id !== sub.id)
+                                    : [...current, sub.id];
+                                  setUserForm({ ...userForm, subjectIds: next });
+                                }}
+                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-3.5 w-3.5"
+                              />
+                              <span>{sub.name}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

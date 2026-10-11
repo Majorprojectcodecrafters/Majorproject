@@ -6,6 +6,7 @@ const { generateQuestionPaper } = require('../rag/qpGenerator');
 const { getStats, deleteBySource, deleteBySourceId, deleteBySubject, deleteByGrade } = require('../rag/vectorStore');
 const { uploadFileToDrive, downloadFileFromDrive, getFileStreamFromDrive, deleteFileFromDrive, ensureFolderStructure } = require('../services/drive.service');
 const prisma = require('../config/prisma');
+const { sendServerError } = require('../utils/responseHandler');
 
 // Default priority mapping for knowledge sources (textbooks have highest precedence)
 const SOURCE_PRIORITY_MAP = {
@@ -46,6 +47,46 @@ exports.ingestPDF = async (req, res) => {
 
     if (!file) return res.status(400).json({ success: false, message: 'No PDF file uploaded' });
 
+    // Validate Teacher authorization if user is a teacher
+    if (req.user && req.user.role === 'TEACHER' && req.user.teacherId && subjectId) {
+      const assignment = await prisma.teacherAssignment.findFirst({
+        where: { teacherId: req.user.teacherId, subjectId }
+      });
+      if (!assignment) {
+        if (tempFilePath && fs.existsSync(tempFilePath)) {
+          try { fs.unlinkSync(tempFilePath); } catch (e) {}
+        }
+        return res.status(403).json({
+          success: false,
+          message: 'Forbidden: You are not authorized to upload knowledge resources for this subject.'
+        });
+      }
+    }
+
+    // Calculate sha256 checksum for duplicate prevention
+    const crypto = require('crypto');
+    const fileBuffer = fs.readFileSync(tempFilePath);
+    const checksum = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+
+    const existingKs = await prisma.knowledgeSource.findFirst({
+      where: {
+        checksum,
+        subjectId: subjectId || null,
+        status: { in: ['READY', 'PROCESSED'] }
+      }
+    });
+
+    if (existingKs) {
+      if (tempFilePath && fs.existsSync(tempFilePath)) {
+        try { fs.unlinkSync(tempFilePath); } catch (e) {}
+      }
+      return res.status(200).json({
+        success: true,
+        message: 'Identical resource already exists and indexed in Google Drive & Knowledge Base.',
+        data: existingKs
+      });
+    }
+
     let subjectName = '';
     let chapterName = '';
     let className = '12th';
@@ -65,13 +106,13 @@ exports.ingestPDF = async (req, res) => {
       if (chapter) chapterName = chapter.name;
     }
 
-    // 1. Resolve target Google Drive folder
+    // 1. Resolve target Google Drive folder (QPGen_Resources / Class / Stream / Subject / Category)
     const targetFolderId = await ensureFolderStructure({
       board: boardName,
       stream: streamName,
       className,
       subjectName,
-      category: sourceType || 'Textbooks'
+      category: sourceType || 'TEXTBOOK'
     });
 
     // 2. Upload file stream to Google Drive
@@ -84,7 +125,7 @@ exports.ingestPDF = async (req, res) => {
 
     const sourcePriority = SOURCE_PRIORITY_MAP[sourceType] || 10;
 
-    // 3. Create KnowledgeSource record in Prisma DB with driveFileId reference
+    // 3. Create KnowledgeSource record in Prisma DB with QUEUED status
     const ks = await prisma.knowledgeSource.create({
       data: {
         title: title || file.originalname,
@@ -92,7 +133,7 @@ exports.ingestPDF = async (req, res) => {
         fileName: file.originalname,
         filePath: driveResult.driveFileId,
         fileSize: file.size,
-        status: 'PROCESSING',
+        status: 'QUEUED',
         uploadedBy: req.user?.id || 'system',
         description: description || null,
         boardId: boardId || null,
@@ -103,9 +144,11 @@ exports.ingestPDF = async (req, res) => {
         chapterId: chapterId || null,
         topicId: topicId || null,
         driveFileId: driveResult.driveFileId,
-        driveFolderId: driveResult.driveFolderId,
+        driveFolderId: driveResult.driveFolderId || targetFolderId,
         mimeType: file.mimetype || 'application/pdf',
         fileUrl: driveResult.webViewLink || null,
+        storageProvider: 'GOOGLE_DRIVE',
+        checksum,
         version: version || '1.0',
         academicYear: academicYear || null,
         isActive: true,
@@ -113,61 +156,68 @@ exports.ingestPDF = async (req, res) => {
       }
     });
 
-    // 4. Ingest into ChromaDB vector store
-    let result;
-    try {
-      result = await ingestPDF(tempFilePath, {
-        knowledgeSourceId: ks.id,
-        sourceType: sourceType || 'TEXTBOOK',
-        boardId: boardId || '',
-        streamId: streamId || '',
-        classId: classId || '',
-        subjectId: subjectId || '',
-        subjectName,
-        unitId: unitId || '',
-        chapterId: chapterId || '',
-        chapterName,
-        topicId: topicId || '',
-        grade: grade || '',
-        version: version || '1.0',
-        academicYear: academicYear || '',
-        isActive: true,
-        sourcePriority
-      });
+    // 4. Send upload success response to client immediately
+    res.status(201).json({
+      success: true,
+      message: 'Resource uploaded successfully to Google Drive. Background indexing initiated.',
+      data: ks
+    });
 
-      // Mark status PROCESSED upon successful indexing
-      await prisma.knowledgeSource.update({
-        where: { id: ks.id },
-        data: { status: 'PROCESSED' }
-      });
+    // 5. Trigger existing RAG ingestion pipeline asynchronously in background worker
+    const backgroundTempPath = tempFilePath;
+    (async () => {
+      try {
+        await prisma.knowledgeSource.update({
+          where: { id: ks.id },
+          data: { status: 'PROCESSING' }
+        });
 
-    } catch (ingestError) {
-      console.error('❌ ChromaDB Vector Ingestion failed:', ingestError.message);
-      // Mark status FAILED while preserving original file in Google Drive
-      await prisma.knowledgeSource.update({
-        where: { id: ks.id },
-        data: { status: 'FAILED' }
-      });
+        const ingestResult = await ingestPDF(backgroundTempPath, {
+          knowledgeSourceId: ks.id,
+          sourceType: sourceType || 'TEXTBOOK',
+          boardId: boardId || '',
+          streamId: streamId || '',
+          classId: classId || '',
+          subjectId: subjectId || '',
+          subjectName,
+          unitId: unitId || '',
+          chapterId: chapterId || '',
+          chapterName,
+          topicId: topicId || '',
+          grade: grade || '',
+          version: version || '1.0',
+          academicYear: academicYear || '',
+          isActive: true,
+          sourcePriority
+        });
 
-      return res.status(207).json({
-        success: false,
-        message: 'File preserved safely in Google Drive, but vector indexing failed. Use the reprocess option to retry.',
-        data: { knowledgeSourceId: ks.id, status: 'FAILED', error: ingestError.message }
-      });
-    } finally {
-      // 5. Clean up temporary local upload file from backend disk
-      if (tempFilePath && fs.existsSync(tempFilePath)) {
-        try { fs.unlinkSync(tempFilePath); } catch (e) {}
+        await prisma.knowledgeSource.update({
+          where: { id: ks.id },
+          data: { status: 'PROCESSED' }
+        });
+        console.log(`✅ Background RAG Ingestion completed for "${ks.title}" (${ingestResult.chunksIngested} chunks)`);
+
+      } catch (ingestError) {
+        console.error(`❌ Background RAG Ingestion failed for "${ks.title}":`, ingestError.message);
+        await prisma.knowledgeSource.update({
+          where: { id: ks.id },
+          data: {
+            status: 'FAILED',
+            processingError: ingestError.message
+          }
+        });
+      } finally {
+        if (backgroundTempPath && fs.existsSync(backgroundTempPath)) {
+          try { fs.unlinkSync(backgroundTempPath); } catch (e) {}
+        }
       }
-    }
-
-    res.status(201).json({ success: true, data: { ...result, knowledgeSource: ks } });
+    })();
 
   } catch (error) {
     if (tempFilePath && fs.existsSync(tempFilePath)) {
       try { fs.unlinkSync(tempFilePath); } catch (e) {}
     }
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -252,7 +302,7 @@ exports.downloadKnowledgeSource = async (req, res) => {
 
     res.status(404).json({ success: false, message: 'File asset unavailable' });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -283,7 +333,7 @@ exports.getKnowledgeSources = async (req, res) => {
 
     res.json({ success: true, data: sources });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -324,7 +374,7 @@ exports.getStudentKnowledgeSources = async (req, res) => {
 
     res.json({ success: true, data: sources });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -355,7 +405,7 @@ exports.streamKnowledgeSourceSecure = async (req, res) => {
 
     res.status(404).json({ success: false, message: 'File asset unavailable' });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -386,7 +436,7 @@ exports.deleteKnowledgeSource = async (req, res) => {
 
     res.json({ success: true, message: `Knowledge source "${ks.title}" deleted successfully from Database, Google Drive, and ChromaDB.` });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -397,7 +447,7 @@ exports.getStats = async (req, res) => {
     const sourcesCount = await prisma.knowledgeSource.count();
     res.json({ success: true, data: { ...stats, totalSources: sourcesCount } });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -407,7 +457,7 @@ exports.deletePDF = async (req, res) => {
     await deleteBySource(fileName);
     res.json({ success: true, message: `Chunks deleted for: ${fileName}` });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -417,7 +467,7 @@ exports.deleteByGrade = async (req, res) => {
     await deleteByGrade(grade);
     res.json({ success: true, message: `Chunks deleted for grade: ${grade}` });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -427,7 +477,7 @@ exports.deleteBySubject = async (req, res) => {
     await deleteBySubject(subjectId);
     res.json({ success: true, message: `Chunks deleted for subject: ${subjectId}` });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -583,7 +633,8 @@ exports.saveGeneratedQP = async (req, res) => {
           chapterId: q.chapterId,
           topicId: q.topicId || null,
           options: q.options || null,
-          answerKey: q.answerKey || null
+          answerKey: q.answerKey || null,
+          imageUrl: q.imageUrl || q.diagramUrl || null
         }
       });
       savedQuestions.push(createdQ);
@@ -634,6 +685,139 @@ exports.saveGeneratedQP = async (req, res) => {
     res.status(201).json({ success: true, data: qp });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
+  }
+};
+
+// ==================== SYNC GOOGLE DRIVE CONTENTS TO KNOWLEDGE BASE ====================
+
+exports.syncDriveToKnowledgeBase = async (req, res) => {
+  try {
+    const { listAllDriveFilesRecursive } = require('../services/drive.service');
+    const { files: driveFiles } = await listAllDriveFilesRecursive();
+    let syncedCount = 0;
+    const mappedSources = [];
+
+    const allClasses = await prisma.class.findMany({ include: { stream: true } });
+    const allSubjects = await prisma.subject.findMany({ include: { stream: true } });
+
+    for (const file of driveFiles) {
+      if (file.mimeType === 'application/pdf' || (file.name && file.name.toLowerCase().endsWith('.pdf'))) {
+        const folderPathLower = (file.folderPath || '').toLowerCase();
+        const fileNameLower = (file.name || '').toLowerCase();
+        const searchPath = `${folderPathLower} ${fileNameLower}`;
+
+        if (searchPath.includes('generated papers') || searchPath.includes('generated_')) {
+          continue;
+        }
+
+        let matchedClass = allClasses.find(c => searchPath.includes(c.name.toLowerCase()));
+        if (!matchedClass) {
+          if (searchPath.includes('11')) {
+            matchedClass = allClasses.find(c => c.name.includes('11'));
+          } else if (searchPath.includes('12')) {
+            matchedClass = allClasses.find(c => c.name.includes('12'));
+          }
+        }
+
+        let matchedSubject = allSubjects.find(s => searchPath.includes(s.name.toLowerCase()));
+        if (!matchedSubject) {
+          if (searchPath.includes('physics')) {
+            matchedSubject = allSubjects.find(s => s.name.toLowerCase().includes('physics'));
+          } else if (searchPath.includes('chem')) {
+            matchedSubject = allSubjects.find(s => s.name.toLowerCase().includes('chemistry'));
+          } else if (searchPath.includes('bio')) {
+            matchedSubject = allSubjects.find(s => s.name.toLowerCase().includes('biology'));
+          } else if (searchPath.includes('math')) {
+            matchedSubject = allSubjects.find(s => s.name.toLowerCase().includes('math'));
+          } else if (searchPath.includes('english')) {
+            matchedSubject = allSubjects.find(s => s.name.toLowerCase().includes('english'));
+          }
+        }
+
+        let sourceType = 'TEXTBOOK';
+        if (searchPath.includes('note')) {
+          sourceType = 'TEACHER_NOTES';
+        } else if (searchPath.includes('pyq') || searchPath.includes('previous') || searchPath.includes('board paper')) {
+          sourceType = 'PREVIOUS_BOARD_PAPER';
+        } else if (searchPath.includes('question bank') || searchPath.includes('reference') || searchPath.includes('glossary')) {
+          sourceType = 'REFERENCE_MATERIAL';
+        }
+
+        const existingKS = await prisma.knowledgeSource.findFirst({
+          where: {
+            OR: [
+              { filePath: file.id },
+              { fileName: file.name }
+            ]
+          }
+        });
+
+        if (!existingKS) {
+          const ks = await prisma.knowledgeSource.create({
+            data: {
+              title: file.name.replace(/\.pdf$/i, ''),
+              sourceType,
+              fileName: file.name,
+              filePath: file.id,
+              fileSize: file.size ? Number(file.size) : null,
+              status: 'PROCESSED',
+              uploadedBy: req.user?.id || 'system',
+              description: file.folderPath || 'Google Drive Auto-Sync',
+              classId: matchedClass ? matchedClass.id : null,
+              subjectId: matchedSubject ? matchedSubject.id : null,
+              streamId: matchedSubject?.streamId || matchedClass?.streamId || null,
+              sourcePriority: sourceType === 'TEXTBOOK' ? 10 : 7
+            }
+          });
+          mappedSources.push(ks);
+          syncedCount++;
+        } else {
+          const updatedKS = await prisma.knowledgeSource.update({
+            where: { id: existingKS.id },
+            data: {
+              classId: matchedClass ? matchedClass.id : existingKS.classId,
+              subjectId: matchedSubject ? matchedSubject.id : existingKS.subjectId,
+              streamId: matchedSubject?.streamId || matchedClass?.streamId || existingKS.streamId,
+              filePath: file.id
+            }
+          });
+          mappedSources.push(updatedKS);
+          syncedCount++;
+        }
+
+        const existingSM = await prisma.studyMaterial.findFirst({
+          where: { driveFileId: file.id }
+        });
+        if (!existingSM) {
+          await prisma.studyMaterial.create({
+            data: {
+              title: file.name.replace(/\.pdf$/i, ''),
+              category: sourceType,
+              description: file.folderPath || 'Google Drive Auto-Sync',
+              fileName: file.name,
+              fileUrl: file.webViewLink,
+              driveFileId: file.id,
+              fileSize: file.size ? Number(file.size) : null,
+              mimeType: file.mimeType,
+              uploadedBy: req.user?.id || 'system',
+              authorName: 'Google Drive Auto-Sync',
+              authorRole: 'SYSTEM',
+              classId: matchedClass ? matchedClass.id : null,
+              subjectId: matchedSubject ? matchedSubject.id : null
+            }
+          });
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully mapped ${syncedCount} Google Drive document(s) to Knowledge Base and Study Library.`,
+      syncedCount,
+      mappedSourcesCount: mappedSources.length
+    });
+  } catch (error) {
+    sendServerError(res, error);
   }
 };

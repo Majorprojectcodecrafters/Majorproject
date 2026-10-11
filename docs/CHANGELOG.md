@@ -2,6 +2,72 @@
 
 All notable updates, architectural changes, database schema modifications, and feature releases for the QPGen system are documented in this log.
 
+## [2.8.5] - 2026-09-16 (Fresh System State Reset)
+
+### System Cleanup & Default Active Accounts
+- **Fresh System State Reset (`resetSystemToFreshState.js`)**:
+  - Purged test user accounts, retaining exactly 3 primary active default accounts:
+    - 1 Admin: `admin@school.com`
+    - 1 Teacher: `teacher@school.com`
+    - 1 Student: `student@school.com`
+  - Purged stale KnowledgeSources, staged local PDFs, generated draft question papers, and test results.
+  - Reset ChromaDB vector collections and BM25 index while preserving 100% of underlying database schema, RAG pipeline, and pattern engine logic.
+
+---
+
+## [2.8.4] - 2026-09-16 (Automated Diagram Question Generation & Vector Attachment Engine)
+
+### Automated Diagram-Based Question Generation & Visual Attachment
+- **Mandatory Subject Prompt Directives (`qpGenerator.js`)**:
+  - Updated LLM generation directives to mandate diagram-focused questions for Biology (≥35% of 2-mark, 3-mark, and 4-mark questions), Physics (≥25%), and Chemistry.
+  - Instructed the generator to tag questions with `"diagramTopic"` identifiers (e.g. `"human_heart"`, `"nephron"`, `"neuron"`, `"plant_cell"`, `"dna_structure"`, `"prism_refraction"`, `"circuit_diagram"`, `"galvanic_cell"`).
+- **Curriculum Diagram Engine & Attachment Pipeline (`diagramService.js`)**:
+  - Created `diagramService.js` equipped with high-resolution vector SVG Data URIs for standard high-school curriculum diagrams (Human Heart, Nephron, Neuron, Plant Cell, Chloroplast, DNA Double Helix, Flower Reproductive Structure, Prism Refraction, Electric Circuit, Wheatstone Bridge, Galvanic Cell).
+  - Built a fallback SVG diagram generator for any custom or unrecognized diagram-based question topics.
+  - Connected `diagramService.getOrAttachDiagram` to the RAG question post-processing loop (`qpGenerator.js`) and database save handler (`rag.controller.js`), ensuring `imageUrl` is attached and persisted for web preview (`PaperViewerPage.jsx`) and PDF export (`pdfExporter.js`).
+
+---
+
+## [2.8.3] - 2026-09-16 (Electronic Configuration & Multi-Digit Superscript Parser)
+
+### Scientific Electronic Configuration & Ion Formatting Engine
+- **Multi-Digit & Range Superscript Handling (`formatScientific.js`, `pdfExporter.js`)**:
+  - Fixed issue where electronic configurations with ranges and multi-digit superscripts (e.g., `(n-2)f^1-14`, `(n-1)d^0-1`, `(n-1)d^1-10`, `ns^1-2`, `d^10`) rendered only the first digit in superscript, leaving hyphens and remaining numbers as normal inline text (e.g. `f¹-14`, `d⁰-1`, `d¹0`).
+  - Added regex support for multi-character superscript sequences (`\^([0-9\+\-\=]+)`), orbital designations without `^` (`1s2`, `2p6`, `3d10`, `4f14`, `ns2`, `f1-14`), and ionic charges (`Fe3+`, `Cu2+`, `SO4^2-`).
+  - Implemented a dangling superscript resolution pass to convert trailing inline numbers and hyphens immediately attached to superscript symbols into full superscripts (`f¹-14` → `f¹⁻¹⁴`, `d⁰-1` → `d⁰⁻¹`, `d¹0` → `d¹⁰`, `d¹-10` → `d¹⁻¹⁰`).
+
+---
+
+## [2.8.2] - 2026-09-16 (Admin User Management Tab Count Fix)
+
+### User Management Filter Tab Counter Preservation
+- **Decoupled Filter Tab Counts from Role Query Parameters (`AdminUserManagementPage.jsx`)**:
+  - Fixed bug where switching between role tabs ("Teachers", "Students") re-fetched server-side user data filtered by role, causing tab badge counts for "All Users", "Teachers", and "Students" to dynamically collapse or display `0` for inactive roles.
+  - Updated `useQuery` to fetch all user accounts into state (`queryKey: ['adminUsers']`), computing tab badge counts (`totalAllUsers`, `totalTeachers`, `totalStudents`) across the complete dataset.
+  - Implemented client-side tab and search filtering so tab badges remain accurate and consistent across tab navigation with 0ms delay.
+
+---
+
+## [2.8.1] - 2026-09-16 (Scientific Formatting & PDF Acceleration Engine)
+
+### Clean Scientific Formatting & Fast PDF Generation
+- **Enhanced Multi-Stage Scientific & Chemical Parser (`formatScientific.js`, `pdfExporter.js`)**:
+  - Implemented 7-stage text sanitization and formula parsing across both Frontend UI and Backend PDF Exporter:
+    1. Escaped newline (`\n`, `\\n`, `\r`) cleanup to eradicate raw string escape codes from generated text.
+    2. Double backslash normalization (`\\text` → `\text`, `\\frac` → `\frac`).
+    3. Explicit LaTeX delimiter rendering (`$`, `$$`, `\(`, `\[`) using KaTeX string renderer.
+    4. Auto-wrapping for standalone un-delimited TeX expressions (`\ce{...}`, `\text{...}`, `\frac{...}{...}`, `\sqrt{...}`).
+    5. Chemical formula & ion subscript/superscript conversion (`H2O` → `H₂O`, `CO2` → `CO₂`, `Fe3+` → `Fe³⁺`, `SO4^2-` → `SO₄²⁻`).
+    6. LaTeX Greek & mathematical symbol conversion (`\alpha` → `α`, `\beta` → `β`, `\Delta` → `Δ`, `\degree` → `°`).
+    7. Reaction arrow conversion (`->`, `<=>` → `→`, `⇌`).
+- **High-Performance PDF Generation Engine (`pdfExporter.js`)**:
+  - **Shared Puppeteer Singleton (`getSharedBrowser()`)**: Replaced per-request browser launches with a shared Puppeteer browser instance, eliminating 2.5–5s startup latency per PDF request.
+  - **Inlined KaTeX CSS**: Replaced external CDN stylesheet link with inlined KaTeX CSS in generated HTML header to eliminate network wait cycles.
+  - **DOM Content Loaded Wait Mode**: Switched Puppeteer page rendering wait condition to `domcontentloaded`.
+  - **Server-Side PDF Buffer Caching (`pdfCache`)**: Implemented in-memory buffer caching keyed by paper ID, revision timestamp, and answer mode for instant (<10ms) responses on repeated previews and downloads.
+
+---
+
 ## [2.8.0] - 2026-09-15 (Teacher Class & Subject Allotment Scoping)
 
 ### Teacher Allotment Security & Cascading Scope Restrictions

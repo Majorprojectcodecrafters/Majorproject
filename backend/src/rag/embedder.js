@@ -1,10 +1,9 @@
-const { pipeline } = require('@xenova/transformers');
-
 let embedder = null;
 
 // Load model once and reuse
 async function getEmbedder() {
   if (!embedder) {
+    const { pipeline } = require('@xenova/transformers');
     console.log('🔄 Loading embedding model...');
     embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
     console.log('✅ Embedding model loaded');

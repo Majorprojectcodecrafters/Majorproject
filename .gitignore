@@ -8,3 +8,10 @@ build/
 chroma_db/
 backend/pdfs/
 backend/scratch/
+uploads/
+tmp_uploads/
+backend/uploads/
+backend/tmp_uploads/
+logs/
+backend/logs/
+*.key

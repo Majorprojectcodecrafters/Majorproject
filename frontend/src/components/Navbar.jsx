@@ -70,8 +70,11 @@ export default function Navbar() {
                       <Link to="/admin/knowledge-base" className={`transition-colors ${isActive('/admin/knowledge-base') ? 'text-blue-600 font-bold' : 'text-slate-600 hover:text-blue-600'}`}>
                         {t('knowledgeBase', 'Knowledge Base')}
                       </Link>
-                      <Link to="/student/library" className={`transition-colors ${isActive('/student/library') ? 'text-blue-600 font-bold' : 'text-slate-600 hover:text-blue-600'}`}>
-                        {t('studentLibrary', 'Student Library')}
+                      <Link to="/student/library" className={`transition-colors flex items-center gap-1.5 ${isActive('/student/library') ? 'text-blue-600 font-bold' : 'text-slate-600 hover:text-blue-600'}`}>
+                        <span>{t('studentLibrary', 'Student Library')}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                          Coming Soon
+                        </span>
                       </Link>
                     </>
                   )}
@@ -90,8 +93,11 @@ export default function Navbar() {
                       <Link to="/admin/knowledge-base" className={`transition-colors ${isActive('/admin/knowledge-base') ? 'text-blue-600 font-bold' : 'text-slate-600 hover:text-blue-600'}`}>
                         {t('knowledgeBase', 'Knowledge Base')}
                       </Link>
-                      <Link to="/student/library" className={`transition-colors ${isActive('/student/library') ? 'text-blue-600 font-bold' : 'text-slate-600 hover:text-blue-600'}`}>
-                        {t('studentLibrary', 'Student Library')}
+                      <Link to="/student/library" className={`transition-colors flex items-center gap-1.5 ${isActive('/student/library') ? 'text-blue-600 font-bold' : 'text-slate-600 hover:text-blue-600'}`}>
+                        <span>{t('studentLibrary', 'Student Library')}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                          Coming Soon
+                        </span>
                       </Link>
                     </>
                   )}
@@ -107,8 +113,11 @@ export default function Navbar() {
                       <Link to="/student/announcements" className={`transition-colors ${isActive('/student/announcements') ? 'text-purple-900 font-bold' : 'text-purple-700 hover:text-purple-900 font-bold'}`}>
                         {t('announcements', 'Announcements')}
                       </Link>
-                      <Link to="/student/library" className={`transition-colors ${isActive('/student/library') ? 'text-blue-600 font-bold' : 'text-slate-600 hover:text-blue-600'}`}>
-                        {t('studentLibrary', 'Student Library')}
+                      <Link to="/student/library" className={`transition-colors flex items-center gap-1.5 ${isActive('/student/library') ? 'text-blue-600 font-bold' : 'text-slate-600 hover:text-blue-600'}`}>
+                        <span>{t('studentLibrary', 'Student Library')}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                          Coming Soon
+                        </span>
                       </Link>
                       <Link to="/student/results" className={`transition-colors ${isActive('/student/results') ? 'text-blue-600 font-bold' : 'text-slate-600 hover:text-blue-600'}`}>
                         {t('results', 'Results')}
@@ -206,8 +215,11 @@ export default function Navbar() {
                 <Link to="/admin/knowledge-base" onClick={closeMenu} className="px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100">
                   {t('knowledgeBase', 'Knowledge Base')}
                 </Link>
-                <Link to="/student/library" onClick={closeMenu} className="px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100">
-                  {t('studentLibrary', 'Student Library')}
+                <Link to="/student/library" onClick={closeMenu} className="px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 flex items-center justify-between">
+                  <span>{t('studentLibrary', 'Student Library')}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                    Coming Soon
+                  </span>
                 </Link>
               </>
             )}
@@ -226,8 +238,11 @@ export default function Navbar() {
                 <Link to="/admin/knowledge-base" onClick={closeMenu} className="px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100">
                   {t('knowledgeBase', 'Knowledge Base')}
                 </Link>
-                <Link to="/student/library" onClick={closeMenu} className="px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100">
-                  {t('studentLibrary', 'Student Library')}
+                <Link to="/student/library" onClick={closeMenu} className="px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 flex items-center justify-between">
+                  <span>{t('studentLibrary', 'Student Library')}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                    Coming Soon
+                  </span>
                 </Link>
               </>
             )}
@@ -243,8 +258,11 @@ export default function Navbar() {
                 <Link to="/student/announcements" onClick={closeMenu} className="px-3 py-2 rounded-lg text-purple-700 hover:bg-purple-50">
                   {t('announcements', 'Announcements')}
                 </Link>
-                <Link to="/student/library" onClick={closeMenu} className="px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100">
-                  {t('studentLibrary', 'Student Library')}
+                <Link to="/student/library" onClick={closeMenu} className="px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 flex items-center justify-between">
+                  <span>{t('studentLibrary', 'Student Library')}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                    Coming Soon
+                  </span>
                 </Link>
                 <Link to="/student/results" onClick={closeMenu} className="px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100">
                   {t('results', 'Results')}

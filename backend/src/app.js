@@ -20,7 +20,9 @@ const cookieParser = require('cookie-parser');
 const app = express();
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 
 // CORS with credentials support for cookies
 const allowedOrigins = [
@@ -30,12 +32,25 @@ const allowedOrigins = [
   'http://127.0.0.1:3000'
 ];
 
+if (process.env.FRONTEND_URL) {
+  process.env.FRONTEND_URL.split(',').forEach(o => {
+    const trimmed = o.trim();
+    if (trimmed && !allowedOrigins.includes(trimmed)) allowedOrigins.push(trimmed);
+  });
+}
+if (process.env.CORS_ORIGIN && process.env.CORS_ORIGIN !== '*') {
+  process.env.CORS_ORIGIN.split(',').forEach(o => {
+    const trimmed = o.trim();
+    if (trimmed && !allowedOrigins.includes(trimmed)) allowedOrigins.push(trimmed);
+  });
+}
+
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+    if (!origin || allowedOrigins.includes(origin) || (process.env.NODE_ENV !== 'production' && origin.startsWith('http://localhost:'))) {
       callback(null, true);
     } else {
-      callback(null, true);
+      callback(new Error('Blocked by CORS policy: Origin not allowed'));
     }
   },
   credentials: true
@@ -91,8 +106,12 @@ const practiceRoutes = require('./routes/practice.routes');
 const announcementRoutes = require('./routes/announcement.routes');
 const studentLibraryRoutes = require('./routes/studentLibrary.routes');
 
-// Serve uploads directory for announcement file attachments
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+// Serve uploads directory for announcement file attachments safely
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'), {
+  maxAge: '1d',
+  dotfiles: 'ignore',
+  index: false
+}));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -131,10 +150,11 @@ app.use((err, req, res, next) => {
     method: req.method
   });
 
+  const isDev = process.env.NODE_ENV === 'development';
   res.status(err.status || 500).json({
     success: false,
-    message: err.message || 'Internal Server Error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    message: isDev ? (err.message || 'Internal Server Error') : 'An unexpected error occurred',
+    ...(isDev && { stack: err.stack })
   });
 });
 

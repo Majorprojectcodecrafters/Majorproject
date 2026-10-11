@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
-const { generateLLMResponse } = require('../rag/llmClient');
+const { callLLM } = require('../rag/llmClient');
+const { sendServerError } = require('../utils/responseHandler');
 
 /**
  * Robust helper function to resolve correctOption index (0..3) from answerKey or LLM output
@@ -66,11 +67,50 @@ function shuffleOptionsAndCorrectIndex(options, correctIndex) {
 
 exports.getPracticeSubjects = async (req, res) => {
   try {
+    const studentId = req.user?.studentId;
+
+    if (studentId) {
+      // Fetch student's explicit registered/enrolled subjects
+      const enrolledRecords = await prisma.studentSubject.findMany({
+        where: { studentId },
+        include: {
+          subject: {
+            include: {
+              chapters: { orderBy: { chapterNo: 'asc' } }
+            }
+          }
+        },
+        orderBy: { subject: { name: 'asc' } }
+      });
+
+      if (enrolledRecords.length > 0) {
+        const enrolledSubjects = enrolledRecords.map(r => r.subject).filter(Boolean);
+        return res.json({ success: true, data: enrolledSubjects });
+      }
+
+      // Fallback: If no explicit StudentSubject records exist yet for this student, return subjects matching student's stream
+      const student = await prisma.student.findUnique({
+        where: { id: studentId },
+        select: { streamId: true, classId: true }
+      });
+
+      if (student && student.streamId) {
+        const streamSubjects = await prisma.subject.findMany({
+          where: { streamId: student.streamId },
+          include: {
+            chapters: { orderBy: { chapterNo: 'asc' } }
+          },
+          orderBy: { name: 'asc' }
+        });
+
+        return res.json({ success: true, data: streamSubjects });
+      }
+    }
+
+    // Default fallback: return all subjects
     const subjects = await prisma.subject.findMany({
       include: {
-        chapters: {
-          orderBy: { chapterNo: 'asc' }
-        }
+        chapters: { orderBy: { chapterNo: 'asc' } }
       },
       orderBy: { name: 'asc' }
     });
@@ -78,16 +118,34 @@ exports.getPracticeSubjects = async (req, res) => {
     res.json({ success: true, data: subjects });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
 exports.generatePracticeQuiz = async (req, res) => {
   try {
     const { subjectId, chapterId, questionCount = 10 } = req.body;
+    const studentId = req.user?.studentId;
 
     if (!subjectId || !chapterId) {
       return res.status(400).json({ success: false, message: 'Subject and Chapter are required' });
+    }
+
+    // Enforce enrolled subjects check if student
+    if (studentId) {
+      const enrollmentCount = await prisma.studentSubject.count({ where: { studentId } });
+      if (enrollmentCount > 0) {
+        const isEnrolled = await prisma.studentSubject.findUnique({
+          where: { studentId_subjectId: { studentId, subjectId } }
+        });
+
+        if (!isEnrolled) {
+          return res.status(403).json({
+            success: false,
+            message: 'You are not enrolled in this subject. Please practice subjects you are registered for.'
+          });
+        }
+      }
     }
 
     const [subject, chapter] = await Promise.all([
@@ -164,8 +222,8 @@ Example:
 ]`;
 
       try {
-        const llmResponse = await generateLLMResponse(prompt, { temperature: 0.4 });
-        const jsonMatch = llmResponse.match(/\[[\s\S]*\]/);
+        const llmResponse = await callLLM(prompt);
+        const jsonMatch = llmResponse ? llmResponse.match(/\[[\s\S]*\]/) : null;
         if (jsonMatch) {
           const generated = JSON.parse(jsonMatch[0]);
           generated.forEach((g, idx) => {
@@ -185,12 +243,19 @@ Example:
           });
         }
       } catch (e) {
-        console.warn('⚠️ Practice LLM generation fallback:', e.message);
+        console.warn('⚠️ Practice LLM generation fallback notice:', e.message);
       }
     }
 
     // 3. Shuffle / randomize questions for retake variety
     selectedQuestions = selectedQuestions.sort(() => 0.5 - Math.random()).slice(0, count);
+
+    if (selectedQuestions.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Unable to generate practice questions for this chapter right now. Please try again or select another chapter.'
+      });
+    }
 
     // Sanitize output for quiz player (hide correctOption before submission)
     const sanitizedQuestions = selectedQuestions.map((q, idx) => ({
@@ -213,7 +278,7 @@ Example:
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -339,7 +404,7 @@ exports.submitPracticeAttempt = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -459,7 +524,7 @@ exports.getStudentPracticeProgress = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -536,8 +601,8 @@ Return ONLY a valid JSON array of objects. Each object MUST contain:
 Important: Distribute the correct answer index across 0, 1, 2, and 3 evenly. Do NOT make 0 (Option A) the correct answer for every question.`;
 
       try {
-        const llmResponse = await generateLLMResponse(prompt, { temperature: 0.4 });
-        const jsonMatch = llmResponse.match(/\[[\s\S]*\]/);
+        const llmResponse = await callLLM(prompt);
+        const jsonMatch = llmResponse ? llmResponse.match(/\[[\s\S]*\]/) : null;
         if (jsonMatch) {
           const generated = JSON.parse(jsonMatch[0]);
           generated.forEach((g, idx) => {
@@ -584,7 +649,7 @@ Important: Distribute the correct answer index across 0, 1, 2, and 3 evenly. Do 
     res.status(201).json({ success: true, message: 'Classmate challenge created!', data: challenge });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -611,7 +676,7 @@ exports.getStudentChallenges = async (req, res) => {
     res.json({ success: true, data: challenges });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -689,6 +754,6 @@ exports.submitChallengeAttempt = async (req, res) => {
     res.json({ success: true, message: 'Challenge attempt submitted!', data: updated });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };

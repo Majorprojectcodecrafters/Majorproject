@@ -72,11 +72,17 @@ export default function AdminKnowledgeBasePage() {
     setSyncing(true);
     try {
       const res = await apiClient.post('/student-library/sync');
-      showToast(res.data.message || 'Google Drive Sync Complete!', 'success');
-      refetchMaterials();
-      refetchDriveTree();
+      const successMsg = res.data?.message || res.data?.data?.message || 'Google Drive Sync Complete!';
+      showToast(successMsg, 'success');
+      try {
+        await refetchMaterials();
+        await refetchDriveTree();
+      } catch (rErr) {
+        console.warn('Post-sync refetch notice:', rErr.message);
+      }
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to sync Google Drive', 'error');
+      const errorText = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to sync Google Drive';
+      showToast(errorText, 'error');
     } finally {
       setSyncing(false);
     }
@@ -218,11 +224,17 @@ export default function AdminKnowledgeBasePage() {
                     className="input-field mt-1"
                   >
                     <option value="">{t('allClassesGeneral', '-- All Classes / General --')}</option>
-                    {classes.map((cls) => (
-                      <option key={cls.id} value={cls.id}>
-                        {cls.name} ({cls.academicYear})
-                      </option>
-                    ))}
+                    {classes.map((cls) => {
+                      const streamName = cls.stream?.name || '';
+                      const displayName = streamName && !cls.name.toLowerCase().includes(streamName.toLowerCase())
+                        ? `${cls.name} (${streamName})`
+                        : cls.name;
+                      return (
+                        <option key={cls.id} value={cls.id}>
+                          {displayName} ({cls.academicYear})
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 

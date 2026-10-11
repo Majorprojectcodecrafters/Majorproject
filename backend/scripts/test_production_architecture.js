@@ -5,7 +5,7 @@ const { callLLM } = require('../src/rag/llmClient');
 const { generateQuestionPaper } = require('../src/rag/qpGenerator');
 
 async function testArchitecture() {
-  console.log('🧪 Testing QPGen Production Architecture & Additions...\n');
+  console.log(' Testing QPGen Production Architecture & Additions...\n');
 
   try {
     // 1. Verify Prisma Database Schema Fields

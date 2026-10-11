@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const { generateLLMResponse } = require('../rag/llmClient');
+const { sendServerError } = require('../utils/responseHandler');
 
 // ==================== TEACHER QUIZ MANAGEMENT ====================
 
@@ -142,7 +143,7 @@ Example format:
     res.status(201).json({ success: true, data: quiz });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -165,7 +166,7 @@ exports.publishQuiz = async (req, res) => {
     res.json({ success: true, message: 'Quiz published to assigned class successfully', data: updated });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -186,7 +187,7 @@ exports.getTeacherQuizzes = async (req, res) => {
     res.json({ success: true, data: quizzes });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -215,7 +216,7 @@ exports.getTeacherQuizById = async (req, res) => {
     res.json({ success: true, data: quiz });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -232,7 +233,7 @@ exports.deleteQuiz = async (req, res) => {
     res.json({ success: true, message: 'Quiz deleted successfully' });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -285,7 +286,7 @@ exports.getStudentQuizzes = async (req, res) => {
     res.json({ success: true, data: formatted });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -345,7 +346,7 @@ exports.getStudentQuizDetails = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -426,6 +427,6 @@ exports.submitQuizAttempt = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };

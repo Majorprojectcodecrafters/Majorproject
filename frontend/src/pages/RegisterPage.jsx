@@ -56,6 +56,8 @@ export default function RegisterPage() {
   const [optionsError, setOptionsError] = useState('');
   const [classes, setClasses] = useState([]);
   const [streams, setStreams] = useState([]);
+  const [availableSubjects, setAvailableSubjects] = useState([]);
+  const [selectedSubjectIds, setSelectedSubjectIds] = useState([]);
 
   const {
     register,
@@ -75,6 +77,7 @@ export default function RegisterPage() {
     },
   });
   const role = watch('role');
+  const selectedClassId = watch('classId');
 
   useEffect(() => {
     if (role !== 'STUDENT' || (classes.length > 0 && streams.length > 0)) return;
@@ -106,6 +109,31 @@ export default function RegisterPage() {
     };
   }, [role, classes.length, streams.length]);
 
+  // Load available subjects when class is selected
+  useEffect(() => {
+    if (role !== 'STUDENT') return;
+    let active = true;
+    const fetchSubjects = async () => {
+      try {
+        const res = await apiClient.get(selectedClassId ? `/auth/subjects?classId=${selectedClassId}` : '/auth/subjects');
+        if (!active) return;
+        const subList = res.data.data || [];
+        setAvailableSubjects(subList);
+        setSelectedSubjectIds(subList.map(s => s.id));
+      } catch (err) {
+        console.warn('Failed to load registration subjects:', err.message);
+      }
+    };
+    fetchSubjects();
+    return () => { active = false; };
+  }, [role, selectedClassId]);
+
+  const handleSubjectToggle = (subId) => {
+    setSelectedSubjectIds(prev =>
+      prev.includes(subId) ? prev.filter(id => id !== subId) : [...prev, subId]
+    );
+  };
+
   const onSubmit = async (values) => {
     setLoading(true);
     const { confirmPassword, ...registrationData } = values;
@@ -114,6 +142,9 @@ export default function RegisterPage() {
       ...(role === 'TEACHER' && {
         experienceYears: registrationData.experienceYears ?? 0,
       }),
+      ...(role === 'STUDENT' && {
+        subjectIds: selectedSubjectIds
+      })
     };
 
     const result = await registerUser(payload);
@@ -209,7 +240,13 @@ export default function RegisterPage() {
                   <label className="auth-label">Class <span className="text-red-500">*</span></label>
                   <select {...register('classId')} className="input-field mt-2 w-full" disabled={optionsLoading}>
                     <option value="">{optionsLoading ? 'Loading classes...' : 'Select your class / division'}</option>
-                    {classes.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.academicYear})</option>)}
+                    {classes.map((item) => {
+                      const streamName = item.stream?.name || '';
+                      const displayName = streamName && !item.name.toLowerCase().includes(streamName.toLowerCase())
+                        ? `${item.name} (${streamName})`
+                        : item.name;
+                      return <option key={item.id} value={item.id}>{displayName} ({item.academicYear})</option>;
+                    })}
                   </select>
                   {fieldError('classId')}
                 </div>
@@ -223,6 +260,26 @@ export default function RegisterPage() {
                   <input {...register('contact')} className="input-field mt-2 w-full" placeholder="Phone number" />
                   {fieldError('contact')}
                 </div>
+
+                {availableSubjects.length > 0 && (
+                  <div>
+                    <label className="auth-label font-bold text-slate-800">Subjects Registered For <span className="text-red-500">*</span></label>
+                    <p className="text-xs text-slate-500 mb-2">Select the subjects you are enrolled in to practice relevant MHT-CET questions:</p>
+                    <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                      {availableSubjects.map((sub) => (
+                        <label key={sub.id} className="flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer hover:text-blue-600">
+                          <input
+                            type="checkbox"
+                            checked={selectedSubjectIds.includes(sub.id)}
+                            onChange={() => handleSubjectToggle(sub.id)}
+                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4"
+                          />
+                          <span>{sub.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {optionsError && <p className="form-error">{optionsError}</p>}
               </>
             )}

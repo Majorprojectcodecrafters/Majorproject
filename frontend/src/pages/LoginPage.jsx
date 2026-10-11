@@ -13,6 +13,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
   const [showForgotModal, setShowForgotModal] = useState(false);
 
   const {
@@ -25,6 +26,7 @@ export default function LoginPage() {
 
   const onSubmit = async (data) => {
     setLoading(true);
+    setAuthError('');
 
     const result = await login(data.email, data.password, Boolean(data.rememberMe));
 
@@ -38,7 +40,9 @@ export default function LoginPage() {
         navigate('/student/papers');
       }
     } else {
-      showToast(result.error, 'error');
+      const errorMsg = result.error || 'Invalid email or password';
+      setAuthError(errorMsg);
+      showToast(errorMsg, 'error');
     }
 
     setLoading(false);
@@ -55,14 +59,23 @@ export default function LoginPage() {
           <h1 className="auth-title">Welcome back</h1>
           <p className="auth-subtitle">Sign in to build, manage, and review question papers.</p>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
+          {authError && (
+            <div className="mt-4 rounded-lg bg-red-50 border border-red-200 p-3.5 text-xs text-red-700 font-medium flex items-center gap-2">
+              <svg className="w-4 h-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{authError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-5">
             <div>
               <label className="auth-label">Email</label>
               <input
                 type="email"
                 {...register('email')}
                 className="input-field mt-2 w-full"
-                placeholder="teacher@school.com"
+                placeholder="name@example.com"
               />
               {errors.email && <p className="form-error mt-1">{errors.email.message}</p>}
             </div>

@@ -1,8 +1,7 @@
 const prisma = require('../config/prisma');
 const bcrypt = require('bcrypt');
 const { generateToken } = require('../utils/jwt');
-
-
+const { sendServerError } = require('../utils/responseHandler');
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -16,12 +15,25 @@ exports.register = async (req, res) => {
   try {
     const { name, email, password, role, dob } = req.body;
 
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return res.status(400).json({ success: false, message: 'Name is required' });
+    }
+
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ success: false, message: 'Valid email is required' });
+    }
+    const normalizedEmail = email.toLowerCase().trim();
+
+    if (!password || typeof password !== 'string' || password.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
+    }
+
     // Validate role
     if (!['ADMIN', 'TEACHER', 'STUDENT'].includes(role)) {
       return res.status(400).json({ success: false, message: 'Invalid role' });
     }
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existingUser) {
       return res.status(400).json({ success: false, message: 'User already exists' });
     }
@@ -54,12 +66,18 @@ exports.register = async (req, res) => {
       generatedUniqueId = await generateStudentUniqueId({ classId: studentClassId, streamId: studentStreamId });
     }
 
+    let targetSubjectIds = Array.isArray(req.body.subjectIds) ? req.body.subjectIds.filter(Boolean) : [];
+    if (role === 'STUDENT' && targetSubjectIds.length === 0 && studentStreamId) {
+      const streamSubjects = await prisma.subject.findMany({ where: { streamId: studentStreamId } });
+      targetSubjectIds = streamSubjects.map(s => s.id);
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
       data: {
-        name,
-        email,
+        name: name.trim(),
+        email: normalizedEmail,
         password: hashedPassword,
         role,
         dob: new Date(dob || '2005-01-01'),
@@ -80,7 +98,12 @@ exports.register = async (req, res) => {
               uniqueId: generatedUniqueId,
               contact: req.body.contact || 'N/A',
               classId: studentClassId,
-              streamId: studentStreamId
+              streamId: studentStreamId,
+              ...(targetSubjectIds.length > 0 && {
+                enrolledSubjects: {
+                  create: targetSubjectIds.map(sId => ({ subjectId: sId }))
+                }
+              })
             }
           }
         })
@@ -90,7 +113,8 @@ exports.register = async (req, res) => {
         student: {
           include: {
             class: true,
-            stream: true
+            stream: true,
+            enrolledSubjects: { include: { subject: true } }
           }
         }
       }
@@ -105,7 +129,7 @@ exports.register = async (req, res) => {
     res.status(201).json({ success: true, data: { user: safeUser, token } });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to complete registration');
   }
 };
 
@@ -114,16 +138,28 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Email and password are required' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
       include: {
         teacher: true,
-        student: true
+        student: {
+          include: {
+            class: true,
+            stream: true,
+            enrolledSubjects: { include: { subject: true } }
+          }
+        }
       }
     });
 
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -140,7 +176,7 @@ exports.login = async (req, res) => {
     res.json({ success: true, data: { user: safeUser, token } });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Login failed');
   }
 };
 
@@ -154,7 +190,7 @@ exports.logout = async (req, res) => {
     });
     res.json({ success: true, message: 'Logged out successfully' });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to log out');
   }
 };
 
@@ -182,7 +218,7 @@ exports.getMe = async (req, res) => {
     res.json({ success: true, data: safeUser });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to retrieve user profile');
   }
 };
 
@@ -205,7 +241,7 @@ exports.updateAvatar = async (req, res) => {
       avatarUrl: updatedUser.avatarUrl
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to update avatar');
   }
 };
 
@@ -222,7 +258,7 @@ exports.deleteAvatar = async (req, res) => {
       message: 'Profile photo removed successfully'
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to remove avatar');
   }
 };
 
@@ -261,7 +297,7 @@ exports.getGoogleAuthUrl = async (req, res) => {
       instructions: 'Open authUrl in browser, grant permissions, and copy the refresh_token from the callback page.'
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to initialize Google OAuth flow');
   }
 };
 
@@ -303,7 +339,7 @@ exports.googleOAuthCallback = async (req, res) => {
       </html>
     `);
   } catch (error) {
-    res.status(500).send(`<h3>❌ Google Drive OAuth Token Exchange Failed:</h3><p>${error.message}</p>`);
+    res.status(500).send('<h3>❌ Google Drive OAuth Token Exchange Failed.</h3><p>Please check backend console logs for details.</p>');
   }
 };
 
@@ -315,7 +351,7 @@ exports.getPublicClasses = async (req, res) => {
     });
     res.json({ success: true, data: classes });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to fetch classes');
   }
 };
 
@@ -326,7 +362,29 @@ exports.getPublicStreams = async (req, res) => {
     });
     res.json({ success: true, data: streams });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to fetch streams');
+  }
+};
+
+exports.getPublicSubjects = async (req, res) => {
+  try {
+    const { streamId, classId } = req.query;
+    let where = {};
+    if (streamId) {
+      where.streamId = streamId;
+    } else if (classId) {
+      const targetClass = await prisma.class.findUnique({ where: { id: classId } });
+      if (targetClass && targetClass.streamId) {
+        where.streamId = targetClass.streamId;
+      }
+    }
+    const subjects = await prisma.subject.findMany({
+      where,
+      orderBy: { name: 'asc' }
+    });
+    res.json({ success: true, data: subjects });
+  } catch (error) {
+    sendServerError(res, error, 'Failed to fetch subjects');
   }
 };
 
@@ -339,7 +397,8 @@ exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ success: false, message: 'Email address is required' });
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user) {
       return res.status(404).json({ success: false, message: 'No registered user found with this email address' });
     }
@@ -366,7 +425,7 @@ exports.forgotPassword = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to process forgot password request');
   }
 };
 
@@ -375,7 +434,8 @@ exports.verifyOtp = async (req, res) => {
     const { email, otp } = req.body;
     if (!email || !otp) return res.status(400).json({ success: false, message: 'Email and OTP are required' });
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     if (!user.resetOtp || !user.resetOtpExpires) {
@@ -401,7 +461,7 @@ exports.verifyOtp = async (req, res) => {
     res.json({ success: true, message: 'OTP code verified successfully! You may now set your new password.' });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to verify OTP');
   }
 };
 
@@ -412,11 +472,12 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email, OTP, and new password are required' });
     }
 
-    if (newPassword.length < 6) {
+    if (typeof newPassword !== 'string' || newPassword.length < 6) {
       return res.status(400).json({ success: false, message: 'New password must be at least 6 characters long' });
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     if (!user.resetOtp || user.resetOtp !== otp.toString().trim()) {
@@ -443,6 +504,6 @@ exports.resetPassword = async (req, res) => {
     res.json({ success: true, message: 'Password reset successfully! You can now sign in with your new password.' });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error, 'Failed to reset password');
   }
 };

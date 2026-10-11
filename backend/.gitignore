@@ -4,6 +4,7 @@ node_modules/
 .env
 .env.local
 .env.*.local
+credentials/
 config/google-service-account.json
 *.json.key
 npm-debug.log*
@@ -49,6 +50,9 @@ tmp/
 temp/
 dist/
 build/
+uploads/
+tmp_uploads/
+scratch/
 
 # PDFs (usually large)
 pdfs/**/*.pdf

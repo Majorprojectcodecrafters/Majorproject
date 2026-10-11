@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { sendServerError } = require('../utils/responseHandler');
 
 // Get all boards
 exports.getBoards = async (req, res) => {
@@ -8,7 +9,7 @@ exports.getBoards = async (req, res) => {
     });
     res.json({ success: true, data: boards });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -46,7 +47,7 @@ exports.getClasses = async (req, res) => {
     });
     res.json({ success: true, data: classes });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -115,7 +116,7 @@ exports.getSubjectsByClass = async (req, res) => {
     const subjects = classSubjects.map(cs => cs.subject);
     res.json({ success: true, data: subjects });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -131,7 +132,7 @@ exports.getUnits = async (req, res) => {
     });
     res.json({ success: true, data: units });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -158,7 +159,7 @@ exports.getChapters = async (req, res) => {
     });
     res.json({ success: true, data: chapters });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -174,7 +175,7 @@ exports.getTopics = async (req, res) => {
     });
     res.json({ success: true, data: topics });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -199,7 +200,7 @@ exports.getWeightage = async (req, res) => {
 
     res.json({ success: true, data: weightages });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };
 
@@ -214,6 +215,6 @@ exports.syncSyllabusTopics = async (req, res) => {
       data: result
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    sendServerError(res, error);
   }
 };

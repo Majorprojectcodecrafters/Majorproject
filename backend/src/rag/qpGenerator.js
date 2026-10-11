@@ -273,15 +273,17 @@ function validateQuestionContent(questions, targetDifficulty = 'MEDIUM') {
 /**
  * Subject-Aware prompt directive builder
  */
-function getSubjectPromptDirectives(subjectName) {
+function getSubjectPromptDirectives(subjectName, className = '') {
   const nameUpper = (subjectName || '').toUpperCase();
   if (nameUpper.includes('PHYSICS')) {
     return `PHYSICS QUESTION GENERATION MANDATE:
-- Focus on fundamental laws, principles, physical interpretations, mathematical derivations, numerical problem solving with SI units, schematic diagram explanations, and real-world physical applications.`;
+- Focus on fundamental laws, principles, physical interpretations, mathematical derivations, numerical problem solving with SI units, schematic diagram explanations, and real-world physical applications.
+- DIAGRAM QUESTION DIRECTIVE: Questions may optionally ask students to draw and label easy, standard textbook diagrams (e.g., "Draw a neat, labeled ray diagram showing...", "Draw a circuit diagram for..."). Diagrams are NOT mandatory in every paper, and pre-generated image attachments are not required.`;
   }
   if (nameUpper.includes('CHEMISTRY')) {
     return `CHEMISTRY QUESTION GENERATION MANDATE:
-- Focus on chemical equations, reaction mechanisms, IUPAC nomenclature, electronic configurations, stoichiometric calculations, physical chemistry formulas, and inorganic/organic properties.`;
+- Focus on chemical equations, reaction mechanisms, IUPAC nomenclature, electronic configurations, stoichiometric calculations, physical chemistry formulas, and inorganic/organic properties.
+- DIAGRAM QUESTION DIRECTIVE: Questions may optionally ask students to draw and label easy apparatus or cell diagrams (e.g., "Draw a neat and labeled diagram of a galvanic cell..."). Diagrams are NOT mandatory in every paper.`;
   }
   if (nameUpper.includes('MATH') || nameUpper.includes('STATISTICS')) {
     return `MATHEMATICAL QUESTION GENERATION MANDATE:
@@ -289,10 +291,25 @@ function getSubjectPromptDirectives(subjectName) {
   }
   if (nameUpper.includes('BIOLOGY')) {
     return `BIOLOGY QUESTION GENERATION MANDATE:
-- Focus on biological processes, anatomical diagrams, physiological functions, taxonomic classifications, comparative analysis, and genetic/ecological principles.`;
+- Focus on biological processes, anatomical structures, physiological functions, taxonomic classifications, comparative analysis, and genetic/ecological principles.
+- DIAGRAM QUESTION DIRECTIVE: Questions may optionally ask students to draw and label easy anatomical/plant diagrams (e.g., "Draw a neat and labeled diagram of...", "With the help of a well-labeled diagram explain..."). Diagrams are NOT mandatory in every paper.`;
+  }
+  if (nameUpper.includes('ENGLISH')) {
+    const isClass11 = (className || '').toLowerCase().includes('11');
+    const novelDirective = isClass11
+      ? `- SECTION IV (LITERARY GENRE - DRAMA / NOVEL - 16m): Q5A: History of English Drama / Genre (4m MCQ/Match), Q5B: Drama/Novel 4.2 (4m), Q5C: Drama/Novel 4.3 (4m), Q5D: Drama/Novel 4.4 (4m). Ground questions strictly in Class 11 literature textbook content.`
+      : `- SECTION IV (NOVEL - 16m): Q5A: History of Novel (4m MCQ/Match), Q5B: Novel 4.2 To Sir With Love (4m), Q5C: Novel 4.3 Around the World in Eighty Days (4m), Q5D: Novel 4.4 The Sign of Four (4m). Ground questions strictly in Class 12 literature textbook content.`;
+
+    return `ENGLISH ACTIVITY SHEET QUESTION GENERATION MANDATE:
+- Focus on Maharashtra State Board English (Subject Code 01) 80-mark Activity Sheet format (Identical pattern for Science, Commerce, and Arts streams).
+- SECTION I (PROSE - 34m): Seen prose passage (Q1A: A1 Global Comprehension, A2 Complex Factual, A3 Inference/Interpretation, A4 Personal Response, A5 Language Study, A6 Vocabulary - 2m each), Language Study non-textual (Q1B: B1 Transformation of Sentences 3x1m, B2 Spot the Error 1m), Unseen prose passage (Q2A: A1-A6 2m each), Summary Writing (Q2B: 3m with title), Mind Mapping (Q2C: 3m visual concept design).
+- SECTION II (POETRY - 14m): Poem extract (Q3A: A1-A5 2m each focusing on comprehension, personal response, poetic devices, figures of speech, creativity), Poetic Appreciation (Q3B: 4m appreciation of given poem).
+- SECTION III (WRITING SKILLS - 16m): 4 choice sections Q4A to Q4D (4m each). Q4A: Virtual Message / SOP / Group Discussion; Q4B: Email / Report / Interview; Q4C: Speech / Compering / Expansion of Idea; Q4D: Review / Blog / Appeal. Provide clear prompts and choices.
+${novelDirective}`;
   }
   return `CURRICULUM QUESTION GENERATION MANDATE:
-- Focus on factual definitions, conceptual explanations, analytical reasoning, and curriculum-grounded applications.`;
+- Focus on factual definitions, conceptual explanations, analytical reasoning, and curriculum-grounded applications.
+- Questions may optionally ask students to draw and label diagrams where relevant. Diagrams are NOT mandatory.`;
 }
 
 /**
@@ -422,13 +439,14 @@ async function generateQuestionPaper({
 
   console.log(`🤖 Generating curriculum-grounded paper (${patternMode} Mode) for ${subject.name} (${chapterNames.join(', ')}) with RAG Engine...`);
 
-  const subjectDirective = getSubjectPromptDirectives(subject.name);
+  const subjectDirective = getSubjectPromptDirectives(subject.name, fullClassName);
   const mapRawQuestion = (q, sectionName, type, marks, qNumStr) => {
     const questionText = (q.questionText || q.q || q.question || q.stem || q.text || '').trim();
     const rawOpts = q.options || q.opt || q.choices;
     const isMcq = type === 'MCQ' || Boolean(rawOpts);
     const normOptions = isMcq ? normalizeMcqOptions(rawOpts) : null;
     const answerKey = q.answerKey || q.ans || (normOptions ? normOptions[0] : 'Refer to textbook concept.');
+    const diagramTopic = q.diagramTopic || q.topicTag || q.diagram || null;
 
     return {
       questionText,
@@ -438,6 +456,7 @@ async function generateQuestionPaper({
       questionType: isMcq ? 'MCQ' : type,
       options: isMcq ? normOptions : null,
       answerKey,
+      diagramTopic,
       sectionName,
       questionNumber: qNumStr,
       chapterId: chapters.length ? chapters[0].id : (chapterIds[0] || null)
@@ -447,8 +466,109 @@ async function generateQuestionPaper({
   let sanitizedQuestions = [];
 
   if (patternMode === 'BOARD') {
-    // Standard Official Maharashtra Board Pattern (2-Pass Sectioned Generation)
-    const promptPass1 = `You are an expert examination paper author for ${subject.name}.
+    const isEnglish = (subject.name || '').toUpperCase().includes('ENGLISH');
+    if (isEnglish) {
+      const isClass11 = (fullClassName || '').toLowerCase().includes('11');
+      console.log(`🤖 Invoking LLM for English (${fullClassName}) Activity Sheet [Pass 1/2: Section I Prose & Section II Poetry]...`);
+      const promptEnglishPass1 = `You are an expert English examination paper author for Maharashtra State Board.
+${subjectDirective}
+TARGET CURRICULUM: ${subject.name} - ${fullClassName} (${chapterNames.join(', ')})
+
+MANDATE FOR SECTION I (PROSE - 34 Marks) & SECTION II (POETRY - 14 Marks):
+1. s1_q1a: 6 short questions (2m each) on Seen Prose Extract (A1 Global Comprehension, A2 Complex Factual, A3 Inference, A4 Personal Response, A5 Language Study, A6 Vocabulary).
+2. s1_q1b: 2 short questions for Language Study: B1 (Transformation of Sentences, 3m) and B2 (Spot the Error, 1m).
+3. s1_q2a: 6 short questions (2m each) on Unseen Prose Extract (A1-A6).
+4. s1_q2b: 1 question (3m) on Summary Writing with a suitable title.
+5. s1_q2c: 1 question (3m) on Mind Mapping (designing concept map/visual tree).
+6. s2_q3a: 5 short questions (2m each) on Poetry Extract (A1-A5).
+7. s2_q3b: 1 long question (4m) on Poetic Appreciation.
+
+---GROUNDED STUDY CONTEXT---
+${contextText}
+
+Output ONLY valid JSON:
+{
+  "s1_q1a": [{"q": "Question stem", "ans": "Answer key", "m": 2}],
+  "s1_q1b": [{"q": "B1 Transformation of sentences", "ans": "Answer key", "m": 3}, {"q": "B2 Spot the error", "ans": "Answer key", "m": 1}],
+  "s1_q2a": [{"q": "Question stem", "ans": "Answer key", "m": 2}],
+  "s1_q2b": [{"q": "Summary writing prompt", "ans": "Sample summary", "m": 3}],
+  "s1_q2c": [{"q": "Mind mapping prompt", "ans": "Concept map layout", "m": 3}],
+  "s2_q3a": [{"q": "Poetry extract question stem", "ans": "Answer key", "m": 2}],
+  "s2_q3b": [{"q": "Poetic appreciation prompt", "ans": "Appreciation breakdown", "m": 4}]
+}`;
+
+      const responsePass1 = await callLLM(promptEnglishPass1);
+      const parsedPass1 = parseLlmJsonResponse(responsePass1);
+
+      console.log(`🤖 Invoking LLM for English (${fullClassName}) Activity Sheet [Pass 2/2: Section III Writing Skills & Section IV Literary Genre]...`);
+
+      const s4MandateLines = isClass11
+        ? `5. s4_q5a: 2 questions (2m each) on History of English Drama / Literary Genre (MCQ / Match / True-False).
+6. s4_q5b: 2 questions (2m each) on Class 11 Drama/Novel 4.2 (e.g. The Rising of the Moon).
+7. s4_q5c: 2 questions (2m each) on Class 11 Drama/Novel 4.3 (e.g. A Midsummer Night's Dream).
+8. s4_q5d: 2 questions (2m each) on Class 11 Drama/Novel 4.4 (e.g. An Enemy of the People).`
+        : `5. s4_q5a: 2 questions (2m each) on History of Novel (MCQ / Match / True-False).
+6. s4_q5b: 2 questions (2m each) on Novel 4.2: To Sir, With Love.
+7. s4_q5c: 2 questions (2m each) on Novel 4.3: Around the World in Eighty Days.
+8. s4_q5d: 2 questions (2m each) on Novel 4.4: The Sign of Four.`;
+
+      const promptEnglishPass2 = `You are an expert English examination paper author for Maharashtra State Board.
+${subjectDirective}
+TARGET CURRICULUM: ${subject.name} - ${fullClassName} (${chapterNames.join(', ')})
+
+MANDATE FOR SECTION III (WRITING SKILLS - 16 Marks) & SECTION IV (LITERARY GENRE - 16 Marks):
+1. s3_q4a: 3 choices (4m each) for Q.4(A) - Virtual Message OR Statement of Purpose (SOP) OR Group Discussion.
+2. s3_q4b: 3 choices (4m each) for Q.4(B) - Email Writing OR Report Writing OR Framing Interview Questions.
+3. s3_q4c: 3 choices (4m each) for Q.4(C) - Speech Writing OR Compering OR Expansion of Ideas.
+4. s3_q4d: 3 choices (4m each) for Q.4(D) - Film/Book Review OR Blog Writing OR Appeal Writing.
+${s4MandateLines}
+
+---GROUNDED STUDY CONTEXT---
+${contextText}
+
+Output ONLY valid JSON:
+{
+  "s3_q4a": [{"q": "Option 1: Virtual Message", "ans": "Sample answer", "m": 4}, {"q": "Option 2: Statement of Purpose", "ans": "Sample answer", "m": 4}, {"q": "Option 3: Group Discussion", "ans": "Sample answer", "m": 4}],
+  "s3_q4b": [{"q": "Option 1: Email Writing", "ans": "Sample answer", "m": 4}, {"q": "Option 2: Report Writing", "ans": "Sample answer", "m": 4}, {"q": "Option 3: Interview Questions", "ans": "Sample answer", "m": 4}],
+  "s3_q4c": [{"q": "Option 1: Speech Writing", "ans": "Sample answer", "m": 4}, {"q": "Option 2: Compering", "ans": "Sample answer", "m": 4}, {"q": "Option 3: Expansion of Ideas", "ans": "Sample answer", "m": 4}],
+  "s3_q4d": [{"q": "Option 1: Review Writing", "ans": "Sample answer", "m": 4}, {"q": "Option 2: Blog Writing", "ans": "Sample answer", "m": 4}, {"q": "Option 3: Appeal Writing", "ans": "Sample answer", "m": 4}],
+  "s4_q5a": [{"q": "Literary genre question stem", "ans": "Answer key", "m": 2}],
+  "s4_q5b": [{"q": "Literature 4.2 question stem", "ans": "Answer key", "m": 2}],
+  "s4_q5c": [{"q": "Literature 4.3 question stem", "ans": "Answer key", "m": 2}],
+  "s4_q5d": [{"q": "Literature 4.4 question stem", "ans": "Answer key", "m": 2}]
+}`;
+
+      const responsePass2 = await callLLM(promptEnglishPass2);
+      const parsedPass2 = parseLlmJsonResponse(responsePass2);
+
+      const q1a = (parsedPass1.s1_q1a || []).slice(0, 6).map((q, i) => mapRawQuestion(q, 'Section I (Prose)', 'SHORT', 2, `Q.1 (A${i + 1})`));
+      const q1b = (parsedPass1.s1_q1b || []).slice(0, 2).map((q, i) => mapRawQuestion(q, 'Section I (Prose)', 'SHORT', i === 0 ? 3 : 1, `Q.1 (B${i + 1})`));
+      const q2a = (parsedPass1.s1_q2a || []).slice(0, 6).map((q, i) => mapRawQuestion(q, 'Section I (Prose)', 'SHORT', 2, `Q.2 (A${i + 1})`));
+      const q2b = (parsedPass1.s1_q2b || []).slice(0, 1).map((q) => mapRawQuestion(q, 'Section I (Prose)', 'SHORT', 3, 'Q.2 (B)'));
+      const q2c = (parsedPass1.s1_q2c || []).slice(0, 1).map((q) => mapRawQuestion(q, 'Section I (Prose)', 'SHORT', 3, 'Q.2 (C)'));
+
+      const q3a = (parsedPass1.s2_q3a || []).slice(0, 5).map((q, i) => mapRawQuestion(q, 'Section II (Poetry and Appreciation)', 'SHORT', 2, `Q.3 (A${i + 1})`));
+      const q3b = (parsedPass1.s2_q3b || []).slice(0, 1).map((q) => mapRawQuestion(q, 'Section II (Poetry and Appreciation)', 'SHORT', 4, 'Q.3 (B)'));
+
+      const q4a = (parsedPass2.s3_q4a || []).slice(0, 3).map((q, i) => mapRawQuestion(q, 'Section III (Writing Skills)', 'LONG', 4, `Q.4 (A${i + 1})`));
+      const q4b = (parsedPass2.s3_q4b || []).slice(0, 3).map((q, i) => mapRawQuestion(q, 'Section III (Writing Skills)', 'LONG', 4, `Q.4 (B${i + 1})`));
+      const q4c = (parsedPass2.s3_q4c || []).slice(0, 3).map((q, i) => mapRawQuestion(q, 'Section III (Writing Skills)', 'LONG', 4, `Q.4 (C${i + 1})`));
+      const q4d = (parsedPass2.s3_q4d || []).slice(0, 3).map((q, i) => mapRawQuestion(q, 'Section III (Writing Skills)', 'LONG', 4, `Q.4 (D${i + 1})`));
+
+      const q5a = (parsedPass2.s4_q5a || []).slice(0, 2).map((q, i) => mapRawQuestion(q, 'Section IV (Literary Genre - Novel)', 'SHORT', 2, `Q.5 (A${i + 1})`));
+      const q5b = (parsedPass2.s4_q5b || []).slice(0, 2).map((q, i) => mapRawQuestion(q, 'Section IV (Literary Genre - Novel)', 'SHORT', 2, `Q.5 (B${i + 1})`));
+      const q5c = (parsedPass2.s4_q5c || []).slice(0, 2).map((q, i) => mapRawQuestion(q, 'Section IV (Literary Genre - Novel)', 'SHORT', 2, `Q.5 (C${i + 1})`));
+      const q5d = (parsedPass2.s4_q5d || []).slice(0, 2).map((q, i) => mapRawQuestion(q, 'Section IV (Literary Genre - Novel)', 'SHORT', 2, `Q.5 (D${i + 1})`));
+
+      sanitizedQuestions = [
+        ...q1a, ...q1b, ...q2a, ...q2b, ...q2c,
+        ...q3a, ...q3b,
+        ...q4a, ...q4b, ...q4c, ...q4d,
+        ...q5a, ...q5b, ...q5c, ...q5d
+      ];
+    } else {
+      // Standard Official Maharashtra Board Pattern (2-Pass Sectioned Generation)
+      const promptPass1 = `You are an expert examination paper author for ${subject.name}.
 ${subjectDirective}
 TARGET CURRICULUM: ${subject.name} (${chapterNames.join(', ')})
 
@@ -465,7 +585,7 @@ Output ONLY valid JSON:
   "sA_vsa": [{"q": "Question stem", "ans": "Concise answer", "m": 1}]
 }`;
 
-    const promptPass2 = `You are an expert examination paper author for ${subject.name}.
+      const promptPass2 = `You are an expert examination paper author for ${subject.name}.
 ${subjectDirective}
 TARGET CURRICULUM: ${subject.name} (${chapterNames.join(', ')})
 
@@ -484,27 +604,28 @@ Output ONLY valid JSON:
   "sD": [{"q": "4-mark long question stem", "ans": "Detailed derivation or answer", "m": 4}]
 }`;
 
-    console.log(`🤖 Invoking LLM [Pass 1/2: Section A MCQs & VSAs]...`);
-    const responsePass1 = await callLLM(promptPass1);
-    const parsedPass1 = parseLlmJsonResponse(responsePass1);
+      console.log(`🤖 Invoking LLM [Pass 1/2: Section A MCQs & VSAs]...`);
+      const responsePass1 = await callLLM(promptPass1);
+      const parsedPass1 = parseLlmJsonResponse(responsePass1);
 
-    console.log(`🤖 Invoking LLM [Pass 2/2: Section B, C, D Short & Long Questions]...`);
-    const responsePass2 = await callLLM(promptPass2);
-    const parsedPass2 = parseLlmJsonResponse(responsePass2);
+      console.log(`🤖 Invoking LLM [Pass 2/2: Section B, C, D Short & Long Questions]...`);
+      const responsePass2 = await callLLM(promptPass2);
+      const parsedPass2 = parseLlmJsonResponse(responsePass2);
 
-    const mcqList = Array.isArray(parsedPass1.sA_mcq) ? parsedPass1.sA_mcq : (parsedPass1.extracted || []).filter(q => q.opt || q.options);
-    const vsaList = Array.isArray(parsedPass1.sA_vsa) ? parsedPass1.sA_vsa : (parsedPass1.extracted || []).filter(q => !q.opt && !q.options && (q.m === 1 || q.marks === 1));
-    const secBList = Array.isArray(parsedPass2.sB) ? parsedPass2.sB : (parsedPass2.extracted || []).filter(q => q.m === 2 || q.marks === 2);
-    const secCList = Array.isArray(parsedPass2.sC) ? parsedPass2.sC : (parsedPass2.extracted || []).filter(q => q.m === 3 || q.marks === 3);
-    const secDList = Array.isArray(parsedPass2.sD) ? parsedPass2.sD : (parsedPass2.extracted || []).filter(q => q.m === 4 || q.marks === 4);
+      const mcqList = Array.isArray(parsedPass1.sA_mcq) ? parsedPass1.sA_mcq : (parsedPass1.extracted || []).filter(q => q.opt || q.options);
+      const vsaList = Array.isArray(parsedPass1.sA_vsa) ? parsedPass1.sA_vsa : (parsedPass1.extracted || []).filter(q => !q.opt && !q.options && (q.m === 1 || q.marks === 1));
+      const secBList = Array.isArray(parsedPass2.sB) ? parsedPass2.sB : (parsedPass2.extracted || []).filter(q => q.m === 2 || q.marks === 2);
+      const secCList = Array.isArray(parsedPass2.sC) ? parsedPass2.sC : (parsedPass2.extracted || []).filter(q => q.m === 3 || q.marks === 3);
+      const secDList = Array.isArray(parsedPass2.sD) ? parsedPass2.sD : (parsedPass2.extracted || []).filter(q => q.m === 4 || q.marks === 4);
 
-    const finalMcqs = mcqList.slice(0, 10).map((q, i) => mapRawQuestion(q, 'Section A', 'MCQ', 1, `Q1(${i + 1})`));
-    const finalVsas = vsaList.slice(0, 8).map((q, i) => mapRawQuestion(q, 'Section A', 'VERY_SHORT', 1, `Q2(${i + 1})`));
-    const finalSecB = secBList.slice(0, 12).map((q, i) => mapRawQuestion(q, 'Section B', 'SHORT', 2, `Q${3 + i}`));
-    const finalSecC = secCList.slice(0, 12).map((q, i) => mapRawQuestion(q, 'Section C', 'SHORT', 3, `Q${15 + i}`));
-    const finalSecD = secDList.slice(0, 5).map((q, i) => mapRawQuestion(q, 'Section D', 'LONG', 4, `Q${27 + i}`));
+      const finalMcqs = mcqList.slice(0, 10).map((q, i) => mapRawQuestion(q, 'Section A', 'MCQ', 1, `Q1(${i + 1})`));
+      const finalVsas = vsaList.slice(0, 8).map((q, i) => mapRawQuestion(q, 'Section A', 'VERY_SHORT', 1, `Q2(${i + 1})`));
+      const finalSecB = secBList.slice(0, 12).map((q, i) => mapRawQuestion(q, 'Section B', 'SHORT', 2, `Q${3 + i}`));
+      const finalSecC = secCList.slice(0, 12).map((q, i) => mapRawQuestion(q, 'Section C', 'SHORT', 3, `Q${15 + i}`));
+      const finalSecD = secDList.slice(0, 5).map((q, i) => mapRawQuestion(q, 'Section D', 'LONG', 4, `Q${27 + i}`));
 
-    sanitizedQuestions = [...finalMcqs, ...finalVsas, ...finalSecB, ...finalSecC, ...finalSecD];
+      sanitizedQuestions = [...finalMcqs, ...finalVsas, ...finalSecB, ...finalSecC, ...finalSecD];
+    }
   } else {
     // Dynamic Custom Pattern Generation
     const customSections = finalPatternData.sections || [];
@@ -543,7 +664,14 @@ Output ONLY valid JSON matching:
     });
   }
 
-  sanitizedQuestions = sanitizedQuestions.filter(q => q.questionText.length > 0);
+  sanitizedQuestions = sanitizedQuestions
+    .filter(q => q.questionText.length > 0)
+    .map(q => ({
+      ...q,
+      imageUrl: null,
+      diagramUrl: null,
+      diagramTopic: null
+    }));
 
   const contentValidation = validateQuestionContent(sanitizedQuestions, difficulty);
   if (!contentValidation.valid) {
