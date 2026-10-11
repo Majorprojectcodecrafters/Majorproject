@@ -6,7 +6,7 @@ const authSchemas = {
     name: Joi.string().required().min(2).max(100),
     email: Joi.string().email().required(),
     password: Joi.string().required().min(6).max(100),
-    role: Joi.string().valid('ADMIN', 'TEACHER', 'STUDENT').required(),
+    role: Joi.string().valid('TEACHER', 'STUDENT').required(),
     dob: Joi.date().required(),
     // Teacher fields
     education: Joi.when('role', {

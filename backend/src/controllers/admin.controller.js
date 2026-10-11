@@ -70,6 +70,7 @@ exports.getAllUsers = async (req, res) => {
         select: {
           id: true, name: true, email: true,
           role: true, dob: true, createdAt: true,
+          isApproved: true,
           teacher: true,
           student: { include: { class: true, stream: true, enrolledSubjects: { include: { subject: true } } } }
         },
@@ -96,6 +97,7 @@ exports.getUserById = async (req, res) => {
       select: {
         id: true, name: true, email: true,
         role: true, dob: true, createdAt: true,
+        isApproved: true,
         teacher: true,
         student: { include: { class: true, stream: true, enrolledSubjects: { include: { subject: true } } } }
       }
@@ -148,6 +150,21 @@ exports.createUser = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid role' });
     }
 
+    // Only DEVELOPER is allowed to create ADMIN accounts
+    if (role === 'ADMIN' && req.user.role !== 'DEVELOPER') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Only the Developer (System Owner) can create Administrator accounts.'
+      });
+    }
+
+    if (role === 'DEVELOPER') {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot create Developer accounts via this endpoint.'
+      });
+    }
+
     const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existingUser) {
       return res.status(400).json({ success: false, message: 'User email already exists' });
@@ -196,6 +213,7 @@ exports.createUser = async (req, res) => {
         password: hashedPassword,
         role,
         dob: dob ? new Date(dob) : new Date('2005-01-01'),
+        isApproved: true,
 
         ...(role === 'TEACHER' && {
           teacher: {
@@ -849,5 +867,166 @@ exports.updateStudentClass = async (req, res) => {
 
   } catch (error) {
     sendServerError(res, error);
+  }
+};
+
+// ==================== PENDING APPROVALS (TEACHER & STUDENT) ====================
+
+// GET PENDING TEACHERS
+exports.getPendingTeachers = async (req, res) => {
+  try {
+    const pendingTeachers = await prisma.user.findMany({
+      where: {
+        role: 'TEACHER',
+        isApproved: false
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        dob: true,
+        createdAt: true,
+        isApproved: true,
+        teacher: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({ success: true, data: pendingTeachers });
+  } catch (error) {
+    sendServerError(res, error, 'Failed to fetch pending teachers');
+  }
+};
+
+// APPROVE TEACHER
+exports.approveTeacher = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [{ id }, { teacher: { id } }],
+        role: 'TEACHER'
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Teacher account not found' });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: { isApproved: true },
+      select: { id: true, name: true, email: true, role: true, isApproved: true }
+    });
+
+    res.json({
+      success: true,
+      message: `Teacher ${updated.name} has been approved successfully. They can now log in.`,
+      data: updated
+    });
+  } catch (error) {
+    sendServerError(res, error, 'Failed to approve teacher');
+  }
+};
+
+// REJECT TEACHER
+exports.rejectTeacher = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [{ id }, { teacher: { id } }],
+        role: 'TEACHER'
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Teacher account not found' });
+    }
+
+    await prisma.teacher.deleteMany({ where: { userId: user.id } });
+    await prisma.user.delete({ where: { id: user.id } });
+
+    res.json({
+      success: true,
+      message: `Teacher ${user.name} registration has been rejected and removed.`
+    });
+  } catch (error) {
+    sendServerError(res, error, 'Failed to reject teacher');
+  }
+};
+
+// GET PENDING STUDENTS (FOR ADMIN)
+exports.getPendingStudents = async (req, res) => {
+  try {
+    const pendingStudents = await prisma.student.findMany({
+      where: { user: { isApproved: false } },
+      include: {
+        user: { select: { id: true, name: true, email: true, dob: true, isApproved: true, createdAt: true } },
+        class: true,
+        stream: true,
+        enrolledSubjects: { include: { subject: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({ success: true, data: pendingStudents });
+  } catch (error) {
+    sendServerError(res, error, 'Failed to fetch pending students');
+  }
+};
+
+// APPROVE STUDENT (BY ADMIN)
+exports.approveStudent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const student = await prisma.student.findFirst({
+      where: { OR: [{ id }, { userId: id }] },
+      include: { user: true }
+    });
+
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student account not found' });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: student.userId },
+      data: { isApproved: true },
+      select: { id: true, name: true, email: true, role: true, isApproved: true }
+    });
+
+    res.json({
+      success: true,
+      message: `Student ${updated.name} has been approved successfully.`,
+      data: updated
+    });
+  } catch (error) {
+    sendServerError(res, error, 'Failed to approve student');
+  }
+};
+
+// REJECT STUDENT (BY ADMIN)
+exports.rejectStudent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const student = await prisma.student.findFirst({
+      where: { OR: [{ id }, { userId: id }] },
+      include: { user: true }
+    });
+
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student account not found' });
+    }
+
+    await prisma.studentSubject.deleteMany({ where: { studentId: student.id } });
+    await prisma.student.delete({ where: { id: student.id } });
+    await prisma.user.delete({ where: { id: student.userId } });
+
+    res.json({
+      success: true,
+      message: `Student ${student.user?.name} registration has been rejected and removed.`
+    });
+  } catch (error) {
+    sendServerError(res, error, 'Failed to reject student');
   }
 };

@@ -69,6 +69,17 @@ export function AuthProvider({ children }) {
   const register = async (data, rememberMe = false) => {
     try {
       const response = await apiClient.post('/auth/register', data);
+      
+      // If registration requires approval, do not set token or active session
+      if (response.data.requiresApproval) {
+        return {
+          success: true,
+          requiresApproval: true,
+          message: response.data.message || 'Registration submitted! Awaiting approval before login.',
+          user: response.data.data?.user
+        };
+      }
+
       const { user: userData, token: newToken } = response.data.data;
       
       setStoredAuth(newToken, userData, rememberMe);

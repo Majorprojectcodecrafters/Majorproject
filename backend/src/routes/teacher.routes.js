@@ -14,6 +14,9 @@ router.put('/profile', ...isTeacher, teacher.updateProfile);
 router.get('/assigned-classes', ...isTeacher, teacher.getAssignedClasses);
 router.get('/students', ...isTeacher, teacher.getMyStudents);
 router.get('/students/:id', ...isTeacher, teacher.getStudentById);
+router.get('/pending-students', ...isTeacher, teacher.getPendingStudents);
+router.put('/pending-students/:id/approve', ...isTeacher, teacher.approveStudent);
+router.delete('/pending-students/:id', ...isTeacher, teacher.rejectStudent);
 
 // Questions
 router.post('/questions', ...isTeacher, teacher.createQuestion);

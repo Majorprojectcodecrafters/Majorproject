@@ -9,7 +9,7 @@ import { useToast } from '../contexts/ToastContext';
 import Logo from '../components/Logo';
 
 const registerFormSchema = z.object({
-  role: z.enum(['ADMIN', 'TEACHER', 'STUDENT']),
+  role: z.enum(['TEACHER', 'STUDENT']),
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -149,7 +149,12 @@ export default function RegisterPage() {
 
     const result = await registerUser(payload);
     if (result.success) {
-      navigate(roleRoutes[result.user.role] || '/login');
+      if (result.requiresApproval) {
+        showToast(result.message || 'Registration submitted! Awaiting approval before login.', 'success');
+        navigate('/login');
+      } else {
+        navigate(roleRoutes[result.user?.role] || '/login');
+      }
     } else {
       showToast(result.error, 'error');
     }
@@ -176,7 +181,6 @@ export default function RegisterPage() {
               <label className="auth-label">Role</label>
               <select {...register('role')} className="input-field mt-2 w-full">
                 <option value="TEACHER">Teacher</option>
-                <option value="ADMIN">Admin</option>
                 <option value="STUDENT">Student</option>
               </select>
               {fieldError('role')}

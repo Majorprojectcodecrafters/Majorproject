@@ -55,4 +55,13 @@ router.get('/templates',        ...isAdmin, admin.getAllTemplates);
 router.put('/templates/:id',    ...isAdmin, admin.updateTemplate);
 router.delete('/templates/:id', ...isAdmin, admin.deleteTemplate);
 
+// Approvals (Teachers & Students)
+router.get('/pending-teachers',             ...isAdmin, admin.getPendingTeachers);
+router.put('/pending-teachers/:id/approve', ...isAdmin, admin.approveTeacher);
+router.delete('/pending-teachers/:id',      ...isAdmin, admin.rejectTeacher);
+
+router.get('/pending-students',             ...isAdmin, admin.getPendingStudents);
+router.put('/pending-students/:id/approve', ...isAdmin, admin.approveStudent);
+router.delete('/pending-students/:id',      ...isAdmin, admin.rejectStudent);
+
 module.exports = router;

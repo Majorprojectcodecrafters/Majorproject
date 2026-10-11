@@ -38,11 +38,16 @@ const protect = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'User no longer exists' });
     }
 
+    if (user.isApproved === false) {
+      return res.status(403).json({ success: false, message: 'Account is pending approval.' });
+    }
+
     // Attach full user + role-specific profile id
     req.user = {
       id: user.id,
       role: user.role,
       email: user.email,
+      isApproved: user.isApproved,
       teacherId: user.teacher?.id || null,
       studentId: user.student?.id || null
     };
@@ -62,7 +67,8 @@ const protect = async (req, res, next) => {
 
 const authorize = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
+    const isAllowed = roles.includes(req.user.role) || (roles.includes('ADMIN') && req.user.role === 'DEVELOPER');
+    if (!isAllowed) {
       return res.status(403).json({
         success: false,
         message: `Access denied. Required role: ${roles.join(' or ')}`

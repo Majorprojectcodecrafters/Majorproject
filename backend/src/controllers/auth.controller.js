@@ -28,9 +28,12 @@ exports.register = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
     }
 
-    // Validate role
-    if (!['ADMIN', 'TEACHER', 'STUDENT'].includes(role)) {
-      return res.status(400).json({ success: false, message: 'Invalid role' });
+    // Validate role: public registration is ONLY allowed for TEACHER and STUDENT
+    if (!['TEACHER', 'STUDENT'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Direct registration is only permitted for Teachers and Students. Administrator accounts must be created by the System Developer.'
+      });
     }
 
     const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
@@ -81,6 +84,7 @@ exports.register = async (req, res) => {
         password: hashedPassword,
         role,
         dob: new Date(dob || '2005-01-01'),
+        isApproved: false, // New registrations require approval
 
         // Auto-create role profile
         ...(role === 'TEACHER' && {
@@ -120,13 +124,18 @@ exports.register = async (req, res) => {
       }
     });
 
-    const token = generateToken(user);
     const { password: _, resetOtp: __, resetOtpExpires: ___, resetOtpAttempts: ____, ...safeUser } = user;
 
-    // Set HttpOnly cookie
-    res.cookie('token', token, COOKIE_OPTIONS);
+    const approvalMessage = role === 'TEACHER'
+      ? 'Registration submitted successfully! Your teacher account is pending administrator approval before you can log in.'
+      : 'Registration submitted successfully! Your student account is pending approval from your class teacher before you can log in.';
 
-    res.status(201).json({ success: true, data: { user: safeUser, token } });
+    res.status(201).json({
+      success: true,
+      requiresApproval: true,
+      message: approvalMessage,
+      data: { user: safeUser }
+    });
 
   } catch (error) {
     sendServerError(res, error, 'Failed to complete registration');
@@ -165,6 +174,26 @@ exports.login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    // Check account approval status
+    if (user.isApproved === false) {
+      if (user.role === 'TEACHER') {
+        return res.status(403).json({
+          success: false,
+          message: 'Your account is pending administrator approval. Please wait for an administrator to approve your account before logging in.'
+        });
+      }
+      if (user.role === 'STUDENT') {
+        return res.status(403).json({
+          success: false,
+          message: 'Your account is pending approval from your allocated class teacher. Please wait for your teacher to approve your registration before logging in.'
+        });
+      }
+      return res.status(403).json({
+        success: false,
+        message: 'Your account is pending approval. Please contact the system administrator.'
+      });
     }
 
     const token = generateToken(user);

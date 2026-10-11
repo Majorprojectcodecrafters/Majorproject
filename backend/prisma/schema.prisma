@@ -12,6 +12,7 @@ datasource db {
 
 
 enum Role {
+  DEVELOPER
   ADMIN
   TEACHER
   STUDENT
@@ -90,6 +91,7 @@ model User {
   role      Role
   dob       DateTime
   avatarUrl String?
+  isApproved Boolean  @default(true)
 
   resetOtp         String?
   resetOtpExpires  DateTime?

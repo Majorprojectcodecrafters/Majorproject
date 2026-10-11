@@ -3,14 +3,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Skeleton } from '../components/Skeleton';
 
 export default function AdminUserManagementPage() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { t } = useLanguage();
+  const { user: currentUser } = useAuth();
 
-  const [roleFilter, setRoleFilter] = useState(''); // '' | 'TEACHER' | 'STUDENT'
+  const [roleFilter, setRoleFilter] = useState(''); // '' | 'TEACHER' | 'STUDENT' | 'PENDING'
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -110,6 +112,27 @@ export default function AdminUserManagementPage() {
     }
   });
 
+  // Approve User Mutation
+  const approveUserMutation = useMutation({
+    mutationFn: async (targetUser) => {
+      if (targetUser.role === 'TEACHER') {
+        const res = await apiClient.put(`/admin/pending-teachers/${targetUser.id}/approve`);
+        return res.data;
+      } else {
+        const res = await apiClient.put(`/admin/pending-students/${targetUser.id}/approve`);
+        return res.data;
+      }
+    },
+    onSuccess: (data, targetUser) => {
+      showToast(`User "${targetUser.name}" approved successfully! They can now log in.`, 'success');
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['adminUsersList'] });
+    },
+    onError: (err) => {
+      showToast(err.response?.data?.message || 'Failed to approve user', 'error');
+    }
+  });
+
   const resetForm = () => {
     setUserForm({
       name: '',
@@ -158,9 +181,14 @@ export default function AdminUserManagementPage() {
   const totalAllUsers = allUsers.length;
   const totalTeachers = allUsers.filter(u => u.role === 'TEACHER').length;
   const totalStudents = allUsers.filter(u => u.role === 'STUDENT').length;
+  const totalPending = allUsers.filter(u => u.isApproved === false).length;
 
   const filteredUsers = allUsers.filter((u) => {
-    if (roleFilter && u.role !== roleFilter) return false;
+    if (roleFilter === 'PENDING') {
+      if (u.isApproved !== false) return false;
+    } else if (roleFilter && u.role !== roleFilter) {
+      return false;
+    }
     const s = searchTerm.toLowerCase().trim();
     if (!s) return true;
     return (
@@ -194,7 +222,7 @@ export default function AdminUserManagementPage() {
 
       {/* Filter Tabs & Search Bar */}
       <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setRoleFilter('')}
             className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors ${
@@ -218,6 +246,17 @@ export default function AdminUserManagementPage() {
             }`}
           >
             {t('studentsTab', 'Students')} ({totalStudents})
+          </button>
+          <button
+            onClick={() => setRoleFilter('PENDING')}
+            className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 ${
+              roleFilter === 'PENDING' ? 'bg-amber-600 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+            }`}
+          >
+            Pending Approvals ({totalPending})
+            {totalPending > 0 && (
+              <span className={`inline-block w-2 h-2 rounded-full ${roleFilter === 'PENDING' ? 'bg-white' : 'bg-amber-500 animate-pulse'}`} />
+            )}
           </button>
         </div>
 
@@ -265,13 +304,25 @@ export default function AdminUserManagementPage() {
                     </td>
 
                     <td className="py-3 px-4">
-                      <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                        user.role === 'ADMIN' ? 'bg-red-100 text-red-800' :
-                        user.role === 'TEACHER' ? 'bg-purple-100 text-purple-800' :
-                        'bg-blue-100 text-blue-800'
-                      }`}>
-                        {user.role}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                          user.role === 'ADMIN' ? 'bg-red-100 text-red-800' :
+                          user.role === 'DEVELOPER' ? 'bg-indigo-100 text-indigo-800' :
+                          user.role === 'TEACHER' ? 'bg-purple-100 text-purple-800' :
+                          'bg-blue-100 text-blue-800'
+                        }`}>
+                          {user.role}
+                        </span>
+                        {user.isApproved === false ? (
+                          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                            Pending
+                          </span>
+                        ) : (
+                          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Active
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     <td className="py-3 px-4">
@@ -295,6 +346,17 @@ export default function AdminUserManagementPage() {
                     </td>
 
                     <td className="py-3 px-4 text-right space-x-2">
+                      {user.isApproved === false && (
+                        <button
+                          type="button"
+                          onClick={() => approveUserMutation.mutate(user)}
+                          disabled={approveUserMutation.isPending}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm transition-colors"
+                          title="Approve User Registration"
+                        >
+                          Approve
+                        </button>
+                      )}
                       <button
                         onClick={() => handleOpenEdit(user)}
                         className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-xs border"
@@ -351,7 +413,9 @@ export default function AdminUserManagementPage() {
                 >
                   <option value="STUDENT">Student</option>
                   <option value="TEACHER">Teacher</option>
-                  <option value="ADMIN">Admin</option>
+                  {currentUser?.role === 'DEVELOPER' && (
+                    <option value="ADMIN">Admin (Developer Only)</option>
+                  )}
                 </select>
               </div>
 

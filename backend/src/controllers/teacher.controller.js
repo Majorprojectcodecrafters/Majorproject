@@ -90,14 +90,17 @@ exports.getMyStudents = async (req, res) => {
     });
     const assignedClassIds = teacherAssignments.map(a => a.classId);
 
-    // 2. Get students assigned directly or via assigned classes
+    // 2. Get students assigned directly or via assigned classes (only approved students)
     const [directAssignments, classStudents] = await Promise.all([
       prisma.teacherStudent.findMany({
-        where: { teacherId },
+        where: {
+          teacherId,
+          student: { user: { isApproved: true } }
+        },
         include: {
           student: {
             include: {
-              user: { select: { name: true, email: true, dob: true } },
+              user: { select: { name: true, email: true, dob: true, isApproved: true } },
               class: true,
               stream: true
             }
@@ -105,9 +108,12 @@ exports.getMyStudents = async (req, res) => {
         }
       }),
       assignedClassIds.length > 0 ? prisma.student.findMany({
-        where: { classId: { in: assignedClassIds } },
+        where: {
+          classId: { in: assignedClassIds },
+          user: { isApproved: true }
+        },
         include: {
-          user: { select: { name: true, email: true, dob: true } },
+          user: { select: { name: true, email: true, dob: true, isApproved: true } },
           class: true,
           stream: true
         }
@@ -703,5 +709,158 @@ exports.exportExamResultsPdf = async (req, res) => {
 
   } catch (error) {
     sendServerError(res, error);
+  }
+};
+
+// ==================== PENDING STUDENT APPROVALS ====================
+
+// GET PENDING STUDENTS (FOR ALLOCATED CLASSES)
+exports.getPendingStudents = async (req, res) => {
+  try {
+    const teacherId = req.user.teacherId;
+    if (!teacherId) {
+      return res.status(403).json({ success: false, message: 'Teacher profile not found' });
+    }
+
+    // 1. Get class IDs assigned to teacher via TeacherAssignment
+    const teacherAssignments = await prisma.teacherAssignment.findMany({
+      where: { teacherId },
+      select: { classId: true }
+    });
+    const assignedClassIds = Array.from(new Set(teacherAssignments.map(a => a.classId)));
+
+    if (assignedClassIds.length === 0) {
+      return res.json({ success: true, data: [] });
+    }
+
+    // 2. Find unapproved students in these classes
+    const pendingStudents = await prisma.student.findMany({
+      where: {
+        classId: { in: assignedClassIds },
+        user: { isApproved: false }
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true, dob: true, createdAt: true, isApproved: true } },
+        class: true,
+        stream: true,
+        enrolledSubjects: { include: { subject: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({ success: true, data: pendingStudents });
+  } catch (error) {
+    sendServerError(res, error, 'Failed to fetch pending students');
+  }
+};
+
+// APPROVE STUDENT (BY ALLOCATED TEACHER)
+exports.approveStudent = async (req, res) => {
+  try {
+    const teacherId = req.user.teacherId;
+    const { id } = req.params;
+
+    if (!teacherId) {
+      return res.status(403).json({ success: false, message: 'Teacher profile not found' });
+    }
+
+    // 1. Get allocated class IDs
+    const teacherAssignments = await prisma.teacherAssignment.findMany({
+      where: { teacherId },
+      select: { classId: true }
+    });
+    const assignedClassIds = Array.from(new Set(teacherAssignments.map(a => a.classId)));
+
+    // 2. Verify student is in one of teacher's allocated classes and unapproved
+    const student = await prisma.student.findFirst({
+      where: {
+        OR: [{ id }, { userId: id }],
+        classId: { in: assignedClassIds }
+      },
+      include: { user: true }
+    });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found in your allocated classes or not pending approval'
+      });
+    }
+
+    // 3. Mark approved
+    const updatedUser = await prisma.user.update({
+      where: { id: student.userId },
+      data: { isApproved: true },
+      select: { id: true, name: true, email: true, role: true, isApproved: true }
+    });
+
+    // 4. Link teacher and student in TeacherStudent
+    await prisma.teacherStudent.upsert({
+      where: {
+        teacherId_studentId: {
+          teacherId,
+          studentId: student.id
+        }
+      },
+      create: {
+        teacherId,
+        studentId: student.id
+      },
+      update: {}
+    });
+
+    res.json({
+      success: true,
+      message: `Student ${updatedUser.name} has been approved successfully. They can now log in.`,
+      data: updatedUser
+    });
+  } catch (error) {
+    sendServerError(res, error, 'Failed to approve student');
+  }
+};
+
+// REJECT STUDENT (BY ALLOCATED TEACHER)
+exports.rejectStudent = async (req, res) => {
+  try {
+    const teacherId = req.user.teacherId;
+    const { id } = req.params;
+
+    if (!teacherId) {
+      return res.status(403).json({ success: false, message: 'Teacher profile not found' });
+    }
+
+    const teacherAssignments = await prisma.teacherAssignment.findMany({
+      where: { teacherId },
+      select: { classId: true }
+    });
+    const assignedClassIds = Array.from(new Set(teacherAssignments.map(a => a.classId)));
+
+    const student = await prisma.student.findFirst({
+      where: {
+        OR: [{ id }, { userId: id }],
+        classId: { in: assignedClassIds }
+      },
+      include: { user: true }
+    });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found in your allocated classes'
+      });
+    }
+
+    // Remove unapproved student registration
+    await prisma.teacherStudent.deleteMany({ where: { studentId: student.id } });
+    await prisma.studentSubject.deleteMany({ where: { studentId: student.id } });
+    await prisma.student.delete({ where: { id: student.id } });
+    await prisma.user.delete({ where: { id: student.userId } });
+
+    res.json({
+      success: true,
+      message: `Student registration for ${student.user?.name} has been rejected and removed.`
+    });
+  } catch (error) {
+    sendServerError(res, error, 'Failed to reject student');
   }
 };

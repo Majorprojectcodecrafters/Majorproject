@@ -5,6 +5,26 @@ const seed = async () => {
   try {
     console.log('🌱 Starting comprehensive database seeding...\n');
 
+    // 0. Create Developer User
+    const devEmail = 'dipakrathod1511@gmail.com';
+    const devExists = await prisma.user.findUnique({ where: { email: devEmail } });
+    if (!devExists) {
+      const hashedDevPassword = await bcrypt.hash('Dipak@2006', 10);
+      await prisma.user.create({
+        data: {
+          name: 'Developer (System Owner)',
+          email: devEmail,
+          password: hashedDevPassword,
+          role: 'DEVELOPER',
+          isApproved: true,
+          dob: new Date('2006-01-01')
+        }
+      });
+      console.log(`✅ Developer user created (${devEmail})`);
+    } else {
+      console.log('⏭️  Developer user already exists');
+    }
+
     // 1. Create Admin User
     const adminExists = await prisma.user.findUnique({ where: { email: 'admin@school.com' } });
     if (!adminExists) {
