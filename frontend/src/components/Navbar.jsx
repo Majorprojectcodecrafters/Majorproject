@@ -39,9 +39,10 @@ export default function Navbar() {
           <Link 
             to={dashboardRoute} 
             onClick={closeMenu}
-            className="text-2xl font-extrabold text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1.5"
+            className="text-2xl font-extrabold text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-2"
             title="QPGen Dashboard"
           >
+            <img src="/logo.svg" alt="QPGen Logo" className="w-8 h-8 rounded-lg shadow-sm object-contain" />
             <span>{t('brandName', 'QPGen')}</span>
           </Link>
 
