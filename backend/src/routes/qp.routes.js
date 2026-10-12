@@ -10,7 +10,9 @@ router.patch('/:id/publish', protect, authorize('TEACHER'), qpController.publish
 router.delete('/:id',     protect, authorize('TEACHER'), qpController.deleteQP);
 
 // Authenticated users
-router.get('/',           protect, qpController.getAllQP);
-router.get('/:id',        protect, qpController.getQPById);
+router.get('/',                  protect, qpController.getAllQP);
+router.get('/:id',               protect, qpController.getQPById);
+router.get('/:id/export/student', protect, qpController.exportQPStudent);
+router.get('/:id/export/teacher', protect, authorize('TEACHER', 'ADMIN'), qpController.exportQPTeacher);
 
 module.exports = router;

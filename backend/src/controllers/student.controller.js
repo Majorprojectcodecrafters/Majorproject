@@ -337,9 +337,13 @@ exports.exportStudentQP = async (req, res) => {
 
     const pdfBuffer = await exportQPToPDF(qp, false);
 
+    const safeFilename = (qp.title || 'QuestionPaper').replace(/[^a-zA-Z0-9_\-]/g, '_');
+    const encodedTitle = encodeURIComponent(`${qp.title || 'QuestionPaper'}-student.pdf`);
+
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${qp.title}-student.pdf"`);
-    res.send(pdfBuffer);
+    res.setHeader('Content-Disposition', `inline; filename="${safeFilename}-student.pdf"; filename*=UTF-8''${encodedTitle}`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.end(pdfBuffer);
 
   } catch (error) {
     sendServerError(res, error);

@@ -1,12 +1,39 @@
+const fs = require('fs');
+
+function getChromiumExecutablePath() {
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    return process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+  const possiblePaths = [
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/snap/bin/chromium',
+    '/usr/lib/chromium-browser/chromium-browser'
+  ];
+  for (const p of possiblePaths) {
+    try {
+      if (fs.existsSync(p)) return p;
+    } catch (_) {}
+  }
+  return undefined;
+}
+
 /**
  * Generate a clean, professional PDF result sheet for Test Results
  */
 async function generateResultPdf(qp, results) {
   const puppeteer = require('puppeteer');
-  const browser = await puppeteer.launch({
+  const execPath = getChromiumExecutablePath();
+  const launchOptions = {
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+  };
+  if (execPath) {
+    launchOptions.executablePath = execPath;
+  }
+  const browser = await puppeteer.launch(launchOptions);
 
   try {
     const page = await browser.newPage();

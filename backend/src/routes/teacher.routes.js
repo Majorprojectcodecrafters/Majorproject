@@ -5,6 +5,7 @@ const teacher = require('../controllers/teacher.controller');
 const qpController = require('../controllers/qp.controller');
 
 const isTeacher = [protect, authorize('TEACHER')];
+const canAccessQP = [protect, authorize('TEACHER', 'ADMIN')];
 
 // Profile
 router.get('/profile', ...isTeacher, teacher.getProfile);
@@ -27,15 +28,15 @@ router.delete('/questions/:id', ...isTeacher, teacher.deleteQuestion);
 
 // Question Papers (reuse qp.controller)
 router.post('/qp', ...isTeacher, qpController.createQP);
-router.get('/qp', ...isTeacher, qpController.getAllQP);
-router.get('/qp/:id', ...isTeacher, qpController.getQPById);
+router.get('/qp', ...canAccessQP, qpController.getAllQP);
+router.get('/qp/:id', ...canAccessQP, qpController.getQPById);
 router.put('/qp/:id', ...isTeacher, qpController.updateQP);
 router.delete('/qp/:id', ...isTeacher, qpController.deleteQP);
 router.patch('/qp/:id/publish', ...isTeacher, qpController.publishQP);
 
 // Export QP
-router.get('/qp/:id/export/student', ...isTeacher, qpController.exportQPStudent);
-router.get('/qp/:id/export/teacher', ...isTeacher, qpController.exportQPTeacher);
+router.get('/qp/:id/export/student', ...canAccessQP, qpController.exportQPStudent);
+router.get('/qp/:id/export/teacher', ...canAccessQP, qpController.exportQPTeacher);
 
 // Exam Results & Exports
 router.post('/results/exam', ...isTeacher, teacher.createExamResult);

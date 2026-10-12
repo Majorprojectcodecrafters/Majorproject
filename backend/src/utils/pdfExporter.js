@@ -4,21 +4,57 @@ const katex = require('katex');
 
 const LOGO_PATH = path.join(process.cwd(), 'assets', 'logo.jpg');
 
-let browserPromise = null;
+function getChromiumExecutablePath() {
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    return process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+  const possiblePaths = [
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/snap/bin/chromium',
+    '/usr/lib/chromium-browser/chromium-browser',
+    '/usr/bin/brave-browser'
+  ];
+  for (const p of possiblePaths) {
+    try {
+      if (fs.existsSync(p)) return p;
+    } catch (_) {}
+  }
+  return undefined;
+}
 
 async function getSharedBrowser() {
   if (!browserPromise) {
     const puppeteer = require('puppeteer');
-    browserPromise = puppeteer.launch({
+    const execPath = getChromiumExecutablePath();
+    const launchArgs = [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process',
+      '--disable-extensions',
+      '--disable-software-rasterizer'
+    ];
+    const launchOptions = {
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
-    }).catch(err => {
+      args: launchArgs
+    };
+    if (execPath) {
+      launchOptions.executablePath = execPath;
+    }
+    browserPromise = puppeteer.launch(launchOptions).catch(err => {
+      console.error('❌ Failed to launch Puppeteer browser:', err.message);
       browserPromise = null;
       throw err;
     });
   }
   const browser = await browserPromise;
-  if (!browser.connected) {
+  if (!browser || !browser.connected) {
     browserPromise = null;
     return getSharedBrowser();
   }

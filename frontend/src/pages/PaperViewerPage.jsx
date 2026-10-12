@@ -30,8 +30,9 @@ export default function PaperViewerPage() {
 
   const isTeacher = user?.role === 'TEACHER';
   const isAdmin = user?.role === 'ADMIN';
+  const isDev = user?.role === 'DEVELOPER';
   const isStudent = user?.role === 'STUDENT';
-  const canEditOrManage = isTeacher || isAdmin;
+  const canEditOrManage = isTeacher || isAdmin || isDev;
 
   const { data: paper, isLoading, error } = useQuery({
     queryKey: ['paper', paperId],
@@ -42,6 +43,17 @@ export default function PaperViewerPage() {
     },
   });
 
+  const parseBlobError = async (err, defaultMsg) => {
+    try {
+      if (err.response?.data instanceof Blob) {
+        const text = await err.response.data.text();
+        const json = JSON.parse(text);
+        return json.message || defaultMsg;
+      }
+    } catch (_) {}
+    return err.response?.data?.message || err.message || defaultMsg;
+  };
+
   // Download PDF
   const downloadPDF = async (type) => {
     try {
@@ -51,7 +63,7 @@ export default function PaperViewerPage() {
 
       const response = await apiClient.get(endpoint, { responseType: 'blob' });
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `${paper?.title || 'QuestionPaper'}-${type}.pdf`);
@@ -60,7 +72,8 @@ export default function PaperViewerPage() {
       link.parentNode.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      showToast(`Download failed: ${err.response?.data?.message || err.message}`, 'error');
+      const msg = await parseBlobError(err, 'Download failed');
+      showToast(`Download failed: ${msg}`, 'error');
     }
   };
 
@@ -75,7 +88,8 @@ export default function PaperViewerPage() {
       if (previewUrl) window.URL.revokeObjectURL(previewUrl);
       setPreviewUrl(window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' })));
     } catch (err) {
-      showToast(`PDF preview failed: ${err.response?.data?.message || err.message}`, 'error');
+      const msg = await parseBlobError(err, 'PDF preview failed');
+      showToast(`PDF preview failed: ${msg}`, 'error');
     } finally {
       setPreviewing(false);
     }
