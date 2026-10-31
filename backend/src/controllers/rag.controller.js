@@ -392,14 +392,18 @@ exports.streamKnowledgeSourceSecure = async (req, res) => {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
 
-    if (ks.driveFileId) {
-      const stream = await getFileStreamFromDrive(ks.driveFileId);
-      if (stream) {
-        return stream.pipe(res);
+    if (ks.driveFileId && !ks.driveFileId.startsWith('local-') && !ks.driveFileId.startsWith('drive-sync-')) {
+      try {
+        const stream = await getFileStreamFromDrive(ks.driveFileId);
+        if (stream) {
+          return stream.pipe(res);
+        }
+      } catch (err) {
+        console.warn('Drive stream notice:', err.message);
       }
     }
 
-    if (fs.existsSync(ks.filePath)) {
+    if (ks.filePath && fs.existsSync(ks.filePath)) {
       return fs.createReadStream(ks.filePath).pipe(res);
     }
 
@@ -811,9 +815,126 @@ exports.syncDriveToKnowledgeBase = async (req, res) => {
       }
     }
 
+    // Also discover and sync local PDF textbooks and materials in uploads/student_library
+    const uploadDir = path.join(__dirname, '../../uploads/student_library');
+    if (fs.existsSync(uploadDir)) {
+      const localFiles = fs.readdirSync(uploadDir).filter(f => f.toLowerCase().endsWith('.pdf'));
+      for (const localFileName of localFiles) {
+        const fullLocalPath = path.join(uploadDir, localFileName);
+        const cleanName = localFileName.replace(/^\d+_/, '');
+        const searchPath = cleanName.toLowerCase();
+
+        let matchedClass = allClasses.find(c => searchPath.includes(c.name.toLowerCase()));
+        if (!matchedClass) {
+          if (searchPath.includes('11')) {
+            matchedClass = allClasses.find(c => c.name.includes('11'));
+          } else if (searchPath.includes('12') || searchPath.includes('hsc')) {
+            matchedClass = allClasses.find(c => c.name.includes('12'));
+          }
+        }
+
+        let matchedSubject = allSubjects.find(s => searchPath.includes(s.name.toLowerCase()));
+        if (!matchedSubject) {
+          if (searchPath.includes('physics')) {
+            matchedSubject = allSubjects.find(s => s.name.toLowerCase().includes('physics'));
+          } else if (searchPath.includes('chem')) {
+            matchedSubject = allSubjects.find(s => s.name.toLowerCase().includes('chemistry'));
+          } else if (searchPath.includes('bio')) {
+            matchedSubject = allSubjects.find(s => s.name.toLowerCase().includes('biology'));
+          } else if (searchPath.includes('math')) {
+            matchedSubject = allSubjects.find(s => s.name.toLowerCase().includes('math'));
+          } else if (searchPath.includes('english')) {
+            matchedSubject = allSubjects.find(s => s.name.toLowerCase().includes('english'));
+          }
+        }
+
+        let sourceType = 'TEXTBOOK';
+        if (searchPath.includes('note')) sourceType = 'TEACHER_NOTES';
+        else if (searchPath.includes('pyq') || searchPath.includes('board paper')) sourceType = 'PREVIOUS_BOARD_PAPER';
+        else if (searchPath.includes('question bank') || searchPath.includes('reference')) sourceType = 'REFERENCE_MATERIAL';
+
+        const stats = fs.statSync(fullLocalPath);
+
+        const existingKS = await prisma.knowledgeSource.findFirst({
+          where: {
+            OR: [
+              { filePath: fullLocalPath },
+              { fileName: cleanName },
+              { fileName: localFileName }
+            ]
+          }
+        });
+
+        if (!existingKS) {
+          const ks = await prisma.knowledgeSource.create({
+            data: {
+              title: cleanName.replace(/\.pdf$/i, ''),
+              sourceType,
+              fileName: cleanName,
+              filePath: fullLocalPath,
+              fileSize: stats.size,
+              status: 'PROCESSED',
+              uploadedBy: req.user?.id || 'system',
+              description: `Local Academic Resource (${cleanName})`,
+              classId: matchedClass ? matchedClass.id : null,
+              subjectId: matchedSubject ? matchedSubject.id : null,
+              streamId: matchedSubject?.streamId || matchedClass?.streamId || null,
+              sourcePriority: sourceType === 'TEXTBOOK' ? 10 : 7
+            }
+          });
+          mappedSources.push(ks);
+          syncedCount++;
+        } else if (existingKS.status !== 'PROCESSED' || !existingKS.subjectId || !existingKS.filePath) {
+          const updated = await prisma.knowledgeSource.update({
+            where: { id: existingKS.id },
+            data: {
+              status: 'PROCESSED',
+              filePath: fullLocalPath,
+              fileSize: stats.size,
+              classId: matchedClass ? matchedClass.id : existingKS.classId,
+              subjectId: matchedSubject ? matchedSubject.id : existingKS.subjectId,
+              streamId: matchedSubject?.streamId || matchedClass?.streamId || existingKS.streamId
+            }
+          });
+          mappedSources.push(updated);
+        }
+
+        // Ensure studyMaterial entry exists for this local file
+        const existingSM = await prisma.studyMaterial.findFirst({
+          where: {
+            OR: [
+              { fileUrl: fullLocalPath },
+              { fileName: cleanName },
+              { fileName: localFileName }
+            ]
+          }
+        });
+
+        if (!existingSM) {
+          await prisma.studyMaterial.create({
+            data: {
+              title: cleanName.replace(/\.pdf$/i, ''),
+              category: sourceType,
+              description: `Curriculum Resource (${cleanName})`,
+              fileName: cleanName,
+              fileUrl: fullLocalPath,
+              driveFileId: `local-sync-${Date.now()}-${cleanName.replace(/[^a-z0-9]/gi, '_')}`,
+              fileSize: stats.size,
+              mimeType: 'application/pdf',
+              uploadedBy: req.user?.id || 'system',
+              authorName: 'Academic Resource Library',
+              authorRole: 'SYSTEM',
+              classId: matchedClass ? matchedClass.id : null,
+              subjectId: matchedSubject ? matchedSubject.id : null
+            }
+          });
+        }
+      }
+    }
+
     res.json({
       success: true,
-      message: `Successfully mapped ${syncedCount} Google Drive document(s) to Knowledge Base and Study Library.`,
+      message: `Successfully synchronized ${syncedCount} document(s) across Google Drive and Academic Knowledge Base.`,
       syncedCount,
       mappedSourcesCount: mappedSources.length
     });

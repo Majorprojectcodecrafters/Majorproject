@@ -456,25 +456,107 @@ exports.syncDriveMaterials = async (req, res) => {
         { title: 'FYJC 11th Chemistry Notes & Practice Problems', category: 'TEACHER_NOTES', classId: cls11?.id, subjectId: subChemistry?.id, path: 'QpGen_dataset / 11th Science / Chemistry / Notes' }
       ];
 
+      const uploadDir = path.join(__dirname, '../../uploads/student_library');
+      const localFiles = fs.existsSync(uploadDir) ? fs.readdirSync(uploadDir).filter(f => f.toLowerCase().endsWith('.pdf')) : [];
+
       for (const item of defaultItems) {
         const fileId = `drive-sync-${item.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
         const existing = await prisma.studyMaterial.findFirst({ where: { driveFileId: fileId } });
+
+        // Resolve matching real local PDF if present on disk
+        let resolvedFileUrl = `https://drive.google.com/drive/folders/1lt8-tHT6wniWRLwPrsZizWmFCJQ423r3`;
+        let resolvedSize = 1024 * 1024 * 5;
+        let resolvedFileName = `${item.title.toLowerCase().replace(/\s+/g, '_')}.pdf`;
+
+        const titleLower = item.title.toLowerCase();
+        let matchedLocal = null;
+        if (titleLower.includes('physics')) {
+          matchedLocal = localFiles.find(f => f.toLowerCase().includes('physics'));
+        } else if (titleLower.includes('chem')) {
+          matchedLocal = localFiles.find(f => f.toLowerCase().includes('chem'));
+        }
+
+        if (matchedLocal) {
+          const fullPath = path.join(uploadDir, matchedLocal);
+          resolvedFileUrl = fullPath;
+          resolvedFileName = matchedLocal.replace(/^\d+_/, '');
+          try {
+            resolvedSize = fs.statSync(fullPath).size;
+          } catch (_) {}
+        }
+
         if (!existing) {
           await prisma.studyMaterial.create({
             data: {
               title: item.title,
               category: item.category,
               description: item.path,
-              fileName: `${item.title.toLowerCase().replace(/\s+/g, '_')}.pdf`,
-              fileUrl: `https://drive.google.com/drive/folders/1lt8-tHT6wniWRLwPrsZizWmFCJQ423r3`,
+              fileName: resolvedFileName,
+              fileUrl: resolvedFileUrl,
               driveFileId: fileId,
-              fileSize: 1024 * 1024 * 5,
+              fileSize: resolvedSize,
               mimeType: 'application/pdf',
               uploadedBy: req.user.id,
               authorName: 'Google Drive Auto-Sync',
               authorRole: 'SYSTEM',
               classId: item.classId || null,
               subjectId: item.subjectId || null
+            }
+          });
+          syncedCount++;
+        } else if (matchedLocal && (!existing.fileUrl || existing.fileUrl.startsWith('http'))) {
+          await prisma.studyMaterial.update({
+            where: { id: existing.id },
+            data: {
+              fileUrl: resolvedFileUrl,
+              fileName: resolvedFileName,
+              fileSize: resolvedSize
+            }
+          });
+        }
+      }
+
+      // Also ensure any uploaded PDF files in uploads/student_library are synced
+      for (const localFile of localFiles) {
+        const fullPath = path.join(uploadDir, localFile);
+        const cleanName = localFile.replace(/^\d+_/, '');
+        const existingLocal = await prisma.studyMaterial.findFirst({
+          where: {
+            OR: [
+              { fileUrl: fullPath },
+              { fileName: cleanName },
+              { fileName: localFile }
+            ]
+          }
+        });
+
+        if (!existingLocal) {
+          const lower = cleanName.toLowerCase();
+          let targetClassId = cls12?.id;
+          if (lower.includes('11')) targetClassId = cls11?.id;
+
+          let targetSubId = null;
+          if (lower.includes('physics')) targetSubId = subPhysics?.id;
+          else if (lower.includes('chem')) targetSubId = subChemistry?.id;
+          else if (lower.includes('bio')) targetSubId = subBiology?.id;
+          else if (lower.includes('math')) targetSubId = subMath?.id;
+
+          const stats = fs.statSync(fullPath);
+          await prisma.studyMaterial.create({
+            data: {
+              title: cleanName.replace(/\.pdf$/i, ''),
+              category: 'TEXTBOOK',
+              description: `Uploaded Study Resource (${cleanName})`,
+              fileName: cleanName,
+              fileUrl: fullPath,
+              driveFileId: `local-sync-${Date.now()}-${cleanName.replace(/[^a-z0-9]/gi, '_')}`,
+              fileSize: stats.size,
+              mimeType: 'application/pdf',
+              uploadedBy: req.user.id,
+              authorName: 'Academic Resource Library',
+              authorRole: 'SYSTEM',
+              classId: targetClassId || null,
+              subjectId: targetSubId || null
             }
           });
           syncedCount++;
@@ -638,15 +720,13 @@ exports.streamDriveFileSecure = async (req, res) => {
       targetDriveId = material.driveFileId;
     }
 
-    if (!targetDriveId || targetDriveId.startsWith('drive-sync-')) {
-      return res.status(404).json({
-        success: false,
-        message: `Google Drive file ID not resolved for material item: ${id}`
-      });
+    // 2. Fetch File Metadata from Google Drive (if valid Drive ID)
+    let metadata = null;
+    if (targetDriveId && !targetDriveId.startsWith('local-') && !targetDriveId.startsWith('drive-sync-')) {
+      try {
+        metadata = await getFileMetadataFromDrive(targetDriveId);
+      } catch (_) {}
     }
-
-    // 2. Fetch File Metadata from Google Drive
-    const metadata = await getFileMetadataFromDrive(targetDriveId);
     const fileName = metadata?.name || material?.fileName || material?.title || 'study_material.pdf';
 
     let contentType = 'application/pdf';
@@ -659,7 +739,7 @@ exports.streamDriveFileSecure = async (req, res) => {
 
     // 3. Obtain file stream directly from authenticated Google Drive API client or local disk
     let driveStream = null;
-    if (targetDriveId && !targetDriveId.startsWith('local-sim-') && !targetDriveId.startsWith('drive-sync-')) {
+    if (targetDriveId && !targetDriveId.startsWith('local-') && !targetDriveId.startsWith('drive-sync-')) {
       try {
         driveStream = await getFileStreamFromDrive(targetDriveId);
       } catch (err) {
@@ -678,12 +758,24 @@ exports.streamDriveFileSecure = async (req, res) => {
     let foundLocalPath = null;
     if (material?.fileUrl && fs.existsSync(material.fileUrl)) {
       foundLocalPath = material.fileUrl;
-    } else if (material?.fileName) {
+    } else {
       const uploadDir = path.join(__dirname, '../../uploads/student_library');
       if (fs.existsSync(uploadDir)) {
         const files = fs.readdirSync(uploadDir);
-        const match = files.find(f => f.endsWith(material.fileName) || f === material.fileName);
-        if (match) foundLocalPath = path.join(uploadDir, match);
+        if (material?.fileName) {
+          const match = files.find(f => f.endsWith(material.fileName) || f === material.fileName);
+          if (match) foundLocalPath = path.join(uploadDir, match);
+        }
+        if (!foundLocalPath) {
+          const matTitle = `${material?.title || ''} ${material?.description || ''} ${material?.fileName || ''}`.toLowerCase();
+          if (matTitle.includes('physics')) {
+            const physMatch = files.find(f => f.toLowerCase().includes('physics'));
+            if (physMatch) foundLocalPath = path.join(uploadDir, physMatch);
+          } else if (matTitle.includes('chem')) {
+            const chemMatch = files.find(f => f.toLowerCase().includes('chem'));
+            if (chemMatch) foundLocalPath = path.join(uploadDir, chemMatch);
+          }
+        }
       }
     }
 
@@ -696,7 +788,7 @@ exports.streamDriveFileSecure = async (req, res) => {
 
     return res.status(404).json({
       success: false,
-      message: `File stream not available for file ID: ${targetDriveId}`
+      message: `File stream not available for document: ${material?.title || id}`
     });
 
   } catch (error) {
@@ -718,18 +810,16 @@ exports.downloadDriveFileSecure = async (req, res) => {
       targetDriveId = material.driveFileId;
     }
 
-    if (!targetDriveId || targetDriveId.startsWith('drive-sync-')) {
-      return res.status(404).json({
-        success: false,
-        message: `Google Drive file ID not resolved for download: ${id}`
-      });
+    let metadata = null;
+    if (targetDriveId && !targetDriveId.startsWith('local-') && !targetDriveId.startsWith('drive-sync-')) {
+      try {
+        metadata = await getFileMetadataFromDrive(targetDriveId);
+      } catch (_) {}
     }
-
-    const metadata = await getFileMetadataFromDrive(targetDriveId);
-    const fileName = req.query.fileName || metadata?.name || material?.fileName || 'document.pdf';
+    const fileName = req.query.fileName || metadata?.name || material?.fileName || material?.title || 'document.pdf';
 
     let driveStream = null;
-    if (targetDriveId && !targetDriveId.startsWith('local-sim-') && !targetDriveId.startsWith('drive-sync-')) {
+    if (targetDriveId && !targetDriveId.startsWith('local-') && !targetDriveId.startsWith('drive-sync-')) {
       try {
         driveStream = await getFileStreamFromDrive(targetDriveId);
       } catch (err) {
@@ -747,12 +837,24 @@ exports.downloadDriveFileSecure = async (req, res) => {
     let foundDownloadPath = null;
     if (material?.fileUrl && fs.existsSync(material.fileUrl)) {
       foundDownloadPath = material.fileUrl;
-    } else if (material?.fileName) {
+    } else {
       const uploadDir = path.join(__dirname, '../../uploads/student_library');
       if (fs.existsSync(uploadDir)) {
         const files = fs.readdirSync(uploadDir);
-        const match = files.find(f => f.endsWith(material.fileName) || f === material.fileName);
-        if (match) foundDownloadPath = path.join(uploadDir, match);
+        if (material?.fileName) {
+          const match = files.find(f => f.endsWith(material.fileName) || f === material.fileName);
+          if (match) foundDownloadPath = path.join(uploadDir, match);
+        }
+        if (!foundDownloadPath) {
+          const matTitle = `${material?.title || ''} ${material?.description || ''} ${material?.fileName || ''}`.toLowerCase();
+          if (matTitle.includes('physics')) {
+            const physMatch = files.find(f => f.toLowerCase().includes('physics'));
+            if (physMatch) foundDownloadPath = path.join(uploadDir, physMatch);
+          } else if (matTitle.includes('chem')) {
+            const chemMatch = files.find(f => f.toLowerCase().includes('chem'));
+            if (chemMatch) foundDownloadPath = path.join(uploadDir, chemMatch);
+          }
+        }
       }
     }
 
@@ -764,7 +866,7 @@ exports.downloadDriveFileSecure = async (req, res) => {
 
     return res.status(404).json({
       success: false,
-      message: `File download not available for file ID: ${targetDriveId}`
+      message: `File download not available for document: ${material?.title || id}`
     });
 
   } catch (error) {

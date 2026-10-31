@@ -72,7 +72,13 @@ export default function AdminKnowledgeBasePage() {
     setSyncing(true);
     try {
       const res = await apiClient.post('/student-library/sync');
-      const successMsg = res.data?.message || res.data?.data?.message || 'Google Drive Sync Complete!';
+      let ragRes = null;
+      try {
+        ragRes = await apiClient.post('/rag/sync-drive');
+      } catch (ragErr) {
+        console.warn('RAG Knowledge Base sync notice:', ragErr.message);
+      }
+      const successMsg = ragRes?.data?.message || res.data?.message || res.data?.data?.message || 'Google Drive Sync Complete!';
       showToast(successMsg, 'success');
       try {
         await refetchMaterials();
