@@ -230,12 +230,12 @@ exports.getStudyMaterials = async (req, res) => {
     else if (req.user.role === 'TEACHER') {
       const teacher = await prisma.teacher.findUnique({
         where: { userId: req.user.id },
-        include: { teacherAssignments: true }
+        include: { assignments: true }
       });
 
-      if (teacher && teacher.teacherAssignments.length > 0) {
-        const assignedClassIds = Array.from(new Set(teacher.teacherAssignments.map(a => a.classId).filter(Boolean)));
-        const assignedSubjectIds = Array.from(new Set(teacher.teacherAssignments.map(a => a.subjectId).filter(Boolean)));
+      if (teacher && teacher.assignments && teacher.assignments.length > 0) {
+        const assignedClassIds = Array.from(new Set(teacher.assignments.map(a => a.classId).filter(Boolean)));
+        const assignedSubjectIds = Array.from(new Set(teacher.assignments.map(a => a.subjectId).filter(Boolean)));
 
         where.OR = [
           { classId: { in: assignedClassIds } },
@@ -243,9 +243,10 @@ exports.getStudyMaterials = async (req, res) => {
           { classId: null }
         ];
       }
+      if (classId) where.classId = classId;
     }
 
-    // 3. ADMIN SCOPING: Optional query filtering
+    // 3. ADMIN / DEVELOPER SCOPING: Optional query filtering
     else if (classId) {
       where.classId = classId;
     }

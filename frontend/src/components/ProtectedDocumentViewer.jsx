@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react';
 
-export default function ProtectedDocumentViewer({ documentId, title, documentTitle, subjectName, className, onClose }) {
+export default function ProtectedDocumentViewer({
+  documentId,
+  title,
+  documentTitle,
+  subjectName,
+  className,
+  customStreamUrl,
+  customDownloadUrl,
+  onClose
+}) {
   const displayTitle = title || documentTitle || 'Study Material Document';
   const [showWarning, setShowWarning] = useState(false);
 
@@ -27,8 +36,8 @@ export default function ProtectedDocumentViewer({ documentId, title, documentTit
   }, []);
 
   // Direct backend Google Drive stream endpoint (NO EXTERNAL REDIRECTS)
-  const streamUrl = `/api/student-library/materials/${documentId}/view#toolbar=0&navpanes=0&scrollbar=1`;
-  const downloadUrl = `/api/student-library/materials/${documentId}/download?fileName=${encodeURIComponent(displayTitle)}`;
+  const streamUrl = customStreamUrl || `/api/student-library/materials/${documentId}/view#toolbar=0&navpanes=0&scrollbar=1`;
+  const downloadUrl = customDownloadUrl || `/api/student-library/materials/${documentId}/download?fileName=${encodeURIComponent(displayTitle)}`;
 
   return (
     <div

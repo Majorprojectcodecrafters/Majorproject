@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
@@ -11,20 +11,26 @@ export default function AdminKnowledgeBasePage() {
   const { showToast } = useToast();
   const { t } = useLanguage();
 
-  const [activeTab, setActiveTab] = useState('materials'); // 'materials' | 'tree'
+  const [activeTab, setActiveTab] = useState('materials'); // 'materials' | 'rag' | 'tree'
   const [uploading, setUploading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [file, setFile] = useState(null);
   const [activeDocument, setActiveDocument] = useState(null);
 
+  // Upload Form State (independent from table filtering)
   const [formData, setFormData] = useState({
     title: '',
-    category: 'TEXTBOOK', // "TEXTBOOK", "TEACHER_NOTES", "CHAPTER_NOTES", "PREVIOUS_BOARD_PAPER", "REFERENCE_MATERIAL"
+    category: 'TEXTBOOK',
     classId: '',
     subjectId: '',
     description: '',
     indexToRag: true
   });
+
+  // Table Filter State (independent from upload form)
+  const [filterClassId, setFilterClassId] = useState('');
+  const [filterSubjectId, setFilterSubjectId] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
 
   // 1. Fetch Classes
   const { data: classes = [] } = useQuery({
@@ -35,9 +41,9 @@ export default function AdminKnowledgeBasePage() {
     }
   });
 
-  // 2. Fetch Subjects for Selected Class
-  const { data: subjects = [] } = useQuery({
-    queryKey: ['curriculum-subjects', formData.classId],
+  // 2. Fetch Subjects for Form Selected Class
+  const { data: formSubjects = [] } = useQuery({
+    queryKey: ['curriculum-subjects-form', formData.classId],
     queryFn: async () => {
       if (!formData.classId) return [];
       const res = await apiClient.get(`/curriculum/subjects?classId=${formData.classId}`);
@@ -46,19 +52,39 @@ export default function AdminKnowledgeBasePage() {
     enabled: !!formData.classId
   });
 
-  // 3. Fetch Student Library Study Materials
+  // 3. Fetch Subjects for Filter Selected Class
+  const { data: filterSubjects = [] } = useQuery({
+    queryKey: ['curriculum-subjects-filter', filterClassId],
+    queryFn: async () => {
+      if (!filterClassId) return [];
+      const res = await apiClient.get(`/curriculum/subjects?classId=${filterClassId}`);
+      return res.data.data || [];
+    },
+    enabled: !!filterClassId
+  });
+
+  // 4. Fetch Student Library Study Materials (filtered only by table filter state)
   const { data: materials = [], isLoading: materialsLoading, refetch: refetchMaterials } = useQuery({
-    queryKey: ['adminStudyMaterials', formData.classId, formData.subjectId],
+    queryKey: ['adminStudyMaterials', filterClassId, filterSubjectId],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (formData.classId) params.append('classId', formData.classId);
-      if (formData.subjectId) params.append('subjectId', formData.subjectId);
+      if (filterClassId) params.append('classId', filterClassId);
+      if (filterSubjectId) params.append('subjectId', filterSubjectId);
       const res = await apiClient.get(`/student-library/materials?${params.toString()}`);
       return res.data.data || [];
     }
   });
 
-  // 4. Fetch Full Google Drive Folder Tree for Admin
+  // 5. Fetch RAG Knowledge Sources
+  const { data: ragSources = [], isLoading: ragLoading, refetch: refetchRagSources } = useQuery({
+    queryKey: ['adminRagSources'],
+    queryFn: async () => {
+      const res = await apiClient.get('/rag/sources');
+      return res.data.data || [];
+    }
+  });
+
+  // 6. Fetch Full Google Drive Folder Tree for Admin
   const { data: driveTreeData, refetch: refetchDriveTree, isLoading: driveTreeLoading } = useQuery({
     queryKey: ['adminDriveTree'],
     queryFn: async () => {
@@ -66,6 +92,27 @@ export default function AdminKnowledgeBasePage() {
       return res.data.data;
     }
   });
+
+  // Filter materials client-side by category if selected
+  const displayedMaterials = useMemo(() => {
+    if (!filterCategory) return materials;
+    return materials.filter(m => m.category === filterCategory);
+  }, [materials, filterCategory]);
+
+  // Filter RAG sources client-side by class / grade if selected
+  const displayedRagSources = useMemo(() => {
+    let result = ragSources;
+    if (filterClassId) {
+      const cls = classes.find(c => c.id === filterClassId);
+      if (cls) {
+        result = result.filter(s => s.grade?.toLowerCase().includes(cls.name.toLowerCase()) || s.grade?.toLowerCase().includes('12th'));
+      }
+    }
+    if (filterSubjectId) {
+      result = result.filter(s => s.subjectId === filterSubjectId);
+    }
+    return result;
+  }, [ragSources, filterClassId, filterSubjectId, classes]);
 
   // Handle Google Drive Sync
   const handleDriveSync = async () => {
@@ -81,8 +128,7 @@ export default function AdminKnowledgeBasePage() {
       const successMsg = ragRes?.data?.message || res.data?.message || res.data?.data?.message || 'Google Drive Sync Complete!';
       showToast(successMsg, 'success');
       try {
-        await refetchMaterials();
-        await refetchDriveTree();
+        await Promise.all([refetchMaterials(), refetchRagSources(), refetchDriveTree()]);
       } catch (rErr) {
         console.warn('Post-sync refetch notice:', rErr.message);
       }
@@ -114,6 +160,7 @@ export default function AdminKnowledgeBasePage() {
         indexToRag: false
       });
       refetchMaterials();
+      refetchRagSources();
       refetchDriveTree();
     },
     onError: (err) => {
@@ -181,7 +228,7 @@ export default function AdminKnowledgeBasePage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-6">
         {/* Upload Form */}
         <div className="md:col-span-2">
           <div className="card space-y-4 shadow-sm border border-slate-200">
@@ -253,7 +300,7 @@ export default function AdminKnowledgeBasePage() {
                     disabled={!formData.classId}
                   >
                     <option value="">{t('allSubjects', '-- All Subjects --')}</option>
-                    {subjects.map((sub) => (
+                    {formSubjects.map((sub) => (
                       <option key={sub.id} value={sub.id}>
                         {sub.name}
                       </option>
@@ -299,7 +346,7 @@ export default function AdminKnowledgeBasePage() {
                   <span>{t('indexToRagLabel', 'Also index into ChromaDB Vector Store for AI Question Paper Generation')}</span>
                 </label>
                 <p className="text-[11px] text-blue-700 mt-1 pl-6 leading-tight font-medium">
-                  {t('indexToRagHelp', 'Unchecked (Default): Saves cleanly as a Student Library study material on Google Drive without chunking compute overhead.')}
+                  {t('indexToRagHelp', 'Checked: Indexes syllabus topics into ChromaDB vectors so teachers can generate syllabus-aligned exam questions.')}
                 </p>
               </div>
 
@@ -318,16 +365,20 @@ export default function AdminKnowledgeBasePage() {
         <div className="md:col-span-1 space-y-4">
           <div className="card shadow-sm border border-slate-200">
             <h2 className="text-base font-bold text-slate-900 mb-3 border-b border-slate-100 pb-2">
-              {t('googleDriveOverviewTitle', 'Google Drive Storage Overview')}
+              {t('googleDriveOverviewTitle', 'Storage & Knowledge Overview')}
             </h2>
             <div className="space-y-3">
               <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
                 <div className="text-xs text-blue-700 font-bold">{t('syncedStudyMaterials', 'Synced Study Materials')}</div>
                 <div className="text-2xl font-black text-blue-900 mt-0.5">{materials.length}</div>
               </div>
-              <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
-                <div className="text-xs text-blue-700 font-bold">{t('driveSubfoldersExplored', 'Drive Subfolders Explored')}</div>
-                <div className="text-2xl font-black text-blue-900 mt-0.5">{driveTreeData?.folderTree?.length || 0}</div>
+              <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-100">
+                <div className="text-xs text-indigo-700 font-bold">RAG Knowledge Sources</div>
+                <div className="text-2xl font-black text-indigo-900 mt-0.5">{ragSources.length}</div>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="text-xs text-slate-700 font-bold">{t('driveSubfoldersExplored', 'Drive Subfolders Explored')}</div>
+                <div className="text-2xl font-black text-slate-900 mt-0.5">{driveTreeData?.folderTree?.length || 0}</div>
               </div>
             </div>
           </div>
@@ -335,38 +386,113 @@ export default function AdminKnowledgeBasePage() {
       </div>
 
       {/* Navigation Tabs for Admin */}
-      <div className="mt-10 mb-6 flex border-b border-slate-200">
+      <div className="mt-10 mb-4 flex border-b border-slate-200 gap-2">
         <button
           onClick={() => setActiveTab('materials')}
-          className={`py-3 px-6 text-sm font-bold border-b-2 transition-colors ${
+          className={`py-3 px-5 text-sm font-bold border-b-2 transition-colors ${
             activeTab === 'materials'
-              ? 'border-blue-600 text-blue-800 bg-blue-50/50'
+              ? 'border-blue-600 text-blue-800 bg-blue-50/50 rounded-t-lg'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
-          Synced Study Materials ({materials.length})
+          Synced Study Materials ({displayedMaterials.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('rag')}
+          className={`py-3 px-5 text-sm font-bold border-b-2 transition-colors ${
+            activeTab === 'rag'
+              ? 'border-blue-600 text-blue-800 bg-blue-50/50 rounded-t-lg'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          RAG Knowledge Base Sources ({displayedRagSources.length})
         </button>
         <button
           onClick={() => setActiveTab('tree')}
-          className={`py-3 px-6 text-sm font-bold border-b-2 transition-colors ${
+          className={`py-3 px-5 text-sm font-bold border-b-2 transition-colors ${
             activeTab === 'tree'
-              ? 'border-blue-600 text-blue-800 bg-blue-50/50'
+              ? 'border-blue-600 text-blue-800 bg-blue-50/50 rounded-t-lg'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
-          Google Drive Hierarchy Tree ({driveTreeData?.folderTree?.length || 0} Folders)
+          Drive Hierarchy ({driveTreeData?.folderTree?.length || 0} Folders)
         </button>
       </div>
+
+      {/* Dedicated Filter Bar for Table Lists */}
+      {(activeTab === 'materials' || activeTab === 'rag') && (
+        <div className="mb-4 p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-wrap items-center gap-3">
+          <span className="text-xs font-bold text-slate-600">Filter View:</span>
+
+          <select
+            value={filterClassId}
+            onChange={(e) => {
+              setFilterClassId(e.target.value);
+              setFilterSubjectId('');
+            }}
+            className="input-field py-1 px-2.5 text-xs w-auto min-w-[160px]"
+          >
+            <option value="">All Classes / Grades</option>
+            {classes.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+
+          <select
+            value={filterSubjectId}
+            onChange={(e) => setFilterSubjectId(e.target.value)}
+            className="input-field py-1 px-2.5 text-xs w-auto min-w-[150px]"
+            disabled={!filterClassId}
+          >
+            <option value="">All Subjects</option>
+            {filterSubjects.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+
+          {activeTab === 'materials' && (
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="input-field py-1 px-2.5 text-xs w-auto min-w-[150px]"
+            >
+              <option value="">All Categories</option>
+              <option value="TEXTBOOK">Textbooks</option>
+              <option value="TEACHER_NOTES">Teacher Notes</option>
+              <option value="PREVIOUS_BOARD_PAPER">Previous Board Papers</option>
+              <option value="SAMPLE_PAPER">Sample Papers</option>
+              <option value="REFERENCE_MATERIAL">Reference Material</option>
+            </select>
+          )}
+
+          {(filterClassId || filterSubjectId || filterCategory) && (
+            <button
+              onClick={() => {
+                setFilterClassId('');
+                setFilterSubjectId('');
+                setFilterCategory('');
+              }}
+              className="text-xs text-blue-600 hover:text-blue-800 font-semibold underline ml-auto"
+            >
+              Reset Filters
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Tab 1: Synced Study Materials */}
       {activeTab === 'materials' && (
         <div className="card shadow-sm border border-slate-200">
           {materialsLoading ? (
             <Skeleton className="h-48 w-full" />
-          ) : materials.length === 0 ? (
+          ) : displayedMaterials.length === 0 ? (
             <div className="text-center py-12 text-slate-500">
-              <p className="font-semibold text-slate-700">No study materials found in Google Drive</p>
-              <p className="text-xs text-slate-500 mt-1">Click "Sync Connected Google Drive" to discover uploaded textbooks and notes.</p>
+              <p className="font-semibold text-slate-700">No study materials match the criteria</p>
+              <p className="text-xs text-slate-500 mt-1">
+                {materials.length === 0
+                  ? 'Click "Sync Google Drive" to discover uploaded textbooks and notes.'
+                  : 'Try resetting the filter to view all study materials.'}
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -382,7 +508,7 @@ export default function AdminKnowledgeBasePage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-800 text-xs">
-                  {materials.map((item) => (
+                  {displayedMaterials.map((item) => (
                     <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="py-3 px-4 font-bold text-slate-900">
                         {item.title}
@@ -410,7 +536,14 @@ export default function AdminKnowledgeBasePage() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             type="button"
-                            onClick={() => setActiveDocument(item)}
+                            onClick={() => setActiveDocument({
+                              id: item.id,
+                              title: item.title,
+                              fileUrl: item.fileUrl,
+                              driveFileId: item.driveFileId,
+                              customStreamUrl: `/api/student-library/materials/${item.id}/view#toolbar=0&navpanes=0&scrollbar=1`,
+                              customDownloadUrl: `/api/student-library/materials/${item.id}/download?fileName=${encodeURIComponent(item.title)}`
+                            })}
                             className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200 rounded-lg transition-colors inline-flex items-center justify-center shadow-sm"
                             title="View Document"
                           >
@@ -443,7 +576,81 @@ export default function AdminKnowledgeBasePage() {
         </div>
       )}
 
-      {/* Tab 2: Full Google Drive Hierarchy Tree */}
+      {/* Tab 2: RAG Knowledge Base Sources */}
+      {activeTab === 'rag' && (
+        <div className="card shadow-sm border border-slate-200">
+          {ragLoading ? (
+            <Skeleton className="h-48 w-full" />
+          ) : displayedRagSources.length === 0 ? (
+            <div className="text-center py-12 text-slate-500">
+              <p className="font-semibold text-slate-700">No RAG Knowledge Sources found</p>
+              <p className="text-xs text-slate-500 mt-1">Upload textbooks with "Also index into ChromaDB" checked or click "Sync Google Drive".</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm border-collapse">
+                <thead>
+                  <tr className="border-b bg-slate-50 text-slate-700 text-xs uppercase tracking-wider font-bold">
+                    <th className="py-3 px-4">Title / Source</th>
+                    <th className="py-3 px-4">Subject</th>
+                    <th className="py-3 px-4">Grade</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4">Chunks</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-800 text-xs">
+                  {displayedRagSources.map((source) => (
+                    <tr key={source.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3 px-4 font-bold text-slate-900">
+                        {source.title}
+                        <span className="block font-mono text-[10px] text-slate-400 font-normal">{source.filePath}</span>
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-slate-700">
+                        {source.subject?.name || 'General'}
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-slate-700">
+                        {source.grade || '12th'}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                          source.status === 'PROCESSED' ? 'bg-emerald-100 text-emerald-800' :
+                          source.status === 'PROCESSING' ? 'bg-amber-100 text-amber-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {source.status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 font-mono font-bold text-slate-700">
+                        {source.chunksCount || 0}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => setActiveDocument({
+                            id: source.id,
+                            title: source.title,
+                            customStreamUrl: `/api/rag/sources/${source.id}/view-secure#toolbar=0&navpanes=0&scrollbar=1`,
+                            customDownloadUrl: `/api/rag/sources/${source.id}/download?fileName=${encodeURIComponent(source.title)}`
+                          })}
+                          className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200 rounded-lg transition-colors inline-flex items-center justify-center shadow-sm"
+                          title="View Source Document"
+                        >
+                          <svg className="w-4 h-4 text-slate-700 fill-current" viewBox="0 0 24 24">
+                            <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab 3: Full Google Drive Hierarchy Tree */}
       {activeTab === 'tree' && (
         <div className="card shadow-sm border border-slate-200">
           <h3 className="font-bold text-slate-900 mb-4">
@@ -454,7 +661,7 @@ export default function AdminKnowledgeBasePage() {
           ) : !driveTreeData?.folderTree || driveTreeData.folderTree.length === 0 ? (
             <p className="text-sm text-slate-500">No subfolders detected in Google Drive root folder.</p>
           ) : (
-            <div className="space-y-2 font-mono text-xs text-slate-700 bg-slate-900 text-slate-100 p-6 rounded-xl overflow-x-auto shadow-inner">
+            <div className="space-y-2 font-mono text-xs bg-slate-900 text-slate-100 p-6 rounded-xl overflow-x-auto shadow-inner">
               <div className="text-emerald-400 font-bold mb-3">ROOT: Google Drive [1lt8-tHT6wniWRLwPrsZizWmFCJQ423r3]</div>
               {driveTreeData.folderTree.map((folder) => (
                 <div key={folder.id} className="hover:text-emerald-300 transition-colors flex items-center gap-2 py-1">
@@ -471,8 +678,8 @@ export default function AdminKnowledgeBasePage() {
         <ProtectedDocumentViewer
           documentId={activeDocument.id}
           documentTitle={activeDocument.title}
-          fileUrl={activeDocument.fileUrl}
-          driveFileId={activeDocument.driveFileId}
+          customStreamUrl={activeDocument.customStreamUrl}
+          customDownloadUrl={activeDocument.customDownloadUrl}
           onClose={() => setActiveDocument(null)}
         />
       )}
