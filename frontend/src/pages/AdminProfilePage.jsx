@@ -126,7 +126,7 @@ export default function AdminProfilePage() {
             <button
               type="button"
               onClick={handleLogout}
-              className="w-full py-2.5 px-4 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 hover:text-red-700 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors shadow-xs"
+              className="w-full py-2.5 px-4 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 hover:text-red-700 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"
             >
               <span>{t('logoutFromAccount', 'Logout from Account')}</span>
             </button>

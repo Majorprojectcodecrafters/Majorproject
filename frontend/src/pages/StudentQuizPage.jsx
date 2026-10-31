@@ -112,21 +112,21 @@ export default function StudentQuizPage() {
           {!isLoading && !error && quizzes.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {quizzes.map(q => (
-                <div key={q.id} className="border rounded-lg p-5 bg-gray-50/50 hover:bg-white transition-all space-y-3">
+                <div key={q.id} className="card p-5 space-y-3">
                   <div className="flex justify-between items-start">
-                    <span className="badge badge-info">{q.subject}</span>
-                    <span className="text-xs text-gray-500">{q.durationMins} Mins</span>
+                    <span className="badge badge-neutral">{q.subject}</span>
+                    <span className="text-xs text-slate-500">{q.durationMins} Mins</span>
                   </div>
 
-                  <h3 className="text-lg font-bold text-gray-900">{q.title}</h3>
-                  <p className="text-xs text-gray-600">
-                    Teacher: <strong>{q.teacherName}</strong> | {q.questionCount} Questions ({q.totalMarks} Marks)
+                  <h3 className="text-base font-semibold text-slate-900">{q.title}</h3>
+                  <p className="text-xs text-slate-500">
+                    Teacher: <strong className="text-slate-700">{q.teacherName}</strong> &bull; {q.questionCount} Questions ({q.totalMarks} Marks)
                   </p>
 
-                  <div className="pt-2 border-t flex items-center justify-between">
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
                     {q.attempted ? (
-                      <span className="text-xs font-bold text-green-700 bg-green-100 px-3 py-1 rounded">
-                        ✓ Attempted ({q.myAttempt?.score} / {q.myAttempt?.totalMarks})
+                      <span className="badge badge-success text-xs">
+                        Completed ({q.myAttempt?.score} / {q.myAttempt?.totalMarks})
                       </span>
                     ) : (
                       <button
@@ -135,7 +135,7 @@ export default function StudentQuizPage() {
                           setSelectedAnswers({});
                           setQuizResult(null);
                         }}
-                        className="btn-primary py-1.5 text-xs"
+                        className="btn-primary btn-xs"
                       >
                         Start Quiz
                       </button>
@@ -152,25 +152,25 @@ export default function StudentQuizPage() {
       {activeQuizId && quizDetail && (
         <div className="space-y-6">
           {/* Top Bar */}
-          <div className="card bg-blue-900 text-white flex flex-wrap items-center justify-between gap-4 p-4">
+          <div className="card bg-slate-900 text-white flex flex-wrap items-center justify-between gap-4 p-4 border border-slate-800">
             <div>
               <button
                 onClick={() => {
                   setActiveQuizId(null);
                   setQuizResult(null);
                 }}
-                className="text-xs font-semibold text-blue-200 hover:text-white mb-1"
+                className="text-xs text-slate-400 hover:text-white mb-1 transition-colors"
               >
                 ← Exit to Quiz List
               </button>
-              <h2 className="text-xl font-bold">{quizDetail.title}</h2>
-              <p className="text-xs text-blue-200">{quizDetail.subject} • {quizDetail.teacherName}</p>
+              <h2 className="text-base font-bold text-white">{quizDetail.title}</h2>
+              <p className="text-xs text-slate-400">{quizDetail.subject} &bull; {quizDetail.teacherName}</p>
             </div>
 
             {!quizResult && !quizDetail.alreadyAttempted && (
-              <div className="bg-blue-800 px-4 py-2 rounded-lg text-center border border-blue-700">
-                <div className="text-[10px] text-blue-300 uppercase font-semibold">Time Remaining</div>
-                <div className="text-xl font-mono font-bold text-amber-300">{formatTimer(timeLeft)}</div>
+              <div className="bg-slate-800 px-3.5 py-1.5 rounded-lg text-center border border-slate-700">
+                <div className="text-[10px] text-slate-400 uppercase font-semibold">Time Remaining</div>
+                <div className="text-base font-mono font-bold text-white">{formatTimer(timeLeft)}</div>
               </div>
             )}
           </div>

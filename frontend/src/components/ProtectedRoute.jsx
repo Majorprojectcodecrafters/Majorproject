@@ -9,7 +9,7 @@ export default function ProtectedRoute({ children, allowedRoles }) {
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <div className="spinner mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-slate-500 text-sm">Loading...</p>
         </div>
       </div>
     );
@@ -19,7 +19,12 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
+  const hasAccess =
+    !allowedRoles ||
+    allowedRoles.includes(user.role) ||
+    (user.role === 'DEVELOPER' && (allowedRoles.includes('ADMIN') || allowedRoles.includes('TEACHER')));
+
+  if (!hasAccess) {
     return <Navigate to="/unauthorized" replace />;
   }
 

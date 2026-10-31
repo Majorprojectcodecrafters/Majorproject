@@ -313,33 +313,33 @@ export default function PaperViewerPage() {
             const isMcq = (q.options && q.options.length > 0) || q.questionType === 'MCQ' || q.type === 'MCQ';
 
             return (
-              <div key={q.id || idx} className="card relative border-l-4 border-blue-600">
+              <div key={q.id || idx} className="card relative border border-slate-200">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-start gap-2">
-                      <span className="font-bold text-gray-900">Q{idx + 1}.</span>
+                      <span className="font-bold text-slate-900">Q{idx + 1}.</span>
                       <h3
-                        className="font-semibold text-gray-900 text-base"
+                        className="font-semibold text-slate-900 text-base"
                         dangerouslySetInnerHTML={{ __html: formatScientificText(q.questionText) }}
                       />
                     </div>
 
                     {/* Optional Figure / Diagram Image for Biology or Physics/Chemistry */}
                     {(q.imageUrl || q.diagramUrl) && (
-                      <div className="mt-3 overflow-hidden rounded-lg border border-gray-200 bg-gray-50 p-3 text-center">
+                      <div className="mt-3 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-3 text-center">
                         <img
                           src={q.imageUrl || q.diagramUrl}
                           alt={`Diagram for Q${idx + 1}`}
                           className="mx-auto max-h-64 object-contain rounded shadow-sm"
                         />
-                        <p className="mt-1 text-xs text-gray-500 italic">Figure for Question {idx + 1}</p>
+                        <p className="mt-1 text-xs text-slate-500 italic">Figure for Question {idx + 1}</p>
                       </div>
                     )}
 
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                      <span className="badge badge-info">{q.marks} Mark{q.marks > 1 ? 's' : ''}</span>
+                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-xs">
+                      <span className="badge badge-neutral">{q.marks} Mark{q.marks > 1 ? 's' : ''}</span>
                       <span className="badge badge-warning">{q.difficulty}</span>
-                      {q.questionType && <span className="badge bg-gray-100 text-gray-800">{q.questionType}</span>}
+                      {q.questionType && <span className="badge badge-neutral">{q.questionType}</span>}
                     </div>
                   </div>
 
@@ -347,7 +347,7 @@ export default function PaperViewerPage() {
                     <button
                       type="button"
                       onClick={() => openEditModal(q)}
-                      className="rounded bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition-colors"
+                      className="btn-xs btn-secondary shrink-0"
                     >
                       Edit Question
                     </button>
@@ -356,11 +356,11 @@ export default function PaperViewerPage() {
 
                 {/* Options for MCQ */}
                 {isMcq && q.options && q.options.length > 0 && (
-                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 rounded bg-gray-50 p-3 text-sm">
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-lg bg-slate-50/80 p-3 text-sm border border-slate-200/60">
                     {q.options.map((opt, i) => (
                       <div
                         key={i}
-                        className="text-gray-700 font-medium"
+                        className="text-slate-700 font-medium"
                         dangerouslySetInnerHTML={{ __html: formatScientificText(opt) }}
                       />
                     ))}

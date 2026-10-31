@@ -36,28 +36,28 @@ export default function StudentAnnouncementsPage() {
       {!isLoading && !error && announcements.length > 0 && (
         <div className="space-y-6">
           {announcements.map((a) => (
-            <div key={a.id} className="card space-y-4 border-l-4 border-blue-600">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2">
+            <div key={a.id} className="card space-y-4 border border-slate-200">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
                 <div className="flex items-center gap-2">
-                  <span className="badge badge-info">{a.authorRole}</span>
-                  <span className="text-xs text-gray-500">By <strong>{a.authorName}</strong></span>
+                  <span className="badge badge-neutral">{a.authorRole}</span>
+                  <span className="text-xs text-slate-500">By <strong className="font-semibold text-slate-800">{a.authorName}</strong></span>
                   {a.class ? (
-                    <span className="badge bg-purple-100 text-purple-900 font-bold text-[10px]">
+                    <span className="badge badge-info text-[10px]">
                       Class: {a.class.name}
                     </span>
                   ) : (
-                    <span className="badge bg-green-100 text-green-900 font-bold text-[10px]">
-                      BROADCAST TO ALL
+                    <span className="badge badge-success text-[10px]">
+                      Broadcast to All
                     </span>
                   )}
                 </div>
 
-                <div className="text-xs text-gray-400 font-mono">
+                <div className="text-xs text-slate-400">
                   {new Date(a.createdAt).toLocaleDateString()} {new Date(a.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
               </div>
 
-              <h2 className="text-xl font-bold text-gray-900">{a.title}</h2>
+              <h2 className="text-lg font-bold text-slate-900">{a.title}</h2>
               <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
                 {a.content}
               </div>

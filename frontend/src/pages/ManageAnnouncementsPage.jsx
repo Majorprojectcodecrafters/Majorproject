@@ -17,11 +17,11 @@ export default function ManageAnnouncementsPage() {
   const [file, setFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // 1. Fetch Teacher Assigned Classes (or All Classes if Admin)
+  // 1. Fetch Teacher Assigned Classes (or All Classes if Admin / Developer)
   const { data: assignedClasses = [] } = useQuery({
     queryKey: ['teacherAssignedClassesNotice'],
     queryFn: async () => {
-      if (user?.role === 'ADMIN') {
+      if (user?.role === 'ADMIN' || user?.role === 'DEVELOPER') {
         const res = await apiClient.get('/admin/classes');
         return (res.data.data || []).map(c => ({ class: c }));
       }
@@ -121,7 +121,7 @@ export default function ManageAnnouncementsPage() {
             className="input-field bg-white mt-1"
             required={user?.role === 'TEACHER'}
           >
-            <option value="">{user?.role === 'ADMIN' ? '-- Broadcast to All Classes --' : '-- Select Target Assigned Class --'}</option>
+            <option value="">{(user?.role === 'ADMIN' || user?.role === 'DEVELOPER') ? '-- Broadcast to All Classes --' : '-- Select Target Assigned Class --'}</option>
             {assignedClasses.map((ac, idx) => (
               <option key={ac.class?.id || idx} value={ac.class?.id}>
                 Class: {ac.class?.name} ({ac.class?.academicYear})

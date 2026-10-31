@@ -199,73 +199,70 @@ export default function AdminUserManagementPage() {
   });
 
   return (
-    <div className="container max-w-6xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 select-none">
       {/* Header Banner */}
-      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl"></span>
-            <h1 className="text-2xl font-bold text-gray-900">{t('userManagementTitle', 'User Management (Teachers & Students)')}</h1>
-          </div>
-          <p className="text-sm text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('userManagementTitle', 'User Management')}</h1>
+          <p className="text-sm text-slate-500 font-normal mt-1">
             {t('userManagementSubtitle', 'Manage teacher profiles, student class allocations, credentials, and accounts.')}
           </p>
         </div>
 
         <button
           onClick={() => { resetForm(); setShowAddModal(true); }}
-          className="btn-primary flex items-center gap-2 text-xs font-bold py-2.5 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm"
+          className="btn-primary"
         >
-          {t('addNewUserBtn', '+ Add New User (Teacher / Student)')}
+          {t('addNewUserBtn', '+ Add User')}
         </button>
       </div>
 
       {/* Filter Tabs & Search Bar */}
-      <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/70 p-3 rounded-xl border border-slate-200">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <button
             onClick={() => setRoleFilter('')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors ${
-              roleFilter === '' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+            className={`btn-sm ${
+              roleFilter === '' ? 'btn-primary' : 'btn-secondary'
             }`}
           >
             {t('allUsersTab', 'All Users')} ({totalAllUsers})
           </button>
           <button
             onClick={() => setRoleFilter('TEACHER')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors ${
-              roleFilter === 'TEACHER' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+            className={`btn-sm ${
+              roleFilter === 'TEACHER' ? 'btn-primary' : 'btn-secondary'
             }`}
           >
             {t('teachersTab', 'Teachers')} ({totalTeachers})
           </button>
           <button
             onClick={() => setRoleFilter('STUDENT')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors ${
-              roleFilter === 'STUDENT' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+            className={`btn-sm ${
+              roleFilter === 'STUDENT' ? 'btn-primary' : 'btn-secondary'
             }`}
           >
             {t('studentsTab', 'Students')} ({totalStudents})
           </button>
           <button
             onClick={() => setRoleFilter('PENDING')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 ${
-              roleFilter === 'PENDING' ? 'bg-amber-600 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+            className={`btn-sm flex items-center gap-1.5 ${
+              roleFilter === 'PENDING' ? 'btn-primary' : 'btn-secondary'
             }`}
           >
             Pending Approvals ({totalPending})
             {totalPending > 0 && (
-              <span className={`inline-block w-2 h-2 rounded-full ${roleFilter === 'PENDING' ? 'bg-white' : 'bg-amber-500 animate-pulse'}`} />
+              <span className={`inline-block w-1.5 h-1.5 rounded-full ${roleFilter === 'PENDING' ? 'bg-amber-300' : 'bg-amber-500'}`} />
             )}
           </button>
         </div>
 
         <input
           type="text"
-          placeholder={t('searchUserPlaceholder', 'Search by name, email, or Student ID...')}
+          placeholder={t('searchUserPlaceholder', 'Search name, email, or Student ID...')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="input-field max-w-xs text-xs py-2 bg-white"
+          className="input-field sm:max-w-xs text-xs py-1.5"
         />
       </div>
 
@@ -275,29 +272,28 @@ export default function AdminUserManagementPage() {
           <Skeleton className="h-64 w-full" />
         ) : filteredUsers.length === 0 ? (
           <div className="text-center py-12 text-slate-500">
-            <span className="text-4xl block mb-2"></span>
-            <p className="font-semibold text-slate-700">{t('noUsersFoundFilter', 'No users found matching your filter criteria.')}</p>
+            <p className="font-semibold text-slate-700 text-sm">{t('noUsersFoundFilter', 'No users found matching your filter criteria.')}</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="table-responsive-container">
             <table className="w-full text-left text-sm border-collapse">
               <thead>
-                <tr className="border-b bg-slate-50 text-slate-700 text-xs uppercase tracking-wider font-bold">
-                  <th className="py-3 px-4">{t('userDetailsCol', 'USER DETAILS')}</th>
-                  <th className="py-3 px-4">{t('roleCol', 'ROLE')}</th>
-                  <th className="py-3 px-4">{t('classDetailsCol', 'CLASS / DETAILS')}</th>
-                  <th className="py-3 px-4">{t('createdDateCol', 'CREATED DATE')}</th>
-                  <th className="py-3 px-4 text-right">{t('actionsCol', 'ACTIONS')}</th>
+                <tr className="border-b border-slate-200 bg-slate-50/75 text-slate-600 text-xs font-semibold">
+                  <th className="py-3 px-4">{t('userDetailsCol', 'User Details')}</th>
+                  <th className="py-3 px-4">{t('roleCol', 'Role & Status')}</th>
+                  <th className="py-3 px-4">{t('classDetailsCol', 'Class / Education')}</th>
+                  <th className="py-3 px-4">{t('createdDateCol', 'Registered')}</th>
+                  <th className="py-3 px-4 text-right">{t('actionsCol', 'Actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-800 text-xs">
                 {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3 px-4 font-bold text-slate-900">
+                  <tr key={user.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="py-3 px-4 font-semibold text-slate-900">
                       {user.name}
                       <span className="block text-[11px] text-slate-500 font-normal">{user.email}</span>
                       {user.student?.uniqueId && (
-                        <span className="inline-block mt-0.5 font-mono text-[10px] text-blue-700 font-bold bg-blue-50 px-1.5 py-0.5 rounded">
+                        <span className="inline-block mt-0.5 font-mono text-[10px] text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
                           ID: {user.student.uniqueId}
                         </span>
                       )}
@@ -305,20 +301,20 @@ export default function AdminUserManagementPage() {
 
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                          user.role === 'ADMIN' ? 'bg-red-100 text-red-800' :
-                          user.role === 'DEVELOPER' ? 'bg-indigo-100 text-indigo-800' :
-                          user.role === 'TEACHER' ? 'bg-purple-100 text-purple-800' :
-                          'bg-blue-100 text-blue-800'
+                        <span className={`badge ${
+                          user.role === 'ADMIN' ? 'bg-slate-900 text-white' :
+                          user.role === 'DEVELOPER' ? 'bg-indigo-900 text-white' :
+                          user.role === 'TEACHER' ? 'badge-info' :
+                          'badge-neutral'
                         }`}>
                           {user.role}
                         </span>
                         {user.isApproved === false ? (
-                          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                          <span className="badge badge-warning">
                             Pending
                           </span>
                         ) : (
-                          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="badge badge-success">
                             Active
                           </span>
                         )}
@@ -328,12 +324,12 @@ export default function AdminUserManagementPage() {
                     <td className="py-3 px-4">
                       {user.role === 'STUDENT' ? (
                         <div>
-                          <p className="font-semibold text-slate-800">{user.student?.class?.name || t('unassignedClass', 'Unassigned Class')}</p>
+                          <p className="font-medium text-slate-800">{user.student?.class?.name || t('unassignedClass', 'Unassigned Class')}</p>
                           <p className="text-[10px] text-slate-400">Contact: {user.student?.contact || 'N/A'}</p>
                         </div>
                       ) : user.role === 'TEACHER' ? (
                         <div>
-                          <p className="font-semibold text-slate-800">{user.teacher?.education || 'N/A'}</p>
+                          <p className="font-medium text-slate-800">{user.teacher?.education || 'N/A'}</p>
                           <p className="text-[10px] text-slate-400">Experience: {user.teacher?.experienceYears || 0} {t('experienceUnit', 'yrs')}</p>
                         </div>
                       ) : (
@@ -345,38 +341,38 @@ export default function AdminUserManagementPage() {
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
 
-                    <td className="py-3 px-4 text-right space-x-2">
-                      {user.isApproved === false && (
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {user.isApproved === false && (
+                          <button
+                            type="button"
+                            onClick={() => approveUserMutation.mutate(user)}
+                            disabled={approveUserMutation.isPending}
+                            className="btn-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm"
+                            title="Approve User Registration"
+                          >
+                            Approve
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleOpenEdit(user)}
+                          className="btn-xs btn-secondary"
+                        >
+                          {t('editBtn', 'Edit')}
+                        </button>
                         <button
                           type="button"
-                          onClick={() => approveUserMutation.mutate(user)}
-                          disabled={approveUserMutation.isPending}
-                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm transition-colors"
-                          title="Approve User Registration"
+                          onClick={() => {
+                            if (window.confirm(`Delete user account "${user.name}" (${user.email})?`)) {
+                              deleteMutation.mutate(user.id);
+                            }
+                          }}
+                          className="btn-xs text-rose-600 hover:text-rose-800 hover:bg-rose-50 border border-slate-200"
+                          title="Delete User"
                         >
-                          Approve
+                          Delete
                         </button>
-                      )}
-                      <button
-                        onClick={() => handleOpenEdit(user)}
-                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-xs border"
-                      >
-                        {t('editBtn', 'Edit')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (window.confirm(`Delete user account "${user.name}" (${user.email})?`)) {
-                            deleteMutation.mutate(user.id);
-                          }
-                        }}
-                        className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 border border-red-200 rounded-lg transition-colors inline-flex items-center justify-center shadow-xs"
-                        title="Delete User"
-                      >
-                        <svg className="w-4 h-4 text-red-600 fill-current" viewBox="0 0 24 24">
-                          <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-                        </svg>
-                      </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -158,10 +158,10 @@ export default function AdminKnowledgeBasePage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 select-none">
       {/* Top Header */}
-      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+      <div className="border-b border-slate-200 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{t('adminKnowledgeBaseTitle', 'Student Library & Google Drive Explorer')}</h1>
-          <p className="text-sm text-slate-500 font-medium mt-1">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('adminKnowledgeBaseTitle', 'Student Library & Knowledge Base')}</h1>
+          <p className="text-sm text-slate-500 font-normal mt-1">
             {t('adminKnowledgeBaseSubtitle', 'Manage textbooks, notes, and previous year question papers stored on Google Drive for students.')}
           </p>
         </div>
@@ -169,9 +169,9 @@ export default function AdminKnowledgeBasePage() {
         <button
           onClick={handleDriveSync}
           disabled={syncing}
-          className="btn-primary flex items-center gap-2 text-xs font-bold py-2.5 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm"
+          className="btn-primary"
         >
-          {syncing ? <><span className="spinner mr-2"></span>{t('syncingDrive', 'Syncing Drive...')}</> : t('syncConnectedDrive', 'Sync Connected Google Drive')}
+          {syncing ? <><span className="spinner mr-2"></span>{t('syncingDrive', 'Syncing Drive...')}</> : t('syncConnectedDrive', 'Sync Google Drive')}
         </button>
       </div>
 
@@ -405,7 +405,7 @@ export default function AdminKnowledgeBasePage() {
                           <button
                             type="button"
                             onClick={() => setActiveDocument(item)}
-                            className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200 rounded-lg transition-colors inline-flex items-center justify-center shadow-xs"
+                            className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200 rounded-lg transition-colors inline-flex items-center justify-center shadow-sm"
                             title="View Document"
                           >
                             <svg className="w-4 h-4 text-slate-700 fill-current" viewBox="0 0 24 24">
@@ -419,7 +419,7 @@ export default function AdminKnowledgeBasePage() {
                                 deleteMutation.mutate(item.id);
                               }
                             }}
-                            className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 border border-red-200 rounded-lg transition-colors inline-flex items-center justify-center shadow-xs"
+                            className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 border border-red-200 rounded-lg transition-colors inline-flex items-center justify-center shadow-sm"
                             title="Delete Document"
                           >
                             <svg className="w-4 h-4 text-red-600 fill-current" viewBox="0 0 24 24">

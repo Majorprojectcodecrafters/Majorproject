@@ -12,6 +12,7 @@ export default function AdminDashboardPage() {
     from: '',
     to: ''
   });
+
   const { data: dashboard, isLoading, error } = useQuery({
     queryKey: ['adminDashboard'],
     queryFn: async () => {
@@ -22,10 +23,10 @@ export default function AdminDashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto space-y-8 px-4 py-8">
-        <Skeleton className="h-10 w-56" />
-        <div className="grid gap-4 sm:grid-cols-3">
-          {Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="h-24" />)}
+      <div className="max-w-7xl mx-auto space-y-8 px-4 sm:px-6 lg:px-8 py-8">
+        <Skeleton className="h-9 w-48" />
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+          {Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="h-20" />)}
         </div>
         <Skeleton className="h-64 w-full" />
       </div>
@@ -34,9 +35,9 @@ export default function AdminDashboardPage() {
 
   if (error || !dashboard) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="rounded-lg bg-red-50 p-4 text-red-700">
-          Failed to load dashboard
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="rounded-xl bg-rose-50 border border-rose-200 p-4 text-xs font-medium text-rose-700">
+          Failed to load dashboard data. Please try again.
         </div>
       </div>
     );
@@ -51,10 +52,9 @@ export default function AdminDashboardPage() {
     { label: 'Chapters', value: dashboard.academic?.chapters || 0 },
   ];
 
-  const qpStats = [
-    { label: 'Draft Papers', value: dashboard.questionPapers?.DRAFT || 0, color: 'bg-yellow-50' },
-    { label: 'Published Papers', value: dashboard.questionPapers?.PUBLISHED || 0, color: 'bg-green-50' },
-  ];
+  const qpDraftCount = dashboard.questionPapers?.DRAFT || 0;
+  const qpPublishedCount = dashboard.questionPapers?.PUBLISHED || 0;
+
   const papers = dashboard.questionPaperList || [];
   const subjects = [...new Set(papers.map((paper) => paper.subject?.name).filter(Boolean))].sort();
   const filteredPapers = papers.filter((paper) => {
@@ -72,44 +72,58 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="mb-8 text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 select-none">
+      <div className="border-b border-slate-200 pb-5">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Admin Dashboard</h1>
+        <p className="mt-1 text-sm text-slate-500 font-normal">System statistics, user accounts, academic entities, and question paper catalog.</p>
+      </div>
 
       {/* Stats Grid */}
-      <div className="mb-8 grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {stats.map((stat, idx) => (
-          <div key={idx} className="card">
-            <p className="text-sm text-gray-600">{stat.label}</p>
-            <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+          <div key={idx} className="card p-4">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{stat.label}</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{stat.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="card mb-8 flex flex-col gap-4 bg-blue-50 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">Student Study Materials</h2>
-          <p className="mt-1 text-sm text-gray-600">Upload textbooks and previous-year question papers. Students can access matching class and subject materials after upload.</p>
+      {/* Quick Actions & Question Paper Status */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="card md:col-span-2 flex flex-col justify-between gap-4 sm:flex-row sm:items-center bg-slate-50/70 border-slate-200">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Curriculum & Student Materials</h2>
+            <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+              Upload textbook PDFs, board schemes, and notes. Uploaded materials feed directly into RAG generation and student libraries.
+            </p>
+          </div>
+          <Link to="/admin/knowledge-base" className="btn-primary shrink-0 text-center text-xs">
+            Manage Study Materials
+          </Link>
         </div>
-        <Link to="/admin/knowledge-base" className="btn-primary shrink-0 text-center">Upload Study Material</Link>
-      </div>
 
-      {/* Question Paper Stats */}
-      <div className="grid grid-cols-2 gap-4">
-        {qpStats.map((stat, idx) => (
-          <div key={idx} className={`card ${stat.color}`}>
-            <p className="text-sm font-medium text-gray-900">{stat.label}</p>
-            <p className="mt-2 text-2xl font-bold text-gray-900">{stat.value}</p>
+        <div className="card flex items-center justify-around p-4">
+          <div className="text-center">
+            <span className="badge badge-warning text-[11px] font-semibold">Draft Papers</span>
+            <p className="mt-1.5 text-2xl font-bold text-slate-900">{qpDraftCount}</p>
           </div>
-        ))}
+          <div className="h-8 w-px bg-slate-200" />
+          <div className="text-center">
+            <span className="badge badge-success text-[11px] font-semibold">Published</span>
+            <p className="mt-1.5 text-2xl font-bold text-slate-900">{qpPublishedCount}</p>
+          </div>
+        </div>
       </div>
 
-      <div className="card mt-8">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Question Papers</h2>
-        <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      {/* Papers Table */}
+      <div className="card space-y-5">
+        <h2 className="text-base font-semibold text-slate-900 border-b border-slate-100 pb-3">All Question Papers</h2>
+        
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <input
             value={filters.search}
             onChange={(event) => updateFilter('search', event.target.value)}
-            placeholder="Search title"
+            placeholder="Search title..."
             className="input-field"
           />
           <select
@@ -133,39 +147,52 @@ export default function AdminDashboardPage() {
             type="date"
             value={filters.from}
             onChange={(event) => updateFilter('from', event.target.value)}
-            className="input-field"
+            className="input-field text-xs"
             aria-label="Created from"
           />
           <input
             type="date"
             value={filters.to}
             onChange={(event) => updateFilter('to', event.target.value)}
-            className="input-field"
+            className="input-field text-xs"
             aria-label="Created to"
           />
         </div>
 
         {filteredPapers.length === 0 ? (
-          <p className="text-gray-600">No papers match the current filters.</p>
+          <p className="text-slate-500 py-10 text-center text-sm font-normal">No question papers match the current filters.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[40rem]">
-              <thead className="border-b border-gray-200 bg-gray-50">
+          <div className="table-responsive-container">
+            <table className="w-full text-left text-sm border-collapse">
+              <thead className="border-b border-slate-200 bg-slate-50/75 text-slate-600 text-xs font-semibold">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Title</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Subject</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Created</th>
+                  <th className="px-4 py-3">Title</th>
+                  <th className="px-4 py-3">Subject</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Created</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-slate-100 text-slate-800">
                 {filteredPapers.map((paper) => (
-                  <tr key={paper.id}>
-                    <td className="px-4 py-3 text-sm text-gray-900">{paper.title}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{paper.subject?.name}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{paper.status}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                  <tr key={paper.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="px-4 py-3 text-sm font-medium text-slate-900">{paper.title}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{paper.subject?.name}</td>
+                    <td className="px-4 py-3">
+                      <span className={`badge ${paper.status === 'PUBLISHED' ? 'badge-success' : 'badge-warning'}`}>
+                        {paper.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-500">
                       {new Date(paper.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Link
+                        to={`/paper/${paper.id}`}
+                        className="text-xs font-medium text-slate-900 hover:text-slate-700 underline underline-offset-2"
+                      >
+                        View
+                      </Link>
                     </td>
                   </tr>
                 ))}

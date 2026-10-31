@@ -110,23 +110,23 @@ export default function ForgotPasswordModal({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 border border-slate-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+      <div className="relative w-full max-w-md bg-white rounded-xl shadow-lg p-6 border border-slate-200">
         {/* Top Header */}
-        <div className="flex items-center justify-between border-b pb-3 mb-5">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-5">
           <div className="flex items-center gap-2">
-            <h3 className="font-bold text-lg text-slate-900">Forgot Password</h3>
+            <h3 className="font-semibold text-base text-slate-900">Forgot Password</h3>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 text-lg font-bold p-1 rounded"
+            className="text-slate-400 hover:text-slate-600 text-sm font-semibold p-1 rounded"
           >
             ✕
           </button>
         </div>
 
         {errorMsg && (
-          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium">
+          <div className="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
             {errorMsg}
           </div>
         )}

@@ -274,79 +274,80 @@ export default function StudentPracticePage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 select-none">
       {/* Header & Overall Stats Bar */}
-      <div className="border-b pb-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="border-b border-slate-200 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="badge badge-info bg-purple-100 text-purple-900 border-purple-300 font-bold">
-              MHT-CET STANDARD
+            <span className="badge badge-neutral">
+              MHT-CET Module
             </span>
-            <span className="text-xs font-bold text-gray-500">Practice Arena</span>
+            <span className="text-xs font-medium text-slate-500">Practice Arena</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mt-1">Gamified MHT-CET Practice</h1>
+          <h1 className="text-2xl font-bold text-slate-900 mt-1 tracking-tight">MHT-CET Practice Arena</h1>
+          <p className="text-xs text-slate-500 mt-0.5">Chapter-wise MCQ training with instant feedback and analytics.</p>
         </div>
 
         {progressData?.stats && (
-          <div className="flex items-center gap-4 bg-purple-900 text-white p-3 rounded-xl shadow">
-            <div className="text-center px-2">
-              <div className="text-[10px] text-purple-300 uppercase font-bold">Level</div>
-              <div className="text-xl font-black text-amber-300">Lvl {progressData.stats.level}</div>
+          <div className="flex items-center gap-4 bg-slate-900 text-white px-4 py-2.5 rounded-xl border border-slate-800 shadow-sm">
+            <div className="text-center px-1">
+              <div className="text-[10px] text-slate-400 uppercase font-semibold">Level</div>
+              <div className="text-base font-bold text-white">Lvl {progressData.stats.level}</div>
             </div>
-            <div className="h-8 w-px bg-purple-700"></div>
-            <div className="text-center px-2">
-              <div className="text-[10px] text-purple-300 uppercase font-bold">Total XP</div>
-              <div className="text-xl font-black text-emerald-300">{progressData.stats.totalXp} XP</div>
+            <div className="h-6 w-px bg-slate-700"></div>
+            <div className="text-center px-1">
+              <div className="text-[10px] text-slate-400 uppercase font-semibold">Total XP</div>
+              <div className="text-base font-bold text-emerald-400">{progressData.stats.totalXp} XP</div>
             </div>
-            <div className="h-8 w-px bg-purple-700"></div>
-            <div className="text-center px-2">
-              <div className="text-[10px] text-purple-300 uppercase font-bold">Avg Accuracy</div>
-              <div className="text-xl font-black text-white">{progressData.stats.avgAccuracy}%</div>
+            <div className="h-6 w-px bg-slate-700"></div>
+            <div className="text-center px-1">
+              <div className="text-[10px] text-slate-400 uppercase font-semibold">Accuracy</div>
+              <div className="text-base font-bold text-white">{progressData.stats.avgAccuracy}%</div>
             </div>
           </div>
         )}
       </div>
 
       {/* Main Tabs Navigation */}
-      <div className="flex flex-wrap gap-2 border-b pb-2">
+      <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
         <button
           onClick={() => { setActiveTab('arena'); setInQuiz(false); setPracticeResult(null); }}
-          className={`btn-sm font-bold ${activeTab === 'arena' ? 'btn-primary' : 'btn-secondary'}`}
+          className={`btn-sm ${activeTab === 'arena' ? 'btn-primary' : 'btn-secondary'}`}
         >
           Practice Arena
         </button>
         <button
           onClick={() => setActiveTab('challenges')}
-          className={`btn-sm font-bold ${activeTab === 'challenges' ? 'btn-primary' : 'btn-secondary'}`}
+          className={`btn-sm ${activeTab === 'challenges' ? 'btn-primary' : 'btn-secondary'}`}
         >
-          Classmate Challenges ({challenges.filter(c => c.status === 'PENDING').length})
+          Challenges ({challenges.filter(c => c.status === 'PENDING').length})
         </button>
         <button
           onClick={() => setActiveTab('leaderboard')}
-          className={`btn-sm font-bold ${activeTab === 'leaderboard' ? 'btn-primary' : 'btn-secondary'}`}
+          className={`btn-sm ${activeTab === 'leaderboard' ? 'btn-primary' : 'btn-secondary'}`}
         >
           Class Leaderboard
         </button>
         <button
           onClick={() => setActiveTab('heatmap')}
-          className={`btn-sm font-bold ${activeTab === 'heatmap' ? 'btn-primary' : 'btn-secondary'}`}
+          className={`btn-sm ${activeTab === 'heatmap' ? 'btn-primary' : 'btn-secondary'}`}
         >
-          Chapter Mastery Heatmap
+          Chapter Heatmap
         </button>
       </div>
 
       {/* ==================== TAB 1: PRACTICE ARENA ==================== */}
       {activeTab === 'arena' && !inQuiz && (
-        <div className="space-y-8 max-w-3xl mx-auto">
-          <div className="card space-y-6 border-2 border-blue-500 shadow-md">
-            <h2 className="text-xl font-bold text-gray-900 border-b pb-2">Start Chapterwise Practice Session</h2>
+        <div className="space-y-8 max-w-2xl mx-auto">
+          <div className="card space-y-5">
+            <h2 className="text-base font-semibold text-slate-900 border-b border-slate-100 pb-3">Start Chapter Practice Session</h2>
 
             <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="input-label mb-0">Select Subject</label>
-                  <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
-                    Enrolled Subjects Only
+                  <span className="badge badge-neutral text-[10px]">
+                    Enrolled Subjects
                   </span>
                 </div>
                 <select
@@ -363,7 +364,7 @@ export default function StudentPracticePage() {
                   ))}
                 </select>
                 {subjects.length === 0 && (
-                  <p className="text-xs text-amber-700 bg-amber-50 p-2 rounded-lg mt-1 border border-amber-200">
+                  <p className="text-xs text-amber-700 bg-amber-50 p-2.5 rounded-lg mt-1.5 border border-amber-200">
                     No enrolled subjects found. Check your profile or contact your teacher to set your registered subjects.
                   </p>
                 )}
@@ -400,20 +401,19 @@ export default function StudentPracticePage() {
             </div>
 
             {/* MHT-CET XP Rules Card */}
-            <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 text-xs space-y-2 text-purple-950">
-              <div className="font-bold text-purple-900 text-sm">MHT-CET Gamification Rewards Engine:</div>
-              <ul className="list-disc pl-4 space-y-1">
-                <li><strong>Base XP:</strong> 10 XP per correct MHT-CET question.</li>
-                <li><strong>Streak Multiplier:</strong> 3 consecutive correct → 1.5× XP (15 XP/q); 5 consecutive correct → 2.0× XP (20 XP/q).</li>
-                <li><strong>Speed Bonus:</strong> +5 XP bonus if question is answered in under 15 seconds.</li>
-                <li><strong>Retakes:</strong> Unlimited chapter practice retakes with randomized questions.</li>
+            <div className="bg-slate-50/70 p-4 rounded-xl border border-slate-200 text-xs space-y-1.5 text-slate-700">
+              <div className="font-semibold text-slate-900 text-xs">MHT-CET Practice Guidelines:</div>
+              <ul className="list-disc pl-4 space-y-1 text-slate-600">
+                <li><strong>Base Score:</strong> 10 XP per correct question.</li>
+                <li><strong>Streak Bonus:</strong> Consecutive correct answers earn bonus multipliers.</li>
+                <li><strong>Retakes:</strong> Practice any chapter multiple times with randomized questions.</li>
               </ul>
             </div>
 
             <button
               onClick={handleStartPractice}
               disabled={!selectedSubjectId || !selectedChapterId}
-              className="btn-primary w-full text-lg py-3"
+              className="btn-primary w-full py-2.5"
             >
               Launch Practice Quiz
             </button>
@@ -423,24 +423,24 @@ export default function StudentPracticePage() {
 
       {/* ==================== ACTIVE QUIZ PLAYER ==================== */}
       {inQuiz && quizData && (
-        <div className="space-y-6 max-w-4xl mx-auto">
+        <div className="space-y-6 max-w-3xl mx-auto">
           {/* Top Timer & Streak Status */}
-          <div className="card bg-purple-950 text-white flex flex-wrap items-center justify-between gap-4 p-4 shadow-lg">
+          <div className="card bg-slate-900 text-white flex flex-wrap items-center justify-between gap-4 p-4 border border-slate-800">
             <div>
-              <div className="text-xs text-purple-300">{quizData.subjectName} • {quizData.chapterName}</div>
-              <h2 className="text-lg font-bold">Question {currentIdx + 1} of {quizData.questions.length}</h2>
+              <div className="text-xs text-slate-400">{quizData.subjectName} &bull; {quizData.chapterName}</div>
+              <h2 className="text-base font-bold text-white mt-0.5">Question {currentIdx + 1} of {quizData.questions.length}</h2>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="bg-purple-900 px-3 py-1.5 rounded-lg border border-purple-700 text-center">
-                <div className="text-[10px] text-purple-300 uppercase font-bold">Streak</div>
-                <div className="text-lg font-black text-amber-300">{streak} {streak >= 5 ? '(2.0x XP)' : streak >= 3 ? '(1.5x XP)' : ''}</div>
+            <div className="flex items-center gap-3">
+              <div className="bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-center">
+                <div className="text-[10px] text-slate-400 uppercase font-semibold">Streak</div>
+                <div className="text-base font-bold text-amber-300">{streak} {streak >= 5 ? '(2x)' : streak >= 3 ? '(1.5x)' : ''}</div>
               </div>
 
               {!practiceResult && (
-                <div className="bg-purple-900 px-4 py-1.5 rounded-lg border border-purple-700 text-center">
-                  <div className="text-[10px] text-purple-300 uppercase font-bold">Time Left</div>
-                  <div className="text-lg font-mono font-bold text-amber-300">{formatTimer(timeLeft)}</div>
+                <div className="bg-slate-800 px-3.5 py-1.5 rounded-lg border border-slate-700 text-center">
+                  <div className="text-[10px] text-slate-400 uppercase font-semibold">Time Left</div>
+                  <div className="text-base font-mono font-bold text-white">{formatTimer(timeLeft)}</div>
                 </div>
               )}
             </div>

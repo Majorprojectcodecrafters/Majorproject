@@ -42,8 +42,6 @@ const queryClient = new QueryClient({
 });
 
 // Sends the logged-in user to the right home page for their role.
-// Falls back to /login if not authenticated (ProtectedRoute would do
-// this anyway, but this avoids an extra redirect hop).
 function HomeRedirect() {
   const { user, loading } = useAuth();
 
@@ -57,7 +55,7 @@ function HomeRedirect() {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  if (user.role === 'ADMIN') return <Navigate to="/admin/dashboard" replace />;
+  if (user.role === 'ADMIN' || user.role === 'DEVELOPER') return <Navigate to="/admin/dashboard" replace />;
   if (user.role === 'TEACHER') return <Navigate to="/dashboard" replace />;
   return <Navigate to="/student/papers" replace />;
 }
@@ -74,7 +72,7 @@ function AppRoutes() {
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute allowedRoles={['TEACHER']}>
+          <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN', 'DEVELOPER']}>
             <TeacherDashboard />
           </ProtectedRoute>
         }
@@ -82,7 +80,7 @@ function AppRoutes() {
       <Route
         path="/generator"
         element={
-          <ProtectedRoute allowedRoles={['TEACHER']}>
+          <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN', 'DEVELOPER']}>
             <QPGeneratorPage />
           </ProtectedRoute>
         }
@@ -90,7 +88,7 @@ function AppRoutes() {
       <Route
         path="/teacher/students"
         element={
-          <ProtectedRoute allowedRoles={['TEACHER']}>
+          <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN', 'DEVELOPER']}>
             <TeacherStudentsPage />
           </ProtectedRoute>
         }
@@ -98,7 +96,7 @@ function AppRoutes() {
       <Route
         path="/teacher/results/create"
         element={
-          <ProtectedRoute allowedRoles={['TEACHER']}>
+          <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN', 'DEVELOPER']}>
             <CreateResultPage />
           </ProtectedRoute>
         }
@@ -106,7 +104,7 @@ function AppRoutes() {
       <Route
         path="/teacher/quiz"
         element={
-          <ProtectedRoute allowedRoles={['TEACHER']}>
+          <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN', 'DEVELOPER']}>
             <TeacherQuizPage />
           </ProtectedRoute>
         }
@@ -114,7 +112,7 @@ function AppRoutes() {
       <Route
         path="/teacher/profile"
         element={
-          <ProtectedRoute allowedRoles={['TEACHER']}>
+          <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN', 'DEVELOPER']}>
             <TeacherProfilePage />
           </ProtectedRoute>
         }
@@ -122,7 +120,7 @@ function AppRoutes() {
       <Route
         path="/paper/:paperId"
         element={
-          <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN', 'STUDENT']}>
+          <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN', 'DEVELOPER', 'STUDENT']}>
             <PaperViewerPage />
           </ProtectedRoute>
         }
@@ -132,7 +130,7 @@ function AppRoutes() {
       <Route
         path="/student/papers"
         element={
-          <ProtectedRoute allowedRoles={['STUDENT']}>
+          <ProtectedRoute allowedRoles={['STUDENT', 'ADMIN', 'DEVELOPER']}>
             <StudentDashboard />
           </ProtectedRoute>
         }
@@ -140,7 +138,7 @@ function AppRoutes() {
       <Route
         path="/student/materials"
         element={
-          <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+          <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN', 'DEVELOPER']}>
             <StudentMaterialsPage />
           </ProtectedRoute>
         }
@@ -148,7 +146,7 @@ function AppRoutes() {
       <Route
         path="/student/library"
         element={
-          <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+          <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN', 'DEVELOPER']}>
             <StudentMaterialsPage />
           </ProtectedRoute>
         }
@@ -156,7 +154,7 @@ function AppRoutes() {
       <Route
         path="/student/results"
         element={
-          <ProtectedRoute allowedRoles={['STUDENT']}>
+          <ProtectedRoute allowedRoles={['STUDENT', 'ADMIN', 'DEVELOPER']}>
             <StudentResultsPage />
           </ProtectedRoute>
         }
@@ -164,7 +162,7 @@ function AppRoutes() {
       <Route
         path="/student/quizzes"
         element={
-          <ProtectedRoute allowedRoles={['STUDENT']}>
+          <ProtectedRoute allowedRoles={['STUDENT', 'ADMIN', 'DEVELOPER']}>
             <StudentQuizPage />
           </ProtectedRoute>
         }
@@ -172,7 +170,7 @@ function AppRoutes() {
       <Route
         path="/student/practice"
         element={
-          <ProtectedRoute allowedRoles={['STUDENT']}>
+          <ProtectedRoute allowedRoles={['STUDENT', 'ADMIN', 'DEVELOPER']}>
             <StudentPracticePage />
           </ProtectedRoute>
         }
@@ -180,7 +178,7 @@ function AppRoutes() {
       <Route
         path="/student/announcements"
         element={
-          <ProtectedRoute allowedRoles={['STUDENT']}>
+          <ProtectedRoute allowedRoles={['STUDENT', 'ADMIN', 'DEVELOPER']}>
             <StudentAnnouncementsPage />
           </ProtectedRoute>
         }
@@ -188,7 +186,7 @@ function AppRoutes() {
       <Route
         path="/manage/announcements"
         element={
-          <ProtectedRoute allowedRoles={['ADMIN', 'TEACHER']}>
+          <ProtectedRoute allowedRoles={['ADMIN', 'DEVELOPER', 'TEACHER']}>
             <ManageAnnouncementsPage />
           </ProtectedRoute>
         }
@@ -196,7 +194,7 @@ function AppRoutes() {
       <Route
         path="/student/profile"
         element={
-          <ProtectedRoute allowedRoles={['STUDENT']}>
+          <ProtectedRoute allowedRoles={['STUDENT', 'ADMIN', 'DEVELOPER']}>
             <StudentProfilePage />
           </ProtectedRoute>
         }
@@ -206,7 +204,7 @@ function AppRoutes() {
       <Route
         path="/admin/dashboard"
         element={
-          <ProtectedRoute allowedRoles={['ADMIN']}>
+          <ProtectedRoute allowedRoles={['ADMIN', 'DEVELOPER']}>
             <AdminDashboardPage />
           </ProtectedRoute>
         }
@@ -214,7 +212,7 @@ function AppRoutes() {
       <Route
         path="/admin/users"
         element={
-          <ProtectedRoute allowedRoles={['ADMIN']}>
+          <ProtectedRoute allowedRoles={['ADMIN', 'DEVELOPER']}>
             <AdminUserManagementPage />
           </ProtectedRoute>
         }
@@ -222,7 +220,7 @@ function AppRoutes() {
       <Route
         path="/admin/allocations"
         element={
-          <ProtectedRoute allowedRoles={['ADMIN']}>
+          <ProtectedRoute allowedRoles={['ADMIN', 'DEVELOPER']}>
             <AdminAllocationsPage />
           </ProtectedRoute>
         }
@@ -230,7 +228,7 @@ function AppRoutes() {
       <Route
         path="/admin/knowledge-base"
         element={
-          <ProtectedRoute allowedRoles={['ADMIN', 'TEACHER']}>
+          <ProtectedRoute allowedRoles={['ADMIN', 'DEVELOPER', 'TEACHER']}>
             <AdminKnowledgeBasePage />
           </ProtectedRoute>
         }
@@ -238,13 +236,13 @@ function AppRoutes() {
       <Route
         path="/admin/profile"
         element={
-          <ProtectedRoute allowedRoles={['ADMIN']}>
+          <ProtectedRoute allowedRoles={['ADMIN', 'DEVELOPER']}>
             <AdminProfilePage />
           </ProtectedRoute>
         }
       />
 
-      {/* Fallback — routes each role to its own home */}
+      {/* Fallback */}
       <Route path="/" element={<HomeRedirect />} />
       <Route path="*" element={<HomeRedirect />} />
     </Routes>

@@ -145,12 +145,12 @@ export default function AdminAllocationsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl space-y-8 select-none">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 select-none">
       {/* Header */}
-      <div className="border-b pb-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="border-b border-slate-200 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t('adminAllocationsTitle', 'Admin Allocations & Class Management')}</h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('adminAllocationsTitle', 'Allocations & Class Management')}</h1>
+          <p className="mt-1 text-sm text-slate-500 font-normal">
             {t('adminAllocationsSubtitle', 'Assign Teachers to Classes & Subjects, create granular Divisions (11th C, 11th D), and manage Student Class Allocations.')}
           </p>
         </div>
@@ -181,9 +181,9 @@ export default function AdminAllocationsPage() {
       {activeTab === 'allocations' && (
         <div className="space-y-8">
           {/* Allocation Form */}
-          <form onSubmit={handleCreateAllocation} className="card bg-blue-50/50 border border-blue-200 p-6 space-y-4">
-            <h2 className="text-base font-bold text-blue-950 uppercase tracking-wider">
-              {t('allocateTeacherHeader', 'Allocate Teacher ➔ Subject ➔ Class / Division')}
+          <form onSubmit={handleCreateAllocation} className="card bg-slate-50/70 border border-slate-200 p-5 sm:p-6 space-y-4">
+            <h2 className="text-sm font-semibold text-slate-900">
+              {t('allocateTeacherHeader', 'Allocate Teacher to Subject & Class')}
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -248,42 +248,42 @@ export default function AdminAllocationsPage() {
 
           {/* Current Allocations Table */}
           <div className="card space-y-4">
-            <h3 className="text-lg font-bold text-gray-900 border-b pb-2">
+            <h3 className="text-base font-semibold text-slate-900 border-b border-slate-100 pb-2.5">
               {t('activeAllocationsTitle', 'Active Teacher Allocations')} ({allocations.length})
             </h3>
 
             {allocations.length === 0 ? (
-              <p className="py-6 text-center text-gray-500">{t('noAllocations', 'No teacher allocations configured yet.')}</p>
+              <p className="py-8 text-center text-slate-500 text-sm">{t('noAllocations', 'No teacher allocations configured yet.')}</p>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="table-responsive-container">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
-                    <tr className="border-b bg-gray-50 text-xs font-semibold text-gray-700 uppercase">
-                      <th className="p-3">{t('tableHeaderTeacher', 'Teacher')}</th>
-                      <th className="p-3">{t('tableHeaderSubject', 'Assigned Subject')}</th>
-                      <th className="p-3">{t('tableHeaderClass', 'Assigned Class / Division')}</th>
-                      <th className="p-3">{t('tableHeaderYear', 'Academic Year')}</th>
-                      <th className="p-3 text-right">{t('tableHeaderAction', 'Action')}</th>
+                    <tr className="border-b border-slate-200 bg-slate-50/75 text-xs font-semibold text-slate-600">
+                      <th className="px-4 py-3">{t('tableHeaderTeacher', 'Teacher')}</th>
+                      <th className="px-4 py-3">{t('tableHeaderSubject', 'Assigned Subject')}</th>
+                      <th className="px-4 py-3">{t('tableHeaderClass', 'Assigned Class / Division')}</th>
+                      <th className="px-4 py-3">{t('tableHeaderYear', 'Academic Year')}</th>
+                      <th className="px-4 py-3 text-right">{t('tableHeaderAction', 'Action')}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y text-sm">
+                  <tbody className="divide-y divide-slate-100 text-slate-800 text-xs">
                     {allocations.map(a => (
-                      <tr key={a.id} className="hover:bg-gray-50">
-                        <td className="p-3">
-                          <div className="font-semibold text-gray-900">{a.teacher?.user?.name}</div>
-                          <div className="text-xs text-gray-500">{a.teacher?.user?.email}</div>
+                      <tr key={a.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="font-semibold text-slate-900">{a.teacher?.user?.name}</div>
+                          <div className="text-[11px] text-slate-500">{a.teacher?.user?.email}</div>
                         </td>
-                        <td className="p-3 font-medium text-blue-800">{a.subject?.name}</td>
-                        <td className="p-3">
-                          <span className="badge badge-info">{a.class?.name}</span>
+                        <td className="px-4 py-3 font-medium text-slate-900">{a.subject?.name}</td>
+                        <td className="px-4 py-3">
+                          <span className="badge badge-neutral">{a.class?.name}</span>
                         </td>
-                        <td className="p-3 text-xs text-gray-600">{a.class?.academicYear}</td>
-                        <td className="p-3 text-right">
+                        <td className="px-4 py-3 text-slate-500">{a.class?.academicYear}</td>
+                        <td className="px-4 py-3 text-right">
                           <button
                             onClick={() => handleDeleteAllocation(a.id)}
-                            className="text-xs text-red-600 hover:text-red-900 font-bold"
+                            className="btn-xs text-rose-600 hover:text-rose-800 hover:bg-rose-50"
                           >
-                            {t('removeBtn', 'Remove Allocation')}
+                            {t('removeBtn', 'Remove')}
                           </button>
                         </td>
                       </tr>

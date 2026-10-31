@@ -4,6 +4,8 @@ const katex = require('katex');
 
 const LOGO_PATH = path.join(process.cwd(), 'assets', 'logo.jpg');
 
+let browserPromise = null;
+
 function getChromiumExecutablePath() {
   if (process.env.PUPPETEER_EXECUTABLE_PATH) {
     return process.env.PUPPETEER_EXECUTABLE_PATH;
@@ -36,22 +38,29 @@ async function getSharedBrowser() {
       '--disable-gpu',
       '--no-first-run',
       '--no-zygote',
-      '--single-process',
       '--disable-extensions',
       '--disable-software-rasterizer'
     ];
     const launchOptions = {
       headless: true,
+      pipe: true,
       args: launchArgs
     };
     if (execPath) {
       launchOptions.executablePath = execPath;
     }
-    browserPromise = puppeteer.launch(launchOptions).catch(err => {
-      console.error('❌ Failed to launch Puppeteer browser:', err.message);
-      browserPromise = null;
-      throw err;
-    });
+    browserPromise = puppeteer.launch(launchOptions)
+      .then(b => {
+        b.on('disconnected', () => {
+          browserPromise = null;
+        });
+        return b;
+      })
+      .catch(err => {
+        console.error('❌ Failed to launch Puppeteer browser:', err.message);
+        browserPromise = null;
+        throw err;
+      });
   }
   const browser = await browserPromise;
   if (!browser || !browser.connected) {
@@ -465,8 +474,16 @@ async function exportQPToPDF(qp, showAnswers = false) {
     return cached.buffer;
   }
 
-  const browser = await getSharedBrowser();
-  const page = await browser.newPage();
+  let browser = await getSharedBrowser();
+  let page;
+  try {
+    page = await browser.newPage();
+  } catch (pageErr) {
+    console.warn('⚠️ Shared browser newPage failed, recreating browser instance:', pageErr.message);
+    browserPromise = null;
+    browser = await getSharedBrowser();
+    page = await browser.newPage();
+  }
 
   try {
     const examInfo = {

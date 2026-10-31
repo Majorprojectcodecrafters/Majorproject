@@ -28,6 +28,7 @@ async function generateResultPdf(qp, results) {
   const execPath = getChromiumExecutablePath();
   const launchOptions = {
     headless: true,
+    pipe: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
   };
   if (execPath) {
@@ -152,7 +153,7 @@ async function generateResultPdf(qp, results) {
       </html>
     `;
 
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+    await page.setContent(htmlContent, { waitUntil: 'domcontentloaded' });
 
     const pdfBuffer = await page.pdf({
       format: 'A4',

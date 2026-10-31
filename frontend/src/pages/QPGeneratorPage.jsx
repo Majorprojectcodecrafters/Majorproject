@@ -248,19 +248,19 @@ export default function QPGeneratorPage() {
 
       {/* Workflow Progress Steps */}
       <div className="mb-8 grid grid-cols-2 sm:grid-cols-5 gap-2 select-none">
-        <div className={`p-2.5 rounded-xl text-center text-xs font-bold transition-all ${step === 1 ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600'}`}>
+        <div className={`p-2 rounded-lg text-center text-xs font-medium transition-colors ${step === 1 ? 'bg-slate-900 text-white' : step > 1 ? 'bg-slate-100 text-slate-800' : 'bg-slate-50 text-slate-400'}`}>
           {t('step1Scope', '1. Scope')}
         </div>
-        <div className={`p-2.5 rounded-xl text-center text-xs font-bold transition-all ${step === 2 ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600'}`}>
+        <div className={`p-2 rounded-lg text-center text-xs font-medium transition-colors ${step === 2 ? 'bg-slate-900 text-white' : step > 2 ? 'bg-slate-100 text-slate-800' : 'bg-slate-50 text-slate-400'}`}>
           {t('step2Pattern', '2. Pattern')}
         </div>
-        <div className={`p-2.5 rounded-xl text-center text-xs font-bold transition-all ${step === 3 ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600'}`}>
+        <div className={`p-2 rounded-lg text-center text-xs font-medium transition-colors ${step === 3 ? 'bg-slate-900 text-white' : step > 3 ? 'bg-slate-100 text-slate-800' : 'bg-slate-50 text-slate-400'}`}>
           {t('step3Syllabus', '3. Syllabus')}
         </div>
-        <div className={`p-2.5 rounded-xl text-center text-xs font-bold transition-all ${step === 4 ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600'}`}>
+        <div className={`p-2 rounded-lg text-center text-xs font-medium transition-colors ${step === 4 ? 'bg-slate-900 text-white' : step > 4 ? 'bg-slate-100 text-slate-800' : 'bg-slate-50 text-slate-400'}`}>
           {t('step4Preview', '4. Preview')}
         </div>
-        <div className={`p-2.5 rounded-xl text-center text-xs font-bold transition-all ${step === 5 ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600'}`}>
+        <div className={`p-2 rounded-lg text-center text-xs font-medium transition-colors ${step === 5 ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-400'}`}>
           {t('step5Review', '5. Review')}
         </div>
       </div>
@@ -370,10 +370,10 @@ export default function QPGeneratorPage() {
                   setPatternMode('BOARD');
                   setValue('patternMode', 'BOARD');
                 }}
-                className={`p-4 rounded-xl border-2 text-left transition-all ${patternMode === 'BOARD' ? 'border-blue-600 bg-blue-50/60 shadow-sm' : 'border-slate-200 hover:border-slate-300'}`}
+                className={`p-4 rounded-xl border text-left transition-colors ${patternMode === 'BOARD' ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900/10' : 'border-slate-200 hover:border-slate-300 bg-white'}`}
               >
-                <div className="font-bold text-slate-900">{t('officialBoardPattern', 'Official Board Pattern')}</div>
-                <div className="text-xs text-slate-600 mt-1 leading-relaxed">
+                <div className="font-semibold text-slate-900">{t('officialBoardPattern', 'Official Board Pattern')}</div>
+                <div className="text-xs text-slate-500 mt-1 leading-relaxed">
                   {t('officialBoardDesc', 'Automated Maharashtra State Board pattern (Sections A, B, C, D) with prescribed question types and total marks.')}
                 </div>
               </button>
@@ -384,10 +384,10 @@ export default function QPGeneratorPage() {
                   setPatternMode('CUSTOM');
                   setValue('patternMode', 'CUSTOM');
                 }}
-                className={`p-4 rounded-xl border-2 text-left transition-all ${patternMode === 'CUSTOM' ? 'border-blue-600 bg-blue-50/60 shadow-sm' : 'border-slate-200 hover:border-slate-300'}`}
+                className={`p-4 rounded-xl border text-left transition-colors ${patternMode === 'CUSTOM' ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900/10' : 'border-slate-200 hover:border-slate-300 bg-white'}`}
               >
-                <div className="font-bold text-slate-900">{t('customizedPatternBuilder', 'Customized Pattern Builder')}</div>
-                <div className="text-xs text-slate-600 mt-1 leading-relaxed">
+                <div className="font-semibold text-slate-900">{t('customizedPatternBuilder', 'Customized Pattern Builder')}</div>
+                <div className="text-xs text-slate-500 mt-1 leading-relaxed">
                   {t('customPatternDesc', 'Build custom sections, custom total marks, custom question types, or MCQ-only examination papers.')}
                 </div>
               </button>

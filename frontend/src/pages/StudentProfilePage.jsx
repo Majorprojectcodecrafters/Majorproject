@@ -169,7 +169,7 @@ export default function StudentProfilePage() {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="w-full py-2 px-4 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 hover:text-red-700 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors shadow-xs"
+                className="w-full py-2 px-4 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 hover:text-red-700 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"
               >
                 <span>{t('logoutFromAccount', 'Logout from Account')}</span>
               </button>
@@ -217,7 +217,7 @@ export default function StudentProfilePage() {
                 {profile.enrolledSubjects && profile.enrolledSubjects.length > 0 ? (
                   <div className="flex flex-wrap gap-2 pt-1">
                     {profile.enrolledSubjects.map((es) => (
-                      <span key={es.id || es.subjectId} className="inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-50 text-purple-800 border border-purple-200 shadow-xs">
+                      <span key={es.id || es.subjectId} className="inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-50 text-purple-800 border border-purple-200 shadow-sm">
                         📚 {es.subject?.name || 'Subject'}
                       </span>
                     ))}

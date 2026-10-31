@@ -122,14 +122,12 @@ export default function TeacherStudentsPage() {
       </div>
 
       {/* Tab Switcher */}
-      <div className="flex items-center gap-3 border-b border-slate-200 pb-2">
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
         <button
           type="button"
           onClick={() => setActiveTab('ACTIVE')}
-          className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${
-            activeTab === 'ACTIVE'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+          className={`btn-sm ${
+            activeTab === 'ACTIVE' ? 'btn-primary' : 'btn-secondary'
           }`}
         >
           {t('enrolledStudentsTab', 'Enrolled Students')} ({students.length})
@@ -137,15 +135,13 @@ export default function TeacherStudentsPage() {
         <button
           type="button"
           onClick={() => setActiveTab('PENDING')}
-          className={`px-4 py-2 text-sm font-bold rounded-xl transition-all flex items-center gap-2 ${
-            activeTab === 'PENDING'
-              ? 'bg-amber-600 text-white shadow-sm'
-              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+          className={`btn-sm flex items-center gap-1.5 ${
+            activeTab === 'PENDING' ? 'btn-primary' : 'btn-secondary'
           }`}
         >
           {t('pendingApprovalsTab', 'Pending Approvals')} ({pendingStudents.length})
           {pendingStudents.length > 0 && (
-            <span className={`inline-block w-2.5 h-2.5 rounded-full ${activeTab === 'PENDING' ? 'bg-white' : 'bg-amber-500 animate-pulse'}`} />
+            <span className={`inline-block w-1.5 h-1.5 rounded-full ${activeTab === 'PENDING' ? 'bg-amber-300' : 'bg-amber-500'}`} />
           )}
         </button>
       </div>

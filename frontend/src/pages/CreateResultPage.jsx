@@ -183,28 +183,28 @@ export default function CreateResultPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 select-none">
       {/* Header */}
-      <div className="border-b border-slate-200 pb-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="border-b border-slate-200 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{t('createPublishResultsTitle', 'Create & Publish Test Results')}</h1>
-          <p className="mt-1 text-sm text-slate-500 font-medium">
-            {t('createPublishResultsSubtitle', 'Select a generated question paper, manually enter student marks, and export result sheets to Excel or PDF.')}
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('createPublishResultsTitle', 'Test Results')}</h1>
+          <p className="mt-1 text-sm text-slate-500 font-normal">
+            {t('createPublishResultsSubtitle', 'Select a generated question paper, enter student scores, and export result sheets to Excel or PDF.')}
           </p>
         </div>
       </div>
 
       {/* Test Selection Bar */}
-      <div className="card bg-blue-50/50 border border-blue-200 p-6 space-y-4">
-        <label className="block text-xs font-bold text-blue-950 uppercase tracking-wider">
-          {t('step1SelectQP', 'STEP 1: SELECT QUESTION PAPER / TEST')}
+      <div className="card bg-slate-50/70 border border-slate-200 p-5 sm:p-6 space-y-4">
+        <label className="input-label mb-1">
+          {t('step1SelectQP', 'Step 1: Select Question Paper / Test')}
         </label>
 
         {qpLoading ? (
-          <p className="text-xs text-slate-500 font-medium">Loading tests...</p>
+          <p className="text-xs text-slate-500 font-normal">Loading tests...</p>
         ) : (
           <select
             value={selectedQPId}
             onChange={(e) => setSelectedQPId(e.target.value)}
-            className="input-field text-sm font-semibold w-full max-w-2xl bg-white"
+            className="input-field text-sm font-medium w-full max-w-2xl bg-white"
           >
             <option value="">{t('chooseTestQP', '-- Choose Test / Question Paper --')}</option>
             {qps.map(q => (
@@ -216,22 +216,22 @@ export default function CreateResultPage() {
         )}
 
         {selectedQP && (
-          <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-blue-200 text-xs text-blue-900">
+          <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-slate-200 text-xs text-slate-600">
             <div>
-              <strong>{t('subject', 'Subject')}:</strong> {selectedQP.subject?.name} | <strong>{t('totalMarksLabel', 'Total Marks')}:</strong> {selectedQP.totalMarks} | <strong>{t('durationLabel', 'Duration')}:</strong> {selectedQP.durationMins} {t('mins', 'Mins')}
+              <strong className="text-slate-900">{t('subject', 'Subject')}:</strong> {selectedQP.subject?.name} &bull; <strong className="text-slate-900">{t('totalMarksLabel', 'Total Marks')}:</strong> {selectedQP.totalMarks} &bull; <strong className="text-slate-900">{t('durationLabel', 'Duration')}:</strong> {selectedQP.durationMins} {t('mins', 'Mins')}
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={downloadExcel}
-                className="btn-secondary py-1 text-xs bg-white text-emerald-700 hover:bg-emerald-50 border-emerald-300 font-bold"
+                className="btn-sm btn-secondary text-xs"
               >
-                {t('downloadExcelSheet', 'Download Excel Sheet')}
+                {t('downloadExcelSheet', 'Export Excel')}
               </button>
               <button
                 onClick={downloadPDF}
-                className="btn-secondary py-1 text-xs bg-white text-red-700 hover:bg-red-50 border-red-300 font-bold"
+                className="btn-sm btn-secondary text-xs"
               >
-                {t('downloadResultPdf', 'Download Result PDF')}
+                {t('downloadResultPdf', 'Export PDF')}
               </button>
             </div>
           </div>
